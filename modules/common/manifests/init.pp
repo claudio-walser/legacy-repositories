@@ -17,34 +17,16 @@ class common {
 [1;30;44m        [40m  [43m    [40m   [44m     [0;37;40m [1;41m [0;40m  [1;41m [0;40m [1;41m [0;40m  [1;41m  [0;40m [1;41m [0;40m  [1;41m [0;40m  [1;32;42m [0;37;40m    [1;30;47m  [0;37;40m       [1;30;47m  [0;37;40m   [1;30;47m  [0;37;40m [1;30;47m    [0;37;40m [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m  [1;30;47m    [0;37;40m  
 [1;30;44m        [40m [0;30;43m`----'[40m  [1;44m     [0;37;40m  [1;41m   [0;40m [1;41m [0;40m   [1;41m [0;40m  [1;41m  [0;40m  [1;32;42m [0;37;40m     [1;30;47m      [0;37;40m [1;30;47m      [0;37;40m [1;30;47m  [0;37;40m   [1;30;47m  [0;37;40m  [1;30;47m    [0;37;40m  [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m
 [44m        [40m [47m [37m    [30m [40m   [44m    [0;37;40m
-[1;30;44m       [40m [47m        [40m    [44m  [0;37;40m Operating System: ${operatingsystem} 
-[1;30;44m       [40m [47m         [40m    [44m [0;37;40m Bla
-[1;30;44m       [40m [47m         [40m    [44m [0;37;40m Blubb
-[1;30;44m      [40m [47m          [40m     [0;37m Test 
-[1;30;44m     [40m  [47m          [40m     [0;37m Other
+[1;30;44m       [40m [47m        [40m    [44m  [0;37;40m Operating System: ${operatingsystem} ${operatingsystemrelease}
+[1;30;44m       [40m [47m         [40m    [44m [0;37;40m Name: ${fqdn}
+[1;30;44m       [40m [47m         [40m    [44m [0;37;40m ETH-0: ${ipaddress_eth0}
+[1;30;44m      [40m [47m          [40m     [0;37m ETH-1: ${ipaddress_eth1} 
+[1;30;44m     [40m  [47m          [40m     [0;37m
 [1;30;44m     [43m   [47m        [43m   [40m   [0;37m[2C
 [1;30;44m   [43m     [47m        [43m    [40m  [0;37m[2C
 [1;30;44m [43m       [47m        [43m      [0;37;40m[2C
 [1;30;44m [43m       [40m [47m      [40m [43m      [0;37;40m[2C
 [0m[255D
-
-
-
-
-
-
-
-
-
-
-		This is a Test-Environment
-		Operating System: ${operatingsystem}
-		Operating System Release: ${operatingsystemrelease}
-		Name: ${fqdn}
-		IPAdresses
-			ETH-0: ${ipaddress_eth0}
-			ETH-1: ${ipaddress_eth1}
-		Puppetversion: ${puppetversion}
 		"
 	}
 
