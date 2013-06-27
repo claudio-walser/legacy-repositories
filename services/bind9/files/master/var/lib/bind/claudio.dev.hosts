@@ -1,15 +1,15 @@
 $ORIGIN .
-$TTL 259200     ; 3 days
-dev.ch  IN      SOA     dns-01.claudio.dev. cwa.uwd.ch. (
-                        199609235
-                        28800
-                        7200
-                        2419200
-                        86400 )
-                        NS      dns-01.claudio.dev.
-                        NS      dns-02.claudio.dev.
-                        A       10.20.1.6
-                        TXT     "claudio development environment"
+$TTL 259200		; 3 days
+claudio.dev		IN		SOA		dns-01.claudio.dev. cwa.uwd.ch. (
+						199609235
+						28800
+						7200
+						2419200
+						86400 )
+						NS		dns-01.claudio.dev.
+						NS		dns-02.claudio.dev.
+						A		10.20.1.6
+						TXT		"claudio development environment"
 
 
 $ORIGIN claudio.dev.
