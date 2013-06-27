@@ -8,8 +8,4 @@ class bind9 {
         ensure => installed 
     }
 
-    service { "bind9":
-        ensure => running
-    }
-
 }

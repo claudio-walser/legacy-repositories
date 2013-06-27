@@ -5,20 +5,23 @@ node default {
 	include common
 }
 
-# dns nodes
+## might outsource in typed nodefiles soon
 
-#example regex for matching dns-(01-99||1-99)
-#node /^dns-[0-9]{1,2}\.claudio\.dev$/ {
-# dns base installation
-node 'baseDns' {
+
+## dns nodes
+# master node
+node 'dns-01.claudio.dev' {
 	include common
 	include bind9
-}
-# master node
-node 'dns-01.claudio.dev' inherits 'baseDns' {
 	include bind9::master
+	incluce bind9::ensureServiceRunning
 }
+
 #slave node
-node 'dns-02.claudio.dev' inherits 'baseDns' {
+node 'dns-02.claudio.dev' {
+	include common
+	include bind9
 	include bind9::slave
+	incluce bind9::ensureServiceRunning
 }
+## dns nodes
