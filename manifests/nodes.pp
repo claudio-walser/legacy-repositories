@@ -1,10 +1,10 @@
 ## nodes.pp
 
 node default {
-	include common
+	include common,
 }
 
 node /^dns-[0-9]{1,2}\.claudio\.dev$/ {
 	include common,
-	include bind9
+	include bind9,
 }
