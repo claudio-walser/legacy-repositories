@@ -15,7 +15,7 @@ class bind9 {
         ensure => running
     }
 
-    package { "nsupdate": 
+    package { "dnsutils": 
         ensure => installed 
     }
 
