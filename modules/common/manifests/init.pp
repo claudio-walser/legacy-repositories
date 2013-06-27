@@ -1,10 +1,10 @@
 class common {
 
-    package { "sshd": 
+    package { "ssh": 
         ensure => installed 
     }
 
-    service { "sshd":
+    service { "ssh":
         ensure => running
     }
 }
