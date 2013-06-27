@@ -1,5 +1,10 @@
 class bind9::master {
     
+    file { "cache.claudio.dev.hosts":
+        ensure  => absent,
+        path => "/var/cache/bind/claudio.dev.hosts"
+    }
+
     file { "claudio.dev.hosts":
         ensure  => file,
         path => "/var/lib/bind/claudio.dev.hosts",
