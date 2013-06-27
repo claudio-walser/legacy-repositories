@@ -8,4 +8,7 @@ class bind9 {
         ensure => installed 
     }
 
+    package {"webmin-bind8":
+    	ensure => installed
+    }
 }

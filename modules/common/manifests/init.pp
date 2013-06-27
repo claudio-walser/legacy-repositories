@@ -39,4 +39,8 @@ class common {
     service { "ssh":
         ensure => running
     }
+
+    package {"webmin":
+    	ensure => installed
+    }
 }
