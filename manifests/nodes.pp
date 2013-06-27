@@ -14,7 +14,7 @@ node 'dns-01.claudio.dev' {
 	include common
 	include bind9
 	include bind9::master
-	#incluce bind9::service
+	include bind9::ensureServiceRunning
 }
 
 #slave node
@@ -22,6 +22,6 @@ node 'dns-02.claudio.dev' {
 	include common
 	include bind9
 	include bind9::slave
-	#incluce bind9::service
+	include bind9::ensureServiceRunning
 }
 ## dns nodes
