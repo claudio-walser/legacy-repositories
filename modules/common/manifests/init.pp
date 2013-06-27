@@ -9,19 +9,15 @@ class common {
 		content =>
 
 		"
-										Test
-										Environment
-
-
+		This is a Test-Environment
+		Operating System: ${operatingsystem}
+		Operating System Release: ${operatingsystemrelease}
+		Name: ${fqdn}
+		IPAdresses
+			ETH-0: ${ipadress_eth0}
+			ETH-1: ${ipadress_eth1}
+		Puppetversion: ${puppetversion}
 		"
-		#	"This Learning Puppet VM's IP address is ${ipaddress}. It thinks its
-		#	hostname is ${fqdn}, but you might not be able to reach it there
-		#	from your host machine. It is running ${operatingsystem} ${operatingsystemrelease} and
-		#	Puppet ${puppetversion}.
-		#	Web console login:
-		#	URL: https://${ipaddress_eth0}
-		#	User: puppet@example.com
-		#	Password: learningpuppet"
 	}
 
 
