@@ -1,7 +1,7 @@
 class bind9::master {
     
     file { "claudio.dev.hosts":
-        path => "/var/lib/bind/",
+        path => "/var/lib/bind/claudio.dev.hosts",
         mode => 655,
         owner => bind,
         group => bind,
