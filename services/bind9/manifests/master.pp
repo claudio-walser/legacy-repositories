@@ -1,4 +1,4 @@
-class bind9 {
+class bind9::master {
     
     file { "claudio.dev.hosts":
         path => "/var/lib/bind/",
@@ -6,18 +6,6 @@ class bind9 {
         owner => bind,
         group => bind,
         source => "puppet:///modules/bind9/master/var/lib/bind/claudio.dev.hosts"
-    }
-    
-    package { "bind9": 
-        ensure => installed 
-    }
-    
-    package { "dnsutils": 
-        ensure => installed 
-    }
-
-    service { "bind9":
-        ensure => running
     }
 
 }

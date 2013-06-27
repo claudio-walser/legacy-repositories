@@ -1,3 +1,4 @@
+# i have no idea what to do with it yet but it looks very helpfull :p
 $environmentDomain = 'claudio.dev'
 
 $network_front = '10.20.1.1'

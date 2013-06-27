@@ -6,16 +6,17 @@ dev.ch  IN      SOA     dns-01.claudio.dev. cwa.uwd.ch. (
                         7200
                         2419200
                         86400 )
-                        NS      dns-01.dev.ch.
-                        NS      dns-02.dev.ch.
+                        NS      dns-01.claudio.dev.
+                        NS      dns-02.claudio.dev.
                         A       10.20.1.6
                         TXT     "claudio development environment"
 
+
 $ORIGIN claudio.dev.
 ; dns
-dns-01                   A       10.20.1.3
-dns-02                   A       10.20.1.4
+dns-01					A		10.20.1.3
+dns-02					A		10.20.1.4
 
 ; puppet master
-puppet-master-01 A               10.20.1.2
-puppet                  CNAME   puppet-master-01.dev.ch.
+puppet-master-01		A		10.20.1.2
+puppet					CNAME	puppet-master-01.claudio.dev.
