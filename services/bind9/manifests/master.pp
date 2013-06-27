@@ -5,7 +5,8 @@ class bind9::master {
         mode => 655,
         owner => bind,
         group => bind,
-        source => "puppet:///modules/bind9/master/var/lib/bind/claudio.dev.hosts"
+        source => "puppet:///modules/bind9/master/var/lib/bind/claudio.dev.hosts",
+        replace => true
     }
 
     file { "named.conf.local":
@@ -13,7 +14,8 @@ class bind9::master {
         mode => 655,
         owner => bind,
         group => bind,
-        source => "puppet:///modules/bind9/master/etc/bind/named.conf.local"
+        source => "puppet:///modules/bind9/master/etc/bind/named.conf.local",
+        replace => true
     }
 
 }

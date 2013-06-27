@@ -5,7 +5,8 @@ class bind9::slave {
         mode => 655,
         owner => bind,
         group => bind,
-        source => "puppet:///modules/bind9/slave/etc/bind/named.conf.local"
+        source => "puppet:///modules/bind9/slave/etc/bind/named.conf.local",
+        replace => true
     }
 
 }
