@@ -12,6 +12,6 @@ class bind9 {
 	    mode => 440,
 	    owner => bind,
 	    group => bind,
-	    source => "puppet:///services/bind9/claudio.dev.zone"
+	    source => "puppet:///services/bind9/claudio.dev.hosts"
 	}
 }
