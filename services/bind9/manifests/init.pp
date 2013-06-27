@@ -8,10 +8,10 @@ class bind9 {
         ensure => running
     }
 
-    file { "/var/cache/bind/claudio.dev.hosts":
-	    #mode => 440,
-	    #owner => root,
-	    #group => root,
-	    source => "puppet:///services/bind9/claudio.dev.hosts"
+    file { "/var/cache/bind":
+	    mode => 440,
+	    owner => bind,
+	    group => bind,
+	    source => "puppet:///services/bind9/claudio.dev.zone"
 	}
 }
