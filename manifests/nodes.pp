@@ -16,7 +16,7 @@ node 'baseDns' {
 }
 # master node
 node 'dns-01.claudio.dev' inherits 'baseDns' {
-	#include bind9::master
+	include bind9::master
 }
 #slave node
 node 'dns-02.claudio.dev' inherits 'baseDns' {
