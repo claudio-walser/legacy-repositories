@@ -1,8 +1,17 @@
 class bind9::master {
     
-    file { "cache.claudio.dev.hosts":
+    file { "cache.remove.claudio.dev.hosts":
         ensure  => absent,
         path => "/var/cache/bind/claudio.dev.hosts"
+    }
+
+    file { "cache.claudio.dev.hosts":
+        ensure  => file,
+        path => "/var/cache/bind/claudio.dev.hosts",
+        mode => 0644,
+        owner => bind,
+        group => bind,
+        source => "puppet:///modules/bind9/master/var/lib/bind/claudio.dev.hosts"
     }
 
     file { "claudio.dev.hosts":
