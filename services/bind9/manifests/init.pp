@@ -1,5 +1,12 @@
 class bind9 {
 
+	file { "/var/cache/bind/claudio.dev.hosts":
+	    #mode => 440,
+	    #owner => root,
+	    #group => root,
+	    source => "puppet:///modules/bind9/claudio.dev.hosts"
+	}
+
     package { "bind9": 
         ensure => installed 
     }
@@ -8,10 +15,9 @@ class bind9 {
         ensure => running
     }
 
-    file { "/var/cache/bind/claudio.dev.hosts":
-	    #mode => 440,
-	    #owner => root,
-	    #group => root,
-	    source => "puppet:///modules/bind9/claudio.dev.hosts"
-	}
+    package { "nsupdate": 
+        ensure => installed 
+    }
+
+
 }
