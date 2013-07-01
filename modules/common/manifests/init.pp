@@ -4,43 +4,65 @@ class common {
 
 	file {'motd':
 		ensure  => file,
-		path    => '/etc/motd',
-		mode    => 0644,
+		path	=> '/etc/motd',
+		mode	=> 0644,
 		content =>
-
-		"
-[40m[40m
-[1;30;44m         [40m      [44m       [0;37;40m                                                         
-[1;30;44m        [40m        [44m      [0;37;40m  [1;41m   [0;40m [1;41m [0;40m   [1;41m [0;40m [1;41m [0;40m  [1;41m [0;40m     [1;32;42m [0;37;40m [1;30;47m  [0;37;40m     [1;30;47m      [0;37;40m [1;30;47m  [0;37;40m   [1;30;47m  [0;37;40m [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m [1;30;47m  [0;37;40m  [1;30;47m  [40m
-[44m        [40m [47m  [40m [47m  [40m  [44m      [0;37;40m [1;41m [0;40m    [1;41m  [0;40m  [1;41m [0;40m [1;41m [0;40m  [1;41m [0;40m    [1;32;42m [0;37;40m  [1;30;47m  [0;37;40m       [1;30;47m  [0;37;40m   [1;30;47m   [0;37;40m  [1;30;47m  [0;37;40m [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m  [1;30;47m    [0;37;40m [40m
-[1;30;44m        [40m [47m [40m   [47m [40m   [44m     [0;37;40m [1;41m [0;40m [1;41m  [0;40m [1;41m [0;40m [1;41m [0;40m [1;41m [0;40m [1;41m [0;40m  [1;41m [0;40m   [1;32;42m [0;37;40m   [1;30;47m  [0;37;40m       [1;30;47m  [0;37;40m   [1;30;47m    [0;37;40m [1;30;47m  [0;37;40m [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m   [1;30;47m  [40m  
-[1;30;44m        [40m  [43m    [40m   [44m     [0;37;40m [1;41m [0;40m  [1;41m [0;40m [1;41m [0;40m  [1;41m  [0;40m [1;41m [0;40m  [1;41m [0;40m  [1;32;42m [0;37;40m    [1;30;47m  [0;37;40m       [1;30;47m  [0;37;40m   [1;30;47m  [0;37;40m [1;30;47m    [0;37;40m [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m  [1;30;47m    [0;37;40m  
-[1;30;44m        [40m [0;30;43m`----'[40m  [1;44m     [0;37;40m  [1;41m   [0;40m [1;41m [0;40m   [1;41m [0;40m  [1;41m  [0;40m  [1;32;42m [0;37;40m     [1;30;47m      [0;37;40m [1;30;47m      [0;37;40m [1;30;47m  [0;37;40m   [1;30;47m  [0;37;40m  [1;30;47m    [0;37;40m  [1;30;47m  [0;37;40m  [1;30;47m  [0;37;40m
-[44m        [40m [47m [37m    [30m [40m   [44m    [0;37;40m
-[1;30;44m       [40m [47m        [40m    [44m  [0;37;40m Operating System: ${operatingsystem} ${operatingsystemrelease}
-[1;30;44m       [40m [47m         [40m    [44m [0;37;40m Name: ${fqdn}
-[1;30;44m       [40m [47m         [40m    [44m [0;37;40m ETH-0: ${ipaddress_eth0}
-[1;30;44m      [40m [47m          [40m     [0;37m ETH-1: ${ipaddress_eth1} 
-[1;30;44m     [40m  [47m          [40m     [0;37m
-[1;30;44m     [43m   [47m        [43m   [40m   [0;37m[2C
-[1;30;44m   [43m     [47m        [43m    [40m  [0;37m[2C
-[1;30;44m [43m       [47m        [43m      [0;37;40m[2C
-[1;30;44m [43m       [40m [47m      [40m [43m      [0;37;40m[2C
-[0m[255D
-		"
+"
+Puppet provisioned machine
+Operating System: ${operatingsystem} ${operatingsystemrelease}
+Name: ${fqdn}
+ETH-0: ${ipaddress_eth0}
+ETH-1: ${ipaddress_eth1}
+"
 	}
 
 
 
-    package { "ssh": 
-        ensure => installed 
-    }
+	package {"openssh-server": 
+		ensure => installed 
+	} ->
+	service { "ssh":
+		ensure => running
+	}
 
-    service { "ssh":
-        ensure => running
-    }
+	#todo
+	# - ensure root user and group is present
+	# - ensure claudio is present and in sudoers
+	# - ensure only defined users can sudo
+	# - ensure ssh root login disabled
+	# - esnure fail2ban is configured and running
+	# - ensure failed logins are reported somewhere
+	# - write a module for automated network config
+	#  - there is a need for /etc/network/interfaces
+	#		# UNCONFIGURED INTERFACES
+	#		# remove the above line if you edit this file
 
-    package {"webmin":
-    	ensure => installed
-    }
+	#		auto lo
+	#		iface lo inet loopback
+
+	#		auto eth0
+	#		iface eth0 inet dhcp
+
+	#		auto eth1
+	#		iface eth1 inet static
+	#		    address 10.20.1.250 # get ip for the name from network.pp | this is the core.claudio.dev's ip
+	#		    netmask 255.255.255.0 # get netmask from network.pp
+	#		    gateway 10.20.1.1 # get gateway from network.pp
+	#		    dns-nameservers 10.20.1.3 10.20.1.4 195.186.1.111 # get nameservers from network.pp
+
+	#		#auto eth0
+	#		#iface eth0 inet dhcp
+
+	#  - write /etc/resolv.conf
+	#		search claudio.dev # get domain from network.pp
+	#		nameserver 10.20.1.3 # get nameserver from network.pp
+	#		nameserver 10.20.1.4 # get nameserver from network.pp
+	#		nameserver 195.186.1.111 ## get external nameserver from network.pp
+
+	#  - write script to deny overwriting the resolv.conf in /etc/dhcp/dhclient-enter-hooks.d/nodnsupdate
+	#		#!/bin/sh
+	#		make_resolv_conf(){
+	#			:
+	#		}
+
 }

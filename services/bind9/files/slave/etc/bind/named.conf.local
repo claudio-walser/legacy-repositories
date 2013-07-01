@@ -5,7 +5,7 @@
 // Consider adding the 1918 zones here, if they are not used in your
 // organization
 //include "/etc/bind/zones.rfc1918";
-zone "dev.ch" in {
+zone "claudio.dev" in {
 	type slave;
 	file "bak.claudio.dev.hosts";
 	masters {10.20.1.3;};

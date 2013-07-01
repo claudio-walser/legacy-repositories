@@ -20,3 +20,9 @@ dns-02					A		10.20.1.4
 ; puppet master
 puppet-master-01		A		10.20.1.2
 puppet					CNAME	puppet-master-01.claudio.dev.
+
+; git lab server
+git-01					A		10.20.1.5
+gitlab-01				CNAME	git-01
+git-02					A		10.20.1.6
+gitlab-02				CNAME	git-02
