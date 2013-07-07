@@ -18,7 +18,11 @@ ETH-1: ${ipaddress_eth1}
 
 
 
-	package {"openssh-server": 
+	package {[
+		"sudo",
+		"openssh-server",
+		"fail2ban"
+	]: 
 		ensure => installed 
 	} ->
 	service { "ssh":

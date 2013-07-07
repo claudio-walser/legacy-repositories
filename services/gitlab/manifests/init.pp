@@ -12,14 +12,13 @@ class gitlab {
     		'libffi-dev',
     		'curl',
     		'git-core',
-    		'openssh-server',
     		'redis-server',
     		'checkinstall',
     		'libxml2-dev',
     		'libxslt-dev',
     		'libcurl4-openssl-dev',
     		'libicu-dev',
-    		'python2.6',
+    		'python2.7',
     		'ruby'
 
     		]: 

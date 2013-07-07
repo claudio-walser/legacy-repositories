@@ -40,3 +40,13 @@ to remove all certs.
 Now run the puppet client on the host again, it will do a new cert request and you can sign it on the server, yehaa...
 
 Note: the first time, this process can take some time, around two hours in my case :p
+
+
+
+Right way on moder puppet installations:
+
+On the master:
+  puppet cert clean dns-01.claudio.dev
+On the agent:
+  rm -f /var/lib/puppet/ssl/certs/dns-01.claudio.dev.pem
+  puppet agent -t

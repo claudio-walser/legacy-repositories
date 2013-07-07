@@ -26,3 +26,7 @@ git-01					A		10.20.1.5
 gitlab-01				CNAME	git-01
 git-02					A		10.20.1.6
 gitlab-02				CNAME	git-02
+
+
+; core machine, start when setting up a new vm
+core					A		10.20.1.250
