@@ -1,37 +1,11 @@
 class common {
-	## common users
-	##include user::virtual
-
-	file {'motd':
-		ensure  => file,
-		path	=> '/etc/motd',
-		mode	=> 0644,
-		content =>
-"
-Puppet provisioned machine
-Operating System: ${operatingsystem} ${operatingsystemrelease}
-Name: ${fqdn}
-ETH-0: ${ipaddress_eth0}
-ETH-1: ${ipaddress_eth1}
-"
-	}
-
-
-
-	package {[
-		"sudo",
-		"openssh-server",
-		"fail2ban"
-	]: 
-		ensure => installed 
-	} ->
-	service { "ssh":
-		ensure => running
-	}
+	include common::motd
+	include common::administrators
+	include common::packages
 
 	#todo
-	# - ensure root user and group is present
-	# - ensure claudio is present and in sudoers
+	# - * think its not needed ensure root user and group is present
+	# - * done densure -claudio- admin is present and in sudoers
 	# - ensure only defined users can sudo
 	# - ensure ssh root login disabled
 	# - esnure fail2ban is configured and running
