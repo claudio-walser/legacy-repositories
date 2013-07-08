@@ -6,8 +6,9 @@ class network {
 
 	}
 
-	create_interfaces_file()
-
+	# fetch network info and put them into a template
+	# todo rename the function since its not creating anyting on the client
+	create_interfaces_file($network)
 
 	# todo
 	# - write a module for automated network config
