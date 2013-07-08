@@ -1,28 +1,35 @@
 # i have no idea what to do with it yet but it looks very helpfull :p
-$environmentDomain = 'claudio.dev'
+$network = {
+	'domain' => 'claudio.dev',
 
-$network_front = '10.20.1.1'
+	'gateway' => '10.20.1.1',
+	'netmask' => '255.255.255.0',
+	'nameservers' => [
+		'dns-01',
+		'dns-02'
+	 ],
 
-$members = {
-	'puppet' => {
+	'members' => {
+
+		#puppet masters
 		'puppet-master-01' => {
 			'eth0' => '10.20.1.2',
 			'eth1' => 'dhcp'
-		}
-	},
+		},
 
-	'dns' => {
-		'01' => {
-			'eth0' => '10.20.1.8',
+
+		#dns servers
+		'dns-01' => {
+			'eth0' => '10.20.1.3',
 			'eth1' => 'dhcp'
 		},
-		'02' => {
-			'eth0' => '10.20.1.9',
+		'dns-02' => {
+			'eth0' => '10.20.1.4',
 			'eth1' => 'dhcp'
-		}
-	},
+		},
 
-	'mysql' => {
+
+		# mysql cluster
 		'db-proxy01' => {
 			'eth0' => '10.20.1.10',
 			'eth1' => 'dhcp'
@@ -48,6 +55,7 @@ $members = {
 			'eth1' => 'dhcp'
 		}
 	}
+
 }
 
 
