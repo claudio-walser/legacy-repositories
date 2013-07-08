@@ -1,4 +1,4 @@
-class common::packages {	
+class common::security {	
 	
 	# some helpfull packages
 	package { "fail2ban": 
@@ -6,7 +6,13 @@ class common::packages {
 	}
 
 	# disable ssh root login
-
-
+	# therefore, just copy a configured sshd_config
+	file {'/etc/ssh/sshd_config':
+		owner => 'root',
+		group => 'root',
+		ensure  => file,
+		mode	=> 0644,
+		source => "puppet:///modules/common/etc/ssh/sshd_config"
+	}
 
 }
