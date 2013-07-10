@@ -43,7 +43,7 @@ Note: the first time, this process can take some time, around two hours in my ca
 
 
 
-Right way on moder puppet installations:
+Right way on modern puppet installations:
 
 On the master:
   puppet cert clean dns-01.claudio.dev

@@ -44,6 +44,11 @@ class gitlab {
         mode   => 755
     } ->
 
+    #vcsrepo { '/tmp/vcstest-git-clone':
+    #    ensure   => present,
+    #    provider => git,
+    #    source   => 'git://github.com/bruce/rtex.git',
+    #}
 
     # vcsrepo is still not working correct
     #vcsrepo { '/home/git/gitlab-shell':

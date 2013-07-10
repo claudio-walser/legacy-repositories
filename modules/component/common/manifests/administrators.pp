@@ -1,5 +1,4 @@
 class common::administrators {
-	include common::administrators
 
 	## need package sudo to add users to sudoers
 	package { "sudo": 

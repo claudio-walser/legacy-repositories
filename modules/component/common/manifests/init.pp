@@ -1,8 +1,8 @@
 class common {
-	include ::common::motd
-	include ::common::administrators
-	include ::common::packages
-	include ::common::security
+	include common::motd
+	include common::administrators
+	include common::packages
+	include common::security
 
 	#todo
 	# -  create cronjob with 'puppet agent --test --server "puppet-master-01.claudio.dev"'
