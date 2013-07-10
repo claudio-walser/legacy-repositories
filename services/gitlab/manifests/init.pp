@@ -45,12 +45,13 @@ class gitlab {
     } ->
 
 
-    vcsrepo { '/home/git/gitlab-shell':
-        source => 'https://github.com/gitlabhq/gitlab-shell.git',
-        provider => git,
-        owner => 'git',
-        group => 'git',
-        user => 'git',
-        revision => 'v1.5.0'
-    }
+    # vcsrepo is still not working correct
+    #vcsrepo { '/home/git/gitlab-shell':
+    #    source => 'https://github.com/gitlabhq/gitlab-shell.git',
+    #    provider => git,
+    #    owner => 'git',
+    #    group => 'git',
+    #    user => 'git',
+    #    revision => 'v1.5.0'
+    #}
 }

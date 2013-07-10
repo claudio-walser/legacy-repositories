@@ -1,0 +1,17 @@
+# configured over puppet in the network.pp manifest
+# remove the above line if you edit this file
+
+auto lo
+iface lo inet loopback
+
+auto <%= @dynamicEth %>
+iface <%= @dynamicEth %> inet dhcp
+
+auto <%= @staticEth %>
+iface <%= @staticEth %> inet static
+	address <%= @hostIp %>
+	netmask <%= @netmask %>
+	gateway <%= @gateway %>
+	        
+	<%# loop through internal nameservers %>
+	dns-nameservers <% @internalNameserverIps.each do |nameserver| -%><%= nameserver %> <% end -%><%# loop through external nameservers / for dns roles only %><% if @isDns == true -%><% @externalNameserverIps.each do |nameserver| -%><%= nameserver %> <% end -%><% end -%>

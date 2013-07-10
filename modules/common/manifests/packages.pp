@@ -6,8 +6,4 @@ class common::packages {
 		ensure => installed 
 	}
 
-	service { "ssh":
-		ensure => running
-	}
-
 }

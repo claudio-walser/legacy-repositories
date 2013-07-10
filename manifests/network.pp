@@ -2,13 +2,22 @@
 $network = {
 	'domain' => 'claudio.dev',
 
+	'dynamicEth' => 'eth0',
+
+	'staticEth' => 'eth1',
 	'gateway' => '10.20.1.1',
 	'netmask' => '255.255.255.0',
-	'nameservers' => [
+	
+	'externalNameserverIps' => [
+	 	'10.131.129.10',
+	 	'10.157.129.10'
+	 ],
+
+	'internalNameservers' => [
 		'dns-01',
 		'dns-02'
 	 ],
-
+	
 	'members' => {
 
 		#puppet masters
@@ -25,6 +34,13 @@ $network = {
 		},
 		'dns-02' => {
 			'eth1' => '10.20.1.4',
+			'eth0' => 'dhcp'
+		},
+
+
+		#gitlab servers
+		'git-01' => {
+			'eth1' => '10.20.1.5',
 			'eth0' => 'dhcp'
 		},
 

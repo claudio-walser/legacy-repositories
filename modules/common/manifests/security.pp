@@ -13,6 +13,9 @@ class common::security {
 		ensure  => file,
 		mode	=> 0644,
 		source => "puppet:///modules/common/etc/ssh/sshd_config"
+	} ->
+	service { "ssh":
+		ensure => running
 	}
 
 }

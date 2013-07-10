@@ -1,0 +1,14 @@
+
+domain <%= @domain %>
+search <%= @domain %>
+<%# for dns nodes %>
+<% if @isDns == true -%>
+nameserver 127.0.0.1
+<% end -%>
+<%# for non dns nodes %>
+<% if @isDns == false -%>
+<%# loop through nameservers %>
+<% @internalNameserverIps.each do |nameserver| -%>
+nameserver <%= nameserver %>
+<% end -%>
+<% end -%>
