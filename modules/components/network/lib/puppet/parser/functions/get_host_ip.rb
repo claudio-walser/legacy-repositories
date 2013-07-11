@@ -6,7 +6,7 @@ module Puppet::Parser::Functions
 		hostname = lookupvar('hostname')
 		staticEth = network['staticEth']
 
-		defaultIp = '20.20.1.250'
+		defaultIp = network['defaultIp']
 		
 
 		if network['members'][hostname].nil?

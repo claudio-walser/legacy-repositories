@@ -11,12 +11,12 @@ node default {
 ## dns nodes
 # master node
 node 'dns-01.claudio.dev' {
-	include dns-master
+	include dns
 }
 
 #slave node
 node 'dns-02.claudio.dev' {
-	include dns-slave
+	include dns
 }
 ## dns nodes
 

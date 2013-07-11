@@ -1,9 +1,10 @@
-# i have no idea what to do with it yet but it looks very helpfull :p
+# this files is taken to create etc/resolv.conf, etc/network/interfaces and the claudio.dev.hosts zone file as well
 $network = {
 	'domain' => 'claudio.dev',
-
+	'mainServerIp' => '10.20.1.5', # gitlab server right now, going to be the development server with my sandboxes later
 	'dynamicEth' => 'eth0',
 
+	'defaultIp' => '10.20.1.250',
 	'staticEth' => 'eth1',
 	'gateway' => '10.20.1.1',
 	'netmask' => '255.255.255.0',
@@ -19,6 +20,11 @@ $network = {
 	 ],
 	
 	'members' => {
+		# default box
+		'core' => {
+			'eth1' => '10.20.1.250',
+			'eth0' => 'dhcp'
+		},
 
 		#puppet masters
 		'puppet-master-01' => {
@@ -44,34 +50,29 @@ $network = {
 			'eth0' => 'dhcp'
 		},
 
-		'test-01' => {
-			'eth1' => '10.20.1.15',
-			'eth0' => 'dhcp'
-		},
-
 
 		# mysql cluster
-		'db-proxy01' => {
+		'db-proxy-01' => {
 			'eth1' => '10.20.1.10',
 			'eth0' => 'dhcp'
 		},
-		'db-proxy02' => {
+		'db-proxy-02' => {
 			'eth1' => '10.20.1.11',
 			'eth0' => 'dhcp'
 		},
-		'db-slave01' => {
+		'db-slave-01' => {
 			'eth1' => '10.20.1.12',
 			'eth0' => 'dhcp'
 		},
-		'db-master02' => {
+		'db-master-02' => {
 			'eth1' => '10.20.1.13',
 			'eth0' => 'dhcp'
 		},
-		'db-slave01' => {
+		'db-slave-01' => {
 			'eth1' => '10.20.1.14',
 			'eth0' => 'dhcp'
 		},
-		'db-slave02' => {
+		'db-slave-02' => {
 			'eth1' => '10.20.1.15',
 			'eth0' => 'dhcp'
 		}
