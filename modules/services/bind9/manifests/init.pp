@@ -3,6 +3,7 @@ class bind9 {
     # fetch network variables to create zone file
     $domain = $network['domain']
     $internalNameservers = $network['internalNameservers']
+    $externalNameserverIps = $network['externalNameserverIps']
     $members = $network['members']
     $staticEth = $network['staticEth'] # needed for fetching ips for the A Record
     $mainNameserver = $internalNameservers[0]
@@ -43,7 +44,7 @@ class bind9 {
         mode => 0644,
         owner => bind,
         group => bind,
-        source => "puppet:///modules/bind9/etc/bind/named.conf.options"
+        content => template("bind9/etc/bind/named.conf.options.erb")
     } ->
 
     file { "named.conf.local":

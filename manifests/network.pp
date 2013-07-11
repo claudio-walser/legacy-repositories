@@ -10,8 +10,15 @@ $network = {
 	'netmask' => '255.255.255.0',
 	
 	'externalNameserverIps' => [
+	 	# dev.ch
+	 	'10.20.0.41',
+	 	'10.20.0.42',
+	 	#sfdrs.local
 	 	'10.131.129.10',
-	 	'10.157.129.10'
+	 	'10.157.129.10',
+	 	#bluewin.ch
+	 	'195.186.1.111',
+	 	'195.186.4.111'
 	 ],
 
 	'internalNameservers' => [

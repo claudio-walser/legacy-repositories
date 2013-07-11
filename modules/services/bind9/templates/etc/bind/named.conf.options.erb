@@ -10,13 +10,9 @@ options {
         // the all-0's placeholder.
 
         forwarders {
-        	#srf.local dns servers
-        	10.131.129.10;
-        	10.157.129.10;
-
-        	#bluewin dns servers
-        	195.186.1.111;
-        	195.186.4.111;
+<% @externalNameserverIps.each do |ip| -%>
+                <%= ip %>;
+<% end -%>
         };
         
         
@@ -29,10 +25,4 @@ options {
         
         auth-nxdomain no;    # conform to RFC1035
         listen-on-v6 { any; };
-
-        #allow-recursion {
-        #       10.131.129.10;
-        #};
-        #recursion yes;
-
 };
