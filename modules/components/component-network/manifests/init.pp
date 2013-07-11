@@ -1,4 +1,4 @@
-class network {
+class component-network {
 	## fetch some important variables
 	$hostIp = get_host_ip($network)
 	$isDns = is_dns_node($network)
@@ -21,7 +21,7 @@ class network {
 		mode => 0644,
 		owner => 'root',
 		group => 'root',
-		content => template("network/etc/resolv.conf.erb")
+		content => template("component-network/etc/resolv.conf.erb")
 	}
 
 	## create interfaces with the given data
@@ -30,7 +30,7 @@ class network {
 		mode => 0644,
 		owner => 'root',
 		group => 'root',
-		content => template("network/etc/network/interfaces.erb")
+		content => template("component-network/etc/network/interfaces.erb")
 	}
 
 	## ensure dhcp is not updating anything
@@ -39,7 +39,7 @@ class network {
 		mode => 0644,
 		owner => 'root',
 		group => 'root',
-		source => "puppet:///modules/network/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate"
+		source => "puppet:///modules/component-network/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate"
 	}
 
 

@@ -1,4 +1,4 @@
-class common::security {	
+class component-common::security {	
 	
 	# some helpfull packages
 	package { "fail2ban": 
@@ -12,7 +12,7 @@ class common::security {
 		group => 'root',
 		ensure  => file,
 		mode	=> 0644,
-		source => "puppet:///modules/common/etc/ssh/sshd_config"
+		source => "puppet:///modules/component-common/etc/ssh/sshd_config"
 	} ->
 	service { "ssh":
 		ensure => running

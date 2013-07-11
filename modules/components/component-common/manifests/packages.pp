@@ -1,4 +1,4 @@
-class common::packages {	
+class component-common::packages {	
 	package {[
 		"openssh-server",
 		"openssh-client"

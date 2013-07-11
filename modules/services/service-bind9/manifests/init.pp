@@ -1,4 +1,4 @@
-class bind9 {
+class service-bind9 {
     
     # fetch network variables to create zone file
     $domain = $network['domain']
@@ -24,7 +24,7 @@ class bind9 {
             group => bind,
             require  => Package["bind9"],
             notify  => Service["bind9"],
-            content => template("bind9/var/lib/bind/$domain.hosts.erb")
+            content => template("service-bind9/var/lib/bind/$domain.hosts.erb")
         }
     } else {
         $type = 'slave'
@@ -44,7 +44,7 @@ class bind9 {
         mode => 0644,
         owner => bind,
         group => bind,
-        content => template("bind9/etc/bind/named.conf.options.erb")
+        content => template("service-bind9/etc/bind/named.conf.options.erb")
     } ->
 
     file { "named.conf.local":
@@ -53,7 +53,7 @@ class bind9 {
         mode => 0644,
         owner => bind,
         group => bind,
-        content => template("bind9/etc/bind/named.conf.local.erb")
+        content => template("service-bind9/etc/bind/named.conf.local.erb")
     } ->
 
     service { "bind9":

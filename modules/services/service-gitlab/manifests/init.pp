@@ -1,4 +1,4 @@
-class gitlab {
+class service-gitlab {
 
     # dependencies
     package {
@@ -42,7 +42,7 @@ class gitlab {
         owner  => "git",
         group  => "git",
         mode   => 755
-    } ->
+    }
 
     #vcsrepo { '/tmp/vcstest-git-clone':
     #    ensure   => present,

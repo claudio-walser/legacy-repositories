@@ -1,4 +1,4 @@
-class common::administrators {
+class component-common::administrators {
 
 	## need package sudo to add users to sudoers
 	package { "sudo": 
@@ -27,7 +27,7 @@ class common::administrators {
     file {'/home/admin/.ssh/authorized_keys':
         ensure  => file,
         mode    => 0644,
-        source => "puppet:///modules/common/home/admin/.ssh/authorized_keys";
+        source => "puppet:///modules/component-common/home/admin/.ssh/authorized_keys";
     }
 
 }
