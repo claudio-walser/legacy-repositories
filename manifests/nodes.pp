@@ -2,8 +2,7 @@
 
 # default node if unknown
 node default {
-	#include ::network
-	#include ::common
+	include base
 }
 
 ## might outsource in typed nodefiles soon
@@ -13,7 +12,6 @@ node default {
 # master node
 node 'dns-01.claudio.dev' {
 	include dns-master
-	
 }
 
 #slave node

@@ -44,6 +44,11 @@ $network = {
 			'eth0' => 'dhcp'
 		},
 
+		'test-01' => {
+			'eth1' => '10.20.1.15',
+			'eth0' => 'dhcp'
+		},
+
 
 		# mysql cluster
 		'db-proxy01' => {

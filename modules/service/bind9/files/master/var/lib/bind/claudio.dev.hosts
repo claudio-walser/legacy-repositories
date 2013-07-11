@@ -31,3 +31,4 @@ gitlab-02				CNAME	git-02
 ; core machine, start when setting up a new vm
 core					A		10.20.1.250
 schulung				A		10.20.1.249
+test-01					A		10.20.1.15
