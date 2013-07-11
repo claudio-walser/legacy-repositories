@@ -1,6 +1,3 @@
-class gitlab {
-	include network
-	include common
-	
+class gitlab inherits base {
 	include gitlab
 }

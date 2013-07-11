@@ -1,6 +1,3 @@
-class dns { 
-	include network
-	include common
-
+class dns inherits base { 
 	include bind9
 }
