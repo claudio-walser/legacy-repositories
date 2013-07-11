@@ -2,7 +2,7 @@
 
 # default node if unknown
 node default {
-	include role-base
+	include role
 }
 
 ## might outsource in typed nodefiles soon
@@ -11,18 +11,17 @@ node default {
 ## dns nodes
 # master node
 node 'dns-01.claudio.dev' {
-	include role-dns
+	include role::dns
 }
 
 #slave node
 node 'dns-02.claudio.dev' {
-	include role-dns
+	include role::dns
 }
 ## dns nodes
 
-
 ## gitlab nodes
 node 'git-01.claudio.dev' {
-	include role-gitlab
+	include role::gitlab
 }
 ## gitlab nodes
