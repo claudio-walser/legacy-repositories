@@ -1,0 +1,5 @@
+[submodule "modules/forge/vcsrepo"]
+name = puppetlabs vcsrepo
+path = modules/forge/vcsrepo
+url = https://github.com/puppetlabs/puppetlabs-vcsrepo
+branch = master
