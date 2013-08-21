@@ -1,7 +1,7 @@
-# this files is taken to create etc/resolv.conf, etc/network/interfaces and the claudio.dev.hosts zone file as well
+# this files is taken to create etc/resolv.conf, etc/network/interfaces and the claudio.dev.hosts zone file on dns boxes as well
 $network = {
 	'domain' => 'claudio.dev',
-	'mainServerIp' => '10.20.1.5', # gitlab server right now, going to be the development server with my sandboxes later
+	'mainServerIp' => '10.20.1.4', # gitlab server right now, going to be the development server with my sandboxes later
 	'dynamicEth' => 'eth0',
 
 	'defaultIp' => '10.20.1.250',
@@ -33,30 +33,38 @@ $network = {
 			'eth0' => 'dhcp'
 		},
 
+		'mpcdns-01' => {
+			'eth1' => '10.20.1.100',
+			'eth0' => 'dhcp'
+		},
+
 		#puppet masters
 		'puppet-master-01' => {
 			'eth1' => '10.20.1.2',
 			'eth0' => 'dhcp'
 		},
 
-
-		#dns servers
-		'dns-01' => {
+		#build host
+		'build-01' => {
 			'eth1' => '10.20.1.3',
 			'eth0' => 'dhcp'
 		},
-		'dns-02' => {
+
+		#gitlab servers
+		'git-01' => {
 			'eth1' => '10.20.1.4',
 			'eth0' => 'dhcp'
 		},
 
-
-		#gitlab servers
-		'git-01' => {
-			'eth1' => '10.20.1.5',
+		#dns servers
+		'dns-01' => {
+			'eth1' => '10.20.1.8',
 			'eth0' => 'dhcp'
 		},
-
+		'dns-02' => {
+			'eth1' => '10.20.1.9',
+			'eth0' => 'dhcp'
+		},
 
 		# mysql cluster
 		'db-proxy-01' => {
