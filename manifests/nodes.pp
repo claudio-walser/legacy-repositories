@@ -9,13 +9,7 @@ node default {
 
 
 ## dns nodes
-# master node
-node 'dns-01.claudio.dev' {
-	include role::dns
-}
-
-#slave node
-node 'dns-02.claudio.dev' {
+node /^dns-[0-9]{1,2}\.claudio\.dev$/ {
 	include role::dns
 }
 ## dns nodes
