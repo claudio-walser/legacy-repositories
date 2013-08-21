@@ -1,8 +1,0 @@
-[submodule "modules/forge/vcsrepo"]
-	name = "Puppetlabs VCSRepo"
-	path = modules/forge/vcsrepo
-	url = git@github.com:puppetlabs/puppetlabs-vcsrepo.git
-	branch = master
-[submodule "modules/forge/stdlib"]
-	path = modules/forge/stdlib
-	url = https://github.com/puppetlabs/puppetlabs-stdlib.git
