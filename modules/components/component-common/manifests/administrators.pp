@@ -25,6 +25,8 @@ class component-common::administrators {
 
     # authorized server admins - add public keys in this file
     file {'/home/admin/.ssh/authorized_keys':
+        owner => 'admin',
+        group => 'admin',
         ensure  => file,
         mode    => 0644,
         source => "puppet:///modules/component-common/home/admin/.ssh/authorized_keys";

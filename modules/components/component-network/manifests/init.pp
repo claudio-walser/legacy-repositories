@@ -24,6 +24,7 @@ class component-network {
 		content => template("component-network/etc/resolv.conf.erb")
 	}
 
+
 	## create interfaces with the given data
 	file { '/etc/network/interfaces':
 		ensure  => file,
@@ -31,6 +32,18 @@ class component-network {
 		owner => 'root',
 		group => 'root',
 		content => template("component-network/etc/network/interfaces.erb")
+	} ->
+
+	## ifdown force the static one
+	#exec { 'ifdown-static':
+	#	command => "ifdown --force $staticEth",
+	#	path => '/sbin'
+	#} ->
+
+	## ifup force the static one
+	exec { 'ifup-static':
+		command => "ifup --force $staticEth",
+		path => '/sbin'
 	}
 
 	## ensure dhcp is not updating anything
@@ -41,11 +54,6 @@ class component-network {
 		group => 'root',
 		source => "puppet:///modules/component-network/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate"
 	}
-
-
-
-
-
 
 
 	## some tests
@@ -63,7 +71,7 @@ class component-network {
 
 	# todo
 	# - write a module for automated network config
-	#  - make sure dns server became special network config, some working backups ar in the appliance folder to have a look /etc/(resolv.conf|network/interfaces)
+	#  - make sure dns server became special network config, some working backups are in the appliance folder to have a look /etc/(resolv.conf|network/interfaces)
 	#  - there is a need for /etc/network/interfaces
 	#		# UNCONFIGURED INTERFACES
 	#		# remove the above line if you edit this file
@@ -86,8 +94,8 @@ class component-network {
 
 	#  - write /etc/resolv.conf
 	#		search claudio.dev # get domain from network.pp
-	#		nameserver 10.20.1.3 # get nameserver from network.pp
-	#		nameserver 10.20.1.4 # get nameserver from network.pp
+	#		nameserver 10.20.1.8 # get nameserver from network.pp
+	#		nameserver 10.20.1.9 # get nameserver from network.pp
 	#		nameserver 195.186.1.111 ## get external nameserver from network.pp only in dns roles
 
 	#  - write script to deny overwriting the resolv.conf in /etc/dhcp/dhclient-enter-hooks.d/nodnsupdate
