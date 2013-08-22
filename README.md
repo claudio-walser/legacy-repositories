@@ -1,0 +1,53 @@
+Go ahead, nothing to see here
+
+
+Some notes for me
+_________________
+
+First of all, the certificate management of puppet is just a messed up nightmare...
+If you replace a host with a new vm, the puppet client will get a new certificate and fail on the server on the next run.
+You are supposed to clean the hosts cert on the server with <cmd>puppetca --clean host.domain</cmd>
+
+This does not work at all, the new host will still fail and not create a new certificate_request.
+Follow the steps below to allow the new host to connect properly and request for a new certificate.
+
+##### Header 5 #####
+
+1. steps on the puppetmaster 
+
+remove your hosts line from
+"/var/lib/puppet/ssl/ca/inventory.txt"
+
+Content of the file
+<code>
+# Inventory of signed certificates
+# SERIAL NOT_BEFORE NOT_AFTER SUBJECT
+0x0001 2013-06-25T19:20:44GMT 2018-06-25T19:20:44GMT /CN=Puppet CA: puppet.local.dev
+0x0002 2013-06-25T19:20:44GMT 2018-06-25T19:20:44GMT /CN=puppet.local.dev
+0x0003 2013-06-25T19:22:42GMT 2018-06-25T19:22:42GMT /CN=puppet.claudio.dev
+0x0004 2013-06-25T20:18:39GMT 2018-06-25T20:18:39GMT /CN=puppet-master-01.claudio.dev
+0x0006 2013-06-26T16:47:29GMT 2018-06-26T16:47:29GMT /CN=puppet-master-01.claudio.dev
+0x0007 2013-06-26T16:47:56GMT 2018-06-26T16:47:56GMT /CN=puppet-master-01.claudio.dev
+0x0008 2013-06-26T17:09:53GMT 2018-06-26T17:09:53GMT /CN=dns-01.claudio.dev # try to remove dns-01? remove this line
+</code>
+
+
+2. steps on the new puppet client
+
+cd into /var/lib/puppet/ssl and run
+<cmd>rm -rf certificate_requests/* certs/* crl.pem private/* private_keys/* public_keys/*</cmd>
+to remove all certs.
+
+Now run the puppet client on the host again, it will do a new cert request and you can sign it on the server, yehaa...
+
+Note: the first time, this process can take some time, around two hours in my case :p
+
+
+
+Right way on modern puppet installations:
+
+On the master:
+  puppet cert clean dns-01.claudio.dev
+On the agent:
+  rm -f /var/lib/puppet/ssl/certs/dns-01.claudio.dev.pem
+  puppet agent -t
