@@ -24,5 +24,11 @@ options {
 
         
         auth-nxdomain no;    # conform to RFC1035
-        listen-on-v6 { any; };
+        listen-on-v6 { none; };
+
+        listen-on { 127.0.0.1; <%= @masterNameserverIp -%>; };
+        allow-query { 0.0.0.0/0; };
+        notify yes;
+        allow-transfer { <%= @slaveNameserverIp -%>; };
+
 };

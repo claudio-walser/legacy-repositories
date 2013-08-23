@@ -1,6 +1,16 @@
 class service-bind9 {
-    # fetch network variables to create zone file
+    # fetch network variables to create conf file
     $externalNameserverIps = $network['externalNameserverIps']
+    
+    $internalNameservers = $network['internalNameservers']
+    $members = $network['members']
+    $staticEth = $network['staticEth']
+
+    $masterNameserver = $internalNameservers[0]
+    $masterNameserverIp = $members[$masterNameserver][$staticEth]
+    
+    $slaveNameserver = $internalNameservers[1]
+    $slaveNameserverIp = $members[$slaveNameserver][$staticEth]
 
     package { "bind9": 
         ensure => installed 

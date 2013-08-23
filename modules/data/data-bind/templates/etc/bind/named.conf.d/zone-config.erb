@@ -6,6 +6,6 @@
 zone "<%= @domain %>" in {
 	type <%= @type %>;
 	file "<%if @type == 'slave' -%>bak.<% end -%><%= @domain %>.hosts";
-	<%if @type == 'slave' -%>masters {<%= @mainNameserverIp %>;};<% end -%>
+	<%if @type == 'slave' -%>masters {<%= @masterNameserverIp %>;};<% end -%>
 
 };

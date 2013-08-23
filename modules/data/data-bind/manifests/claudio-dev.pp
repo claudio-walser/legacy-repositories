@@ -4,8 +4,10 @@ class data-bind::claudio-dev {
     $internalNameservers = $network['internalNameservers']
     $members = $network['members']
     $staticEth = $network['staticEth'] # needed for fetching ips for the A Record
-    $mainNameserver = $internalNameservers[0]
-    $mainNameserverIp = $members[$mainNameserver][$staticEth]
+    $masterNameserver = $internalNameservers[0]
+    $masterNameserverIp = $members[$masterNameserver][$staticEth]
+    $slaveNameserver = $internalNameservers[1]
+    $slaveNameserverIp = $members[$slaveNameserver][$staticEth]
     $mainServerIp = $network['mainServerIp']
 
     # fetch info for etc/bind/named.conf.d/domain.conf
@@ -29,6 +31,13 @@ class data-bind::claudio-dev {
     }
 
     ## zone config file
+    file { '/etc/bind/named.conf.d':
+        ensure => "directory",
+        owner  => "bind",
+        group  => "bind",
+        mode   => 755,
+        require  => Package["bind9"]
+    } ->
     file { "/etc/bind/named.conf.d/$domain.conf":
         ensure  => file,
         path => "/etc/bind/named.conf.d/$domain.conf",
@@ -43,7 +52,5 @@ class data-bind::claudio-dev {
 		path => '/bin',
 		require => File["/etc/bind/named.conf.local"]
 	}
-
-
 
 }
