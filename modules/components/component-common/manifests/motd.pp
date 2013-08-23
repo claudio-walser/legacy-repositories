@@ -4,7 +4,7 @@ class component-common::motd {
 	file {'/etc/motd':
 		ensure  => file,
 		mode	=> 0644,
-		source => "puppet:///modules/component-common/etc/motd"
+		content => template("component-common/etc/motd.erb")
 	}
 
 }
