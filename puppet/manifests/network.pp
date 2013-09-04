@@ -33,11 +33,6 @@ $network = {
 			'eth0' => 'dhcp'
 		},
 
-		'mpcdns-01' => {
-			'eth1' => '10.20.1.100',
-			'eth0' => 'dhcp'
-		},
-
 		#puppet masters
 		'puppet-master-01' => {
 			'eth1' => '10.20.1.2',
