@@ -1,0 +1,14 @@
+#!/bin/sh
+
+VMWARE_TOOLS='false'
+
+
+for x in $(cat /proc/cmdline); do
+  case $x in
+    VMWARE_TOOLS)
+      VMWARE_TOOLS='true'
+    ;;
+  esac
+done
+
+echo $VMWARE_TOOLS
