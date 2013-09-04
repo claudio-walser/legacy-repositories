@@ -5,7 +5,7 @@ set -e
 lb config noauto \
   --mode debian \
   --architectures amd64 \
-  --binary-images live-cd \
+  --binary-images iso-hybrid \
   --bootstrap debootstrap \
   --debian-installer false \
   --distribution wheezy \
