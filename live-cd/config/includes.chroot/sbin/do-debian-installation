@@ -2,7 +2,7 @@
 
 #DEBUG#set -x
 
-. bashlib
+. /sbin/bashlib
 
 lvm_volume_group_name_system="SRFlvmSystem"
 lvm_volume_group_name_data="LvmData"
@@ -11,10 +11,10 @@ root_volume_mount_options="defaults,nobarrier"
 swap_size="4G"
 timezone="Europe/Zurich"
 locale="en_US.UTF-8"
-srf_installer_noreboot=0
+installer_noreboot=0
 
 if [ "$1" == "--noreboot" ]; then
-  srf_installer_noreboot=1
+  installer_noreboot=1
 fi
 
 DEBIAN_APT_MIRROR="http://cdn.debian.net/debian"
@@ -224,28 +224,8 @@ echo "$root_volume_path  /  $root_volume_filesystem  $root_volume_mount_options 
 ### Prepare the chroot
 ymc_prepare_chroot
 
-### Add the srf-mpc repository
-#echo "### Initial sources.list(5) for srf owned repositories, added during provisioning of the server" > $target_dir/etc/apt/sources.list.d/srf.list
-#echo "deb $SRF_REPOSITORY_URL $SRF_REPOSITORY_DISTRIBUTION $SRF_REPOSITORY_COMPONENTS" >> $target_dir/etc/apt/sources.list.d/srf.list
-
-### Add the srf apt signing keys from the live CD to the new system
-#cp /etc/apt/trusted.gpg.d/srf-*.gpg $target_dir/etc/apt/trusted.gpg.d/ || exit 1
-
-### Add the puppetlabs repository
-#echo "### Initial sources.list(5) for the puppetlabs repositories, added during provisioning of the server" > $target_dir/etc/apt/sources.list.d/puppetlabs.list
-#echo "deb $PUPPETLABS_REPOSITORY_URL $PUPPETLABS_REPOSITORY_DISTRIBUTION $PUPPETLABS_REPOSITORY_COMPONENTS" >> $target_dir/etc/apt/sources.list.d/puppetlabs.list
-
 ### Update apt package lists now we have all repos in place
 chroot_exec apt-get update || exit 1
-
-### Drop the key copied from the live cd, they will be provided by package
-### srf-apt-keyring, we are about to install and needed them only to verify
-### the package list we received with the previous '# apt-get update'.
-#rm -f $target_dir/etc/apt/trusted.gpg.d/srf-*.gpg || exit 1
-
-### Install the srf-apt-keyring
-#chroot_exec apt-get --yes install srf-apt-keyring || exit 1
-#chroot_exec apt-get update || exit 1
 
 ### Upgrade the system (just in case)
 chroot_exec apt-get --yes upgrade
@@ -333,20 +313,21 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-### set initially root password to 1234, will be overwritten by the first puppet run
-
 ### Add a script to set a temporary root password during first boot
-mv $target_dir/etc/rc.local $target_dir/etc/rc.local.SRF_INSTALLER_ORIG
+mv $target_dir/etc/rc.local $target_dir/etc/rc.local.INSTALLER_ORIG
 cat <<-EOF > $target_dir/etc/rc.local
 #!/bin/bash
 
-echo "root:\1234" | chpasswd
-if [ \$? -ne 0 ]; then
-  echo "ERROR: Failed to set temporary random root-password" 1>&2
-fi
+root_pw=1234
+
+  echo "root:\$root_pw" | chpasswd
+  if [ \$? -ne 0 ]; then
+    echo "ERROR: Failed to set temporary random root-password" 1>&2
+  fi
+
 
 ### Self destruct...
-mv /etc/rc.local.SRF_INSTALLER_ORIG /etc/rc.local || \
+mv /etc/rc.local.INSTALLER_ORIG /etc/rc.local || \
  rm -f /etc/rc.local || \
  echo "" > etc/rc.local || \
  echo "WARNING: Self destruct of the temporary password-setter, used on initial boot, just failed..." 1>&2
@@ -369,7 +350,7 @@ fi
 ### System should be installed by now
 echo "INFO: Base system installed!"
 
-if [ $srf_installer_noreboot -ne 1 ]; then
+if [ $installer_noreboot -ne 1 ]; then
   ### Reboot if necessary...
   echo "INFO: Rebooting system..."
   reboot

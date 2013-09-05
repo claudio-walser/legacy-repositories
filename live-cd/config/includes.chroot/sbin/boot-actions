@@ -11,6 +11,6 @@ for x in $(cat /proc/cmdline); do
   esac
 done
 
-echo $VMWARE_TOOLS
+echo 'bla bla' . $VMWARE_TOOLS
 
-bash /sbin/do-debian-installation
+/bin/bash /sbin/do-debian-installation
