@@ -2,6 +2,9 @@
 
 # Argument = -n server-01 -e environment-development -d domain.tld -m 1024 -c 2 -s 20G
 
+# VM base path
+VM_BASE_PATH='/home/claudio/Development/VMWare/VirtualMachines';
+
 # display the help
 usage() {
     echo "
@@ -32,6 +35,7 @@ writeVmx() {
     echo "#!/usr/bin/vmware" > $VM_PATH/$FQDN.vmx;
     echo "" >> $VM_PATH/$FQDN.vmx;
 
+    echo "msg.autoAnswer = \"true\"" >> $VM_PATH/$FQDN.vmx;
     echo "guestOS = \"debian6-64\"" >> $VM_PATH/$FQDN.vmx;
     echo ".encoding = \"UTF-8\"" >> $VM_PATH/$FQDN.vmx;
     echo "config.version = \"8\"" >> $VM_PATH/$FQDN.vmx;
@@ -42,7 +46,7 @@ writeVmx() {
 
     echo "numvcpus = \"$CPU\"" >> $VM_PATH/$FQDN.vmx;
     echo "memsize = \"$MEMORY\"" >> $VM_PATH/$FQDN.vmx;
-    echo "displayName = \"$NAME\"" >> $VM_PATH/$FQDN.vmx;
+    echo "displayName = \"$FQDN\"" >> $VM_PATH/$FQDN.vmx;
     echo "extendedConfigFile = \"$VM_PATH/$FQDN.vmxf\"" >> $VM_PATH/$FQDN.vmx;
 
     echo "" >> $VM_PATH/$FQDN.vmx;
@@ -56,26 +60,26 @@ writeVmx() {
 
     echo "" >> $VM_PATH/$FQDN.vmx;
 
-    echo "ethernet0.present = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
     echo "ethernet0.connectionType = \"nat\"" >> $VM_PATH/$FQDN.vmx;
     echo "ethernet0.virtualDev = \"e1000\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.wakeOnPcktRcv = \"FALSE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.wakeOnPcktRcv = \"false\"" >> $VM_PATH/$FQDN.vmx;
     echo "ethernet0.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;    
 
     echo "" >> $VM_PATH/$FQDN.vmx;
 
-    echo "ide0:0.present = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ide0:0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
     echo "ide0:0.deviceType = \"cdrom-image\"" >> $VM_PATH/$FQDN.vmx;
     echo "ide:0.startConnected = \"false\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ide0:0.autodetect = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ide0:0.autodetect = \"true\"" >> $VM_PATH/$FQDN.vmx;
     echo "ide0:0.fileName = \"/home/claudio/Development/VMWare/Isos/binary.hybrid.iso\"" >> $VM_PATH/$FQDN.vmx;    
 
 
     if [ -n ${SHARED_FOLDER+x} ]; then
-        echo "sharedFolder0.present = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.enabled = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.readAccess = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.writeAccess = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.enabled = \"true\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.readAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.writeAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
         echo "sharedFolder0.hostPath = \"$SHARED_FOLDER\"" >> $VM_PATH/$FQDN.vmx;    
         echo "sharedFolder0.guestName = \"$SHARED_FOLDER_GUEST\"" >> $VM_PATH/$FQDN.vmx;
         echo "sharedFolder0.expiration = \"never\"" >> $VM_PATH/$FQDN.vmx;
@@ -180,7 +184,8 @@ fi
 writeVmx;
 
 # register vm and boot it up
-/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;
+#/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;
+vmrun start $VM_PATH/$FQDN.vmx
 
 # start autoinstallation of debian wheezy
 echo "Starting installation";
