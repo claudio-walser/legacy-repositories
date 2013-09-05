@@ -70,7 +70,7 @@ $network = {
 			'eth1' => '10.20.1.11',
 			'eth0' => 'dhcp'
 		},
-		'db-slave-01' => {
+		'db-master-01' => {
 			'eth1' => '10.20.1.12',
 			'eth0' => 'dhcp'
 		},

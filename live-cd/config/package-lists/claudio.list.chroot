@@ -5,3 +5,4 @@ parted
 console-setup
 kbd
 ntp
+open-vm-tools

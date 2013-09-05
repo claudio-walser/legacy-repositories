@@ -12,3 +12,5 @@ for x in $(cat /proc/cmdline); do
 done
 
 echo $VMWARE_TOOLS
+
+bash /sbin/do-debian-installation

@@ -28,52 +28,60 @@ usage() {
 }
 
 writeVmx() {
-    CODE="
-            #!/usr/bin/vmware\n
-\n
-            guestOS = \"debian6-64\"\n
-            .encoding = \"UTF-8\"\n
-            config.version = \"8\"\n
-            virtualHW.version = \"9\"\n
-            machine.id = \"$FQDN\"
-\n
-            numvcpus = \"$CPU\"\n
-            memsize = \"$MEMORY\"\n
-            displayName = \"$NAME\"\n
-            extendedConfigFile = \"$VM_PATH/$FQDN.vmxf\"\n
-\n
-            scsi0.present = \"true\"\n
-            scsi0.sharedBus = \"none\"\n
-            scsi0.virtualDev = \"lsilogic\"\n
-            scsi0:0.present = \"true\"\n
-            scsi0:0.fileName = \"$VM_PATH/$FQDN.vmdk\"\n
-            scsi0:0.deviceType = \"disk\"\n
-\n
-            ethernet0.present = \"TRUE\"\n
-            ethernet0.connectionType = \"nat\"\n
-            ethernet0.virtualDev = \"e1000\"\n
-            ethernet0.wakeOnPcktRcv = \"FALSE\"\n
-            ethernet0.addressType = \"generated\"\n
-\n
-            ide0:0.present = \"TRUE\"\n
-            ide0:0.deviceType = \"cdrom-raw\"\n
-            ide:0.startConnected = \"false\"\n
-            ide0:0.autodetect = \"TRUE\"\n";
+    
+    echo "#!/usr/bin/vmware" > $VM_PATH/$FQDN.vmx;
+    echo "" >> $VM_PATH/$FQDN.vmx;
+
+    echo "guestOS = \"debian6-64\"" >> $VM_PATH/$FQDN.vmx;
+    echo ".encoding = \"UTF-8\"" >> $VM_PATH/$FQDN.vmx;
+    echo "config.version = \"8\"" >> $VM_PATH/$FQDN.vmx;
+    echo "virtualHW.version = \"9\"" >> $VM_PATH/$FQDN.vmx;
+    echo "machine.id = \"$FQDN\"" >> $VM_PATH/$FQDN.vmx;
+
+    echo "" >> $VM_PATH/$FQDN.vmx;
+
+    echo "numvcpus = \"$CPU\"" >> $VM_PATH/$FQDN.vmx;
+    echo "memsize = \"$MEMORY\"" >> $VM_PATH/$FQDN.vmx;
+    echo "displayName = \"$NAME\"" >> $VM_PATH/$FQDN.vmx;
+    echo "extendedConfigFile = \"$VM_PATH/$FQDN.vmxf\"" >> $VM_PATH/$FQDN.vmx;
+
+    echo "" >> $VM_PATH/$FQDN.vmx;
+
+    echo "scsi0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
+    echo "scsi0.sharedBus = \"none\"" >> $VM_PATH/$FQDN.vmx;
+    echo "scsi0.virtualDev = \"lsilogic\"" >> $VM_PATH/$FQDN.vmx;
+    echo "scsi0:0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
+    echo "scsi0:0.fileName = \"$VM_PATH/$FQDN.vmdk\"" >> $VM_PATH/$FQDN.vmx;
+    echo "scsi0:0.deviceType = \"disk\"" >> $VM_PATH/$FQDN.vmx;
+
+    echo "" >> $VM_PATH/$FQDN.vmx;
+
+    echo "ethernet0.present = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.connectionType = \"nat\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.virtualDev = \"e1000\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.wakeOnPcktRcv = \"FALSE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;    
+
+    echo "" >> $VM_PATH/$FQDN.vmx;
+
+    echo "ide0:0.present = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ide0:0.deviceType = \"cdrom-image\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ide:0.startConnected = \"false\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ide0:0.autodetect = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ide0:0.fileName = \"/home/claudio/Development/VMWare/Isos/binary.hybrid.iso\"" >> $VM_PATH/$FQDN.vmx;    
 
 
-    if [-n "$SHARED_FOLDER"]; then
-        CODE=$CODE + "\n
-            sharedFolder0.present = \"TRUE\"
-            sharedFolder0.enabled = \"TRUE\"
-            sharedFolder0.readAccess = \"TRUE\"
-            sharedFolder0.writeAccess = \"TRUE\"
-            sharedFolder0.hostPath = \"$SHARED_FOLDER\"
-            sharedFolder0.guestName = \"$SHARED_FOLDER_GUEST\"
-            sharedFolder0.expiration = \"never\"
-            ";
+    if [ -n ${SHARED_FOLDER+x} ]; then
+        echo "sharedFolder0.present = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.enabled = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.readAccess = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.writeAccess = \"TRUE\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.hostPath = \"$SHARED_FOLDER\"" >> $VM_PATH/$FQDN.vmx;    
+        echo "sharedFolder0.guestName = \"$SHARED_FOLDER_GUEST\"" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder0.expiration = \"never\"" >> $VM_PATH/$FQDN.vmx;
     fi
 
-    echo $CODE > $VM_PATH/$FQDN.vmx;
+    return 1;
  }
 
 # VM Settings
@@ -162,9 +170,10 @@ fi
 if [ -n ${SHARED_FOLDER+x} ]; then
     
     if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
-        echo 'Hell i am not so bad';
+        echo $(pwd)"/${SHARED_FOLDER:2}";
+        SHARED_FOLDER_GUEST=$(basename "/${SHARED_FOLDER:2}");
     fi
-    exit 1;
+
 fi
 
 # create vm config file
