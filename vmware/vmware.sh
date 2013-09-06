@@ -75,14 +75,25 @@ writeVmx() {
     echo "ide0:0.fileName = \"/home/claudio/Development/VMWare/Isos/binary.hybrid.iso\"" >> $VM_PATH/$FQDN.vmx;    
 
 
-    if [ -n ${SHARED_FOLDER+x} ]; then
-        echo "sharedFolder0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.enabled = \"true\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.readAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.writeAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.hostPath = \"$SHARED_FOLDER\"" >> $VM_PATH/$FQDN.vmx;    
-        echo "sharedFolder0.guestName = \"$SHARED_FOLDER_GUEST\"" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder0.expiration = \"never\"" >> $VM_PATH/$FQDN.vmx;
+    i=0;
+    if [ -n ${SHARED_FOLDERS_GUEST+x} ]; then
+        for SHARED_FOLDER_GUEST in "${SHARED_FOLDERS_GUEST[@]}"; do
+            SHARED_FOLDER_GUEST_BASE=$(basename $SHARED_FOLDER_GUEST)
+            
+            echo "sharedFolder$i.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
+            echo "sharedFolder$i.enabled = \"true\"" >> $VM_PATH/$FQDN.vmx;
+            echo "sharedFolder$i.readAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
+            echo "sharedFolder$i.writeAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
+            echo "sharedFolder$i.hostPath = \"$SHARED_FOLDER_GUEST\"" >> $VM_PATH/$FQDN.vmx;    
+            echo "sharedFolder$i.guestName = \"$SHARED_FOLDER_GUEST_BASE\"" >> $VM_PATH/$FQDN.vmx;
+            echo "sharedFolder$i.expiration = \"never\"" >> $VM_PATH/$FQDN.vmx;
+
+            i=$[i + 1];
+        done
+
+        
+    
+
     fi
 
     return 1;
@@ -170,13 +181,25 @@ echo "Starting create vm in $VM_PATH";
 fi
 
 
-# fix shared folder path if exists
-if [ -n ${SHARED_FOLDER+x} ]; then
-    
-    if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
-        echo $(pwd)"/${SHARED_FOLDER:2}";
-        SHARED_FOLDER_GUEST=$(basename "/${SHARED_FOLDER:2}");
-    fi
+# fix shared folders path if exists
+if [ -n ${SHARED_FOLDERS+x} ]; then
+        
+    OLD_IFS=$IFS;
+    IFS=';';
+    i=0;
+    for SHARED_FOLDER in $SHARED_FOLDERS; do
+        if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
+            SHARED_FOLDER=$(pwd)"/${SHARED_FOLDER:2}";
+        fi
+        SHARED_FOLDERS_GUEST[$i]=$SHARED_FOLDER
+        i=$[i + 1];
+    done
+    IFS=$OLD_IFS; 
+
+    #if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
+    #    echo $(pwd)"/${SHARED_FOLDER:2}";
+    #    SHARED_FOLDER_GUEST=$(basename "/${SHARED_FOLDER:2}");
+    #fi
 
 fi
 
