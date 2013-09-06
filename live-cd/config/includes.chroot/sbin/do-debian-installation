@@ -334,6 +334,9 @@ mv /etc/rc.local.INSTALLER_ORIG /etc/rc.local || \
 EOF
 chmod 755 $target_dir/etc/rc.local
 
+cp -r /vmware-tools $target_dir/vmware-tools;
+chroot_exec /vmware-install.pl -d;
+
 ### Release the chroot
 ymc_unprepare_chroot
 
