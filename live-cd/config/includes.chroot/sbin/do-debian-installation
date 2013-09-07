@@ -334,8 +334,12 @@ mv /etc/rc.local.INSTALLER_ORIG /etc/rc.local || \
 EOF
 chmod 755 $target_dir/etc/rc.local
 
+### install vmware-tools and delete installation folder afterwards
 cp -r /vmware-tools $target_dir/vmware-tools;
-chroot_exec /vmware-install.pl -d;
+chroot_exec apt-get --yes install gcc cpp make automake autoconf binutils psmisc;
+chroot_exec apt-get --yes install linux-headers-$(uname -r)
+chroot_exec /vmware-tools/vmware-install.pl -d;
+chroot_exec rm -rf /vmware-tools
 
 ### Release the chroot
 ymc_unprepare_chroot
