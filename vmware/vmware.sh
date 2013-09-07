@@ -77,6 +77,12 @@ writeVmx() {
 
     i=0;
     if [ -n ${SHARED_FOLDERS_GUEST+x} ]; then
+        
+        echo "" >> $VM_PATH/$FQDN.vmx;
+        echo "sharedFolder.maxNum = \"${#SHARED_FOLDERS_GUEST[@]}\"" >> $VM_PATH/$FQDN.vmx;
+        echo "isolation.tools.hgfs.disable = \"false\"" >> $VM_PATH/$FQDN.vmx;
+        echo "" >> $VM_PATH/$FQDN.vmx;
+
         for SHARED_FOLDER_GUEST in "${SHARED_FOLDERS_GUEST[@]}"; do
             SHARED_FOLDER_GUEST_BASE=$(basename $SHARED_FOLDER_GUEST)
             
@@ -87,6 +93,7 @@ writeVmx() {
             echo "sharedFolder$i.hostPath = \"$SHARED_FOLDER_GUEST\"" >> $VM_PATH/$FQDN.vmx;    
             echo "sharedFolder$i.guestName = \"$SHARED_FOLDER_GUEST_BASE\"" >> $VM_PATH/$FQDN.vmx;
             echo "sharedFolder$i.expiration = \"never\"" >> $VM_PATH/$FQDN.vmx;
+            echo "" >> $VM_PATH/$FQDN.vmx;
 
             i=$[i + 1];
         done
