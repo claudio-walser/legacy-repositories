@@ -188,27 +188,31 @@ echo "Starting create vm in $VM_PATH";
 fi
 
 
-# fix shared folders path if exists
+# add provisioning scripts to shard folder path
 if [ -n ${SHARED_FOLDERS+x} ]; then
-        
-    OLD_IFS=$IFS;
-    IFS=';';
-    i=0;
-    for SHARED_FOLDER in $SHARED_FOLDERS; do
-        if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
-            SHARED_FOLDER=$(pwd)"/${SHARED_FOLDER:2}";
-        fi
-        SHARED_FOLDERS_GUEST[$i]=$SHARED_FOLDER
-        i=$[i + 1];
-    done
-    IFS=$OLD_IFS; 
+    SHARED_FOLDERS="$SHARED_FOLDERS;./provisioning";
+else
+    SHARED_FOLDERS='./provisioning';
+fi 
+OLD_IFS=$IFS;
+IFS=';';
+i=0;
 
-    #if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
-    #    echo $(pwd)"/${SHARED_FOLDER:2}";
-    #    SHARED_FOLDER_GUEST=$(basename "/${SHARED_FOLDER:2}");
-    #fi
+# fix shared folders path
+for SHARED_FOLDER in $SHARED_FOLDERS; do
+    if [ ! -n "$SHARED_FOLDER" ]; then
+        continue;
+    fi
 
-fi
+    if [ "${SHARED_FOLDER:0:2}" == "./" ]; then
+        SHARED_FOLDER=$(pwd)"/${SHARED_FOLDER:2}";
+    fi
+    SHARED_FOLDERS_GUEST[$i]=$SHARED_FOLDER
+    i=$[i + 1];
+done
+IFS=$OLD_IFS; 
+
+
 
 # create vm config file
 writeVmx;
@@ -217,5 +221,19 @@ writeVmx;
 #/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;
 vmrun start $VM_PATH/$FQDN.vmx
 
+
+
 # start autoinstallation of debian wheezy
 echo "Starting installation";
+
+# wait until vm is started properly
+FOLDER="never checked yet";
+while [ "$FOLDER" != "The directory exists." ]; do
+    echo 'waiting for properly installed operating system...';
+    echo $FOLDER;
+    FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx /mnt/hgfs);
+done
+
+echo 'Proper installation finally done';
+echo 'Starting provisioning now';
+vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash '/mnt/hgfs/provisioning/provision.sh';
