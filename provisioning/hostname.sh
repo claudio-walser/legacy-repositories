@@ -1,2 +1,3 @@
 #!/bin/bash
-echo 'set hostname'
+
+echo $HOSTNAME > /etc/hostname;
