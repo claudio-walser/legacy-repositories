@@ -61,10 +61,21 @@ writeVmx() {
     echo "" >> $VM_PATH/$FQDN.vmx;
 
     echo "ethernet0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.connectionType = \"nat\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.virtualDev = \"e1000\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.connectionType = \"bridged\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet0.generatedAddressOffset = \"0\"" >> $VM_PATH/$FQDN.vmx;
     echo "ethernet0.wakeOnPcktRcv = \"false\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;    
+    echo "ethernet0.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;   
+    echo "ethernet0.pciSlotNumber = \"30\"" >> $VM_PATH/$FQDN.vmx;
+    
+    echo "" >> $VM_PATH/$FQDN.vmx;
+
+    echo "ethernet1.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet1.connectionType = \"bridged\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet1.generatedAddressOffset = \"10\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet1.wakeOnPcktRcv = \"false\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet1.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;
+    echo "ethernet1.pciSlotNumber = \"31\"" >> $VM_PATH/$FQDN.vmx;
+      
 
     echo "" >> $VM_PATH/$FQDN.vmx;
 
@@ -231,9 +242,13 @@ FOLDER="never checked yet";
 while [ "$FOLDER" != "The directory exists." ]; do
     echo 'waiting for properly installed operating system...';
     echo $FOLDER;
-    FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx /mnt/hgfs);
+    FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
 done
 
 echo 'Proper installation finally done';
 echo 'Starting provisioning now';
-vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash '/mnt/hgfs/provisioning/provision.sh';
+SCRIPT_OUTPUT=$(vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash '/mnt/hgfs/provisioning/provision.sh');
+echo $SCRIPT_OUTPUT;
+
+echo 'Basic provision done, rebooting now';
+vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash 'reboot';
