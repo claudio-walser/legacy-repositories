@@ -1,4 +1,6 @@
 #!/bin/bash
+PUPPET_MASTER_NAME='puppet-master-01';
+PUPPET_MASTER_IP='10.20.1.2';
 
 FQDN=$(/usr/sbin/vmtoolsd --cmd 'machine.id.get');
 
@@ -18,27 +20,28 @@ for i in $FQDN; do
 done
 IFS=$OLD_IFS; 
 
-
 #echo $HOSTNAME;
 #echo $DOMAIN;
 
 echo 'Basic provision starts';
-apt-get --yes install puppet rsync;
+apt-get --yes install rsync;
 
+echo 'Set hostname';
 . /mnt/hgfs/provisioning/hostname.sh;
+echo 'Set hosts file';
 . /mnt/hgfs/provisioning/hosts.sh;
+echo 'Rsync shared folders';
 . /mnt/hgfs/provisioning/shared-folders.sh;
 
-if [[ "${HOSTNAME:0:13}" == "puppet-master" ]]; then
-    . /mnt/hgfs/provisioning/puppet-master.sh;
-
-    echo "127.0.0.1       puppet" >> /etc/hosts;
-else
-	echo "10.20.1.2       puppet" >> /etc/hosts;
-fi
+echo 'Reload hostname';
+# reload hostname
+service hostname.sh stop;
+service hostname.sh start;
 
 
 
-puppet agent --test;
+# this guy makes problems, take it to the very end
+echo 'Setup and configure puppet agent and master if needed';
+. /mnt/hgfs/provisioning/puppet.sh
 
-echo 'Basic provision done';
+exit 1;
