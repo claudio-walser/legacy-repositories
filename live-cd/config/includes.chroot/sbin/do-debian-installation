@@ -10,7 +10,7 @@ root_volume_filesystem="ext4"
 root_volume_mount_options="defaults,nobarrier"
 swap_size="4G"
 timezone="Europe/Zurich"
-locale="en_US.UTF-8"
+locale="de_CH.UTF-8"
 installer_noreboot=0
 
 if [ "$1" == "--noreboot" ]; then
@@ -243,11 +243,25 @@ echo "link_in_boot = yes" >> $target_dir/etc/kernel-img.conf
 echo "postinst_hook = update-grub" >> $target_dir/etc/kernel-img.conf
 echo "postrm_hook   = update-grub" >> $target_dir/etc/kernel-img.conf
 
+chroot_exec ifdown eth0
+chroot_exec ifdown eth1
+
 ### Configure essential networking on the new system
 echo "" >> $target_dir/etc/network/interfaces
 echo "auto eth0" >> $target_dir/etc/network/interfaces
 echo "iface eth0 inet dhcp" >> $target_dir/etc/network/interfaces
 
+# default static one for reach the puppet master on 10.20.1.2
+echo "" >> $target_dir/etc/network/interfaces
+echo "auto eth1" >> $target_dir/etc/network/interfaces
+echo "iface eth1 inet static" >> $target_dir/etc/network/interfaces
+echo "  address 10.20.1.250" >> $target_dir/etc/network/interfaces
+echo "  netmask 255.255.255.0" >> $target_dir/etc/network/interfaces
+
+chroot_exec ifup eth0
+chroot_exec ifup eth1
+
+    
 ### Set the timezone
 if [ "$timezone" != '' ]; then
   echo "$timezone" > $target_dir/etc/timezone
