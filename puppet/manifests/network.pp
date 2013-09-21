@@ -1,12 +1,11 @@
 # this files is taken to create etc/resolv.conf, etc/network/interfaces and the claudio.dev.hosts zone file on dns boxes as well
 $network = {
-	'domain' => 'claudio.dev',
+	'domain' => 'development.claudio.dev',
 	'mainServerIp' => '10.20.1.4', # gitlab server right now, going to be the development server with my sandboxes later
 	'dynamicEth' => 'eth0',
 
 	'defaultIp' => '10.20.1.250',
 	'staticEth' => 'eth1',
-	'gateway' => '10.20.1.1',
 	'netmask' => '255.255.255.0',
 	
 	'externalNameserverIps' => [
@@ -28,7 +27,7 @@ $network = {
 	
 	'members' => {
 		# default box
-		'core' => {
+		'core-01' => {
 			'eth1' => '10.20.1.250',
 			'eth0' => 'dhcp'
 		},

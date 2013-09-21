@@ -4,7 +4,6 @@ class component-network {
 	$isDns = is_dns_node($network)
 	# overwrite this, even if its a facter value
 	$domain = $network['domain']
-	$gateway = $network['gateway']
 	$netmask = $network['netmask']
 	$nameservers = $network['nameservers']
 	$members = $network['members']
@@ -22,7 +21,7 @@ class component-network {
 		owner => 'root',
 		group => 'root',
 		content => template("component-network/etc/resolv.conf.erb")
-	}
+	} ->
 
 
 	## create interfaces with the given data
@@ -41,10 +40,10 @@ class component-network {
 	#} ->
 
 	## ifup force the static one
-	exec { 'ifup-static':
-		command => "ifup --force $staticEth",
-		path => '/sbin'
-	}
+	#exec { 'ifup-static':
+	#	command => "ifup --force $staticEth",
+	#	path => '/sbin'
+	#} ->
 
 	## ensure dhcp is not updating anything
 	file { '/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate':

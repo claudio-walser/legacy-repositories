@@ -1,5 +1,7 @@
 class component-common::motd {
 	
+	$fixed_ip = get_host_ip($network)
+
 	# default motd
 	file {'/etc/motd':
 		ensure  => file,

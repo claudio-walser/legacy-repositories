@@ -2,8 +2,9 @@ class component-common::security {
 	
 	# some helpfull packages
 	package { "fail2ban": 
-		ensure => installed 
-	}
+		ensure => installed,
+		require => Package ['openssh-server']
+	} ->
 
 	# disable ssh root login
 	# therefore, just copy a configured sshd_config
@@ -14,6 +15,7 @@ class component-common::security {
 		mode	=> 0644,
 		source => "puppet:///modules/component-common/etc/ssh/sshd_config"
 	} ->
+
 	service { "ssh":
 		ensure => running
 	}

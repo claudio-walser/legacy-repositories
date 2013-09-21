@@ -9,13 +9,20 @@ node default {
 
 
 ## dns nodes
-node /^dns-[0-9]{1,2}\.claudio\.dev$/ {
+node /^dns-[0-9]{1,2}.*$/ {
 	include role::dns
 }
 ## dns nodes
 
+### Build Host for building live cd
+node /^build-[0-9]{1,2}.*$/ {
+	include role::build
+}
+### Build Host for building live cd
+
+
 ## gitlab nodes
-node 'git-01.claudio.dev' {
+node /^git-[0-9]{1,2}.*$/ {
 	include role::gitlab
 }
 ## gitlab nodes

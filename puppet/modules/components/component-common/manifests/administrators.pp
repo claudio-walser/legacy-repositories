@@ -30,6 +30,14 @@ class component-common::administrators {
         ensure  => file,
         mode    => 0644,
         source => "puppet:///modules/component-common/home/admin/.ssh/authorized_keys";
+    } ->
+
+    # no password prompt for user admin while using sudo
+    file { '/etc/sudoers.d/admin':
+        ensure => 'file',
+        owner => 'root',
+        group => 'root',
+        content => 'admin ALL=NOPASSWD:ALL'
     }
 
 }
