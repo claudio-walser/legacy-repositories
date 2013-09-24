@@ -34,7 +34,7 @@ if [[ "${HOSTNAME:0:7}" == "puppet-" ]]; then
 	echo "" >> /etc/puppet/puppet.conf
 	echo "# my module paths" >> /etc/puppet/puppet.conf
 	echo "manifestdir=/etc/puppet/manifests" >> /etc/puppet/puppet.conf
-	echo "modulepath=/etc/puppet/modules/components:/etc/puppet/modules/forge:/etc/puppet/modules/roles:/etc/puppet/modules/services:/etc/puppet/modules/data" >> /etc/puppet/puppet.conf
+	echo "modulepath=/etc/puppet/modules/components:/etc/puppet/modules/forge:/etc/puppet/modules/roles:/etc/puppet/modules/services:/etc/puppet/modules/data:/etc/puppet/modules/forge" >> /etc/puppet/puppet.conf
 
 	# install puppet master
 	apt-get --yes install puppetmaster;
