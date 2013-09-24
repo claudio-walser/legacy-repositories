@@ -243,6 +243,12 @@ while [ "$FOLDER" != "The directory exists." ]; do
     echo 'waiting for properly installed operating system...';
     echo $FOLDER;
     FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
+
+    # for some reason initial shared folders are disabled on start at a specific amount of vm's
+    if [ "$FOLDER" == 'The directory does not exist.' ]; then
+        FOLDER=$(vmrun -gu root -gp 1234 enableSharedFolders $VM_PATH/$FQDN.vmx);
+        FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
+    fi
 done
 
 echo 'Proper installation finally done';
@@ -252,3 +258,5 @@ echo $SCRIPT_OUTPUT;
 
 echo 'Basic provision done, rebooting now';
 vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash 'reboot';
+
+exit 0;
