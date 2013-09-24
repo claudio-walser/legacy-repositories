@@ -1,62 +1,66 @@
 class service-gitlab {
 
+    $fixed_ip = get_host_ip($network)
+
     # dependencies
     package {
-    	['build-essential',
-    		'zlib1g-dev',
-    		'libyaml-dev',
-    		'libssl-dev',
-    		'libgdbm-dev',
-    		'libreadline-dev',
-    		'libncurses5-dev',
-    		'libffi-dev',
-    		'curl',
-    		'git-core',
-    		'redis-server',
-    		'checkinstall',
-    		'libxml2-dev',
-    		'libxslt-dev',
-    		'libcurl4-openssl-dev',
-    		'libicu-dev',
-    		'python2.7',
-    		'ruby'
-    		]: 
+        ['build-essential',
+            'zlib1g-dev',
+            'libyaml-dev',
+            'libssl-dev',
+            'libgdbm-dev',
+            'libreadline-dev',
+            'libncurses5-dev',
+            'libffi-dev',
+            'curl',
+            'git-core',
+            'redis-server',
+            'checkinstall',
+            'libxml2-dev',
+            'libxslt-dev',
+            'libcurl4-openssl-dev',
+            'libicu-dev',
+            'python2.7',
+            'ruby'
+            ]: 
         ensure => installed 
     } ->
 
+    # gitlab
+    file { '/etc/apt/sources.list.d/gitlab.list':
+        owner => 'root',
+        group => 'root',
+        ensure => 'file',
+        content =>  "deb http://debian.fastlaneventures.ru/gitlab wheezy/\ndeb-src http://debian.fastlaneventures.ru/gitlab wheezy/"
+    } ->
 
-    user { 'git': 
-        #uid        => 500, 
-        #groups     => 'admin', 
-        comment     => 'Gitlab', 
-        ensure      => present, 
-        home        => '/home/git', 
-        shell       => '/bin/false', 
-        managehome  => true, 
-        password    => '$6$OprdC8Il$YuxNRSVU0cf1wMSp8bbnav8fWc5kwEk2N4nsbnJ7G8BWqwbUeH33kRRZpM4DETeQ1va02b21a07zp66DnwL/a0'
+    exec { 'git-apt-update':
+        command => "apt-get update",
+        path => '/usr/bin'
+    } ->
+
+    exec { 'git-apt-install':
+        command => "apt-get --force-yes install gitlab",
+        path => '/usr/bin'
     } ->
 
 
-    file { '/home/git/gitlab-shell':
-        ensure => "directory",
-        owner  => "git",
-        group  => "git",
-        mode   => 755
+    # default motd
+    file {'/etc/gitlab/unicorn.rb':
+        ensure  => file,
+        mode    => 0644,
+        content => template("service-gitlab/etc/gitlab/unicorn.rb.erb")
+    } ->
+
+    file {'/etc/gitlab/gitlab.yml':
+        ensure  => file,
+        mode    => 0644,
+        content => template("service-gitlab/etc/gitlab/gitlab.yml.erb")
+    }->
+
+    service { "gitlab":
+        enable => true,
+        ensure => running
     }
 
-    #vcsrepo { '/tmp/vcstest-git-clone':
-    #    ensure   => present,
-    #    provider => git,
-    #    source   => 'git://github.com/bruce/rtex.git',
-    #}
-
-    # vcsrepo is still not working correct
-    #vcsrepo { '/home/git/gitlab-shell':
-    #    source => 'https://github.com/gitlabhq/gitlab-shell.git',
-    #    provider => git,
-    #    owner => 'git',
-    #    group => 'git',
-    #    user => 'git',
-    #    revision => 'v1.5.0'
-    #}
 }

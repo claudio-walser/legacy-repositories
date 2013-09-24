@@ -49,6 +49,16 @@ $network = {
 			'eth1' => '10.20.1.4',
 			'eth0' => 'dhcp'
 		},
+		
+		'git-02' => {
+			'eth1' => '10.20.1.5',
+			'eth0' => 'dhcp'
+		},
+
+		'jenkins-01' => {
+			'eth1' => '10.20.1.6',
+			'eth0' => 'dhcp'
+		},
 
 		#dns servers
 		'dns-01' => {

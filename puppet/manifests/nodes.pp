@@ -26,3 +26,12 @@ node /^git-[0-9]{1,2}.*$/ {
 	include role::gitlab
 }
 ## gitlab nodes
+
+
+## jenkins nodes
+node /^jenkins-[0-9]{1,2}.*$/ {
+	include role::jenkins
+}
+## jenkins nodes
+
+
