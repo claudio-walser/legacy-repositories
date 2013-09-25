@@ -1,7 +1,8 @@
 class component-common::packages {	
 	package {[
 		"openssh-server",
-		"openssh-client"
+		"openssh-client",
+		"bash-completion"
 	]: 
 		ensure => installed 
 	}

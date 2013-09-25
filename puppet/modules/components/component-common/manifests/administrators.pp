@@ -1,7 +1,7 @@
 class component-common::administrators {
 
 	## need package sudo to add users to sudoers
-	package { "sudo": 
+	package { 'sudo': 
 		ensure => installed 
 	} ->
 
@@ -24,12 +24,12 @@ class component-common::administrators {
     } ->
 
     # authorized server admins - add public keys in this file
-    file {'/home/admin/.ssh/authorized_keys':
+    file { '/home/admin/.ssh/authorized_keys':
         owner => 'admin',
         group => 'admin',
         ensure  => file,
         mode    => 0644,
-        source => "puppet:///modules/component-common/home/admin/.ssh/authorized_keys";
+        source => "puppet:///modules/component-common/home/admin/.ssh/authorized_keys"
     } ->
 
     # no password prompt for user admin while using sudo
@@ -39,5 +39,15 @@ class component-common::administrators {
         group => 'root',
         content => 'admin ALL=NOPASSWD:ALL'
     }
+
+    # .bashrc for root, includes just bash-completion yet
+    file { '/root/.bashrc':
+        ensure => 'file',
+        owner => 'root',
+        group => 'root',
+        source => 'puppet:///modules/component-common/root/.bashrc'
+    }
+
+
 
 }
