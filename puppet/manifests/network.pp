@@ -60,6 +60,11 @@ $network = {
 			'eth0' => 'dhcp'
 		},
 
+		'monitor-01' => {
+			'eth1' => '10.20.1.7',
+			'eth0' => 'dhcp'
+		},
+
 		#dns servers
 		'dns-01' => {
 			'eth1' => '10.20.1.8',

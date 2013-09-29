@@ -1,0 +1,2 @@
+# icinga settings
+icinga::params::version: '1.7.1-6'

@@ -3,12 +3,29 @@ forge "http://forge.puppetlabs.com"
 
 mod "stdlib",
   :git => "git://github.com/puppetlabs/puppetlabs-stdlib.git",
-  :ref => "v2.2.1"
+  :ref => "master"
 
 mod "apt",
   :git => "git://github.com/puppetlabs/puppetlabs-apt.git",
   :ref => "1.2.0"
 
+mod "concat",
+  :git => "git://github.com/puppetlabs/puppetlabs-concat.git",
+  :ref => "1.0.0"
+
 mod "jenkins",
   :git => "git://github.com/jenkinsci/puppet-jenkins.git",
   :ref => "release-0.2.4"
+
+mod "mysql",
+  :git => "git://github.com/puppetlabs/puppetlabs-mysql.git",
+  :ref => "master"
+
+mod "nginx",
+  :git => "git://github.com/thias/puppet-nginx.git",
+  :ref => "master"
+
+mod "apache",
+  :git => "git://github.com/puppetlabs/puppetlabs-apache.git",
+  :ref => "0.9.0"
+

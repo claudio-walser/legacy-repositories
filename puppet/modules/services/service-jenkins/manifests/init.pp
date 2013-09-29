@@ -1,6 +1,6 @@
 class service-jenkins {
-	
-    include ::service-java::runtime
-    include ::jenkins
+
+    class { '::service-java::runtime': } ->
+    class { '::jenkins': }
 
 }

@@ -3,6 +3,7 @@ class component-common {
 	include component-common::administrators
 	include component-common::packages
 	include component-common::security
+	include component-common::mounts
 
 	#todo
 	# -  setup puppet agent as service

@@ -4,9 +4,13 @@ class service-puppetmaster {
 		ensure => 'installed'
 	} ->
 
+	package { 'hiera-puppet':
+	    ensure   => 'installed'
+	} ->
+
 	package { 'librarian-puppet':
 	    ensure   => 'installed',
-	    provider => 'gem',
+	    provider => 'gem'
 	}
 
 }
