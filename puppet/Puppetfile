@@ -28,4 +28,3 @@ mod "nginx",
 mod "apache",
   :git => "git://github.com/puppetlabs/puppetlabs-apache.git",
   :ref => "0.9.0"
-
