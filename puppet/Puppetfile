@@ -21,6 +21,10 @@ mod "mysql",
   :git => "git://github.com/puppetlabs/puppetlabs-mysql.git",
   :ref => "master"
 
+mod "postgresql",
+  :git => "https://github.com/puppetlabs/puppetlabs-postgresql",
+  :ref => "master"
+
 mod "nginx",
   :git => "git://github.com/thias/puppet-nginx.git",
   :ref => "master"
@@ -28,3 +32,7 @@ mod "nginx",
 mod "apache",
   :git => "git://github.com/puppetlabs/puppetlabs-apache.git",
   :ref => "0.9.0"
+
+mod "puppetdb",
+  :git => "git://github.com/puppetlabs/puppetlabs-puppetdb.git",
+  :ref => "3.0.0"
