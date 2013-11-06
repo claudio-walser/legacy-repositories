@@ -33,8 +33,11 @@ class service-puppetmaster {
 		ensure => 'installed'
 	} ->
 
-	package { 'ruby-hiera-puppet':
-	    ensure   => 'installed'
+
+	
+	exec { 'apt-get-install-hiera-puppet':
+		command => 'apt-get --yes --force-yes install hiera-puppet; exit 0;',
+		path => '/usr/bin'
 	} ->
 
 	package { 'librarian-puppet':
@@ -45,10 +48,27 @@ class service-puppetmaster {
 	exec { 'librarian-puppet-install':
 		command => "bash /etc/puppet/rsync.sh",
 		path => '/bin'
+
 	} ->
 
-	# install puppetdb
-	package { 'puppetdb':
-	    ensure   => 'installed'
+	exec { 'apt-get-install-puppetdb':
+		command => 'apt-get --yes --force-yes install puppetdb puppetdb-terminus; exit 0;',
+		path => '/usr/bin'
+	} ->
+
+	# use puppetdb on the same node as the puppetmaster
+	class { 'puppetdb':
+		listen_address => '0.0.0.0',
+		ssl_listen_address => '0.0.0.0',
+		java_args => {
+			'-Xmx' => '512m',
+			'-Xms' => '256m'
+		}
 	}
+
+	class { 'puppetdb::master::config':
+		puppetdb_server => $fqdn
+	}
+
+
 }
