@@ -1,6 +1,9 @@
 class service-jenkins {
 
-    class { '::service-java::runtime': } ->
-    class { '::jenkins': }
+	package { "openjdk-7-jre":
+		ensure => installed
+	} ->
+	
+	class { '::jenkins': }
 
 }

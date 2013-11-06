@@ -11,21 +11,18 @@ class component-common::mounts {
     } ->
 
 	exec { 'backup-mount':
-        command => "mount -t cifs //10.20.0.3/backup /mnt/backup/ -o username=backup,password=backup,domain=claudio.dev",
+        command => "mount -t cifs //10.20.0.3/backup /mnt/backup/ -o username=backup,password=backup,domain=QNAP",
         path => '/bin',
         creates => '/mnt/backup/keep'
-    } ->
+    } #->
 
-	exec { 'backup-directory-setup':
-        command => "mkdir -p /mnt/backup/${domain}/${hostname}/setup",
-        path => '/bin',
-        creates => '/mnt/backup/${domain}/${hostname}/setup'
-    } ->
 
-	exec { 'backup-directory-backup':
-        command => "mkdir -p /mnt/backup/${domain}/${hostname}/backup",
-        path => '/bin',
-        creates => '/mnt/backup/${domain}/${hostname}/backup'
-    }
+
+    # create one backup directory by role
+	#exec { 'backup-directory-backup':
+    #    command => "mkdir -p /mnt/backup/${domain}/test-${node_role}/backup",
+    #    path => '/bin',
+    #    creates => '/mnt/backup/${domain}/test-${node_role}/backup'
+    #}
 
 }

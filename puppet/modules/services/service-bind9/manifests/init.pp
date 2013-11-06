@@ -38,7 +38,7 @@ class service-bind9 {
     } ->
 
     service { "bind9":
-        ensure => running
+        ensure => 'running'
     }
 
 }

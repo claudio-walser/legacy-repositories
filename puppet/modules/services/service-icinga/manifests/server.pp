@@ -4,7 +4,7 @@ class service-icinga::server {
   
   # install mysql-server with root password icinga
   class { '::mysql::server':
-    #root_password => 'icinga'
+  #		root_password => 'icinga'
   } ->
 
   mysql::db { 'icinga': 
@@ -14,7 +14,7 @@ class service-icinga::server {
     charset => 'utf8',
     collate => 'utf8_general_ci',
     host => 'localhost',
-    sql => "/mnt/backup/${domain}/${hostname}/setup/icinga.sql",
+    #sql => "/mnt/backup/${domain}/${hostname}/setup/icinga.sql",
     enforce_sql => false,
     ensure => 'present'
   } ->
@@ -26,14 +26,16 @@ class service-icinga::server {
     charset => 'utf8',
     collate => 'utf8_general_ci',
     host => 'localhost',
-    sql => "/mnt/backup/${domain}/${hostname}/setup/icinga_web.sql",
+    #sql => "/mnt/backup/${domain}/${hostname}/setup/icinga_web.sql",
     enforce_sql => false,
     ensure => 'present'
   } ->
 
   # setup password files as given from top as there is
+  #   . /etc/icinga/ido2db.cfg
   #   - /usr/share/icinga-web/app/config/databases.xml
   #   - /etc/icinga-web/conf.d/database-ido.xml
+  #   - /etc/icinga-web/conf.d/database-web.xml
   #   - rm -rf /var/cache/icinga-web/config/databases.xml_production->
 
   # example of xml lens from augeas
@@ -56,12 +58,16 @@ class service-icinga::server {
 
   package { 'icinga-web' :
     ensure => 'installed'
-  } ->
-
-  nagios_host{$fqdn:
-    address => '10.20.1.7',
-    alias => 'monitor-01',
-    use => 'generic-host',
   }
 
+ 
+  Nagios_host <<||>>
+  Nagios_host <||> {
+    target => '/etc/icinga/objects/hosts_icinga.cfg'
+  }
+
+  Nagios_service <<||>>
+  Nagios_service <||> {
+    target => '/etc/icinga/objects/services_icinga.cfg'
+  }  
 }

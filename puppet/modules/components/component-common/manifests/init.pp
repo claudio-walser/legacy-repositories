@@ -4,7 +4,8 @@ class component-common {
 	include component-common::packages
 	include component-common::security
 	include component-common::mounts
-
+	include component-common::monitoring
+	
 	#todo
 	# -  setup puppet agent as service
 	# - * ensure root password is changed
