@@ -1,3 +1,3 @@
-class role::jenkins inherits role {
+class role::jenkins {
 	include service-jenkins
 }

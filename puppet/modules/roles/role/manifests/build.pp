@@ -1,3 +1,3 @@
-class role::build inherits role { 
+class role::build { 
 	include ::service-debbuild
 }
