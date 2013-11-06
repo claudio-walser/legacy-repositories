@@ -99,7 +99,18 @@ $network = {
 		'db-slave-02' => {
 			'eth1' => '10.20.1.15',
 			'eth0' => 'dhcp'
+		}, 
+
+		# wiki host(s)
+		'wiki-01' => {
+			'eth1' => '10.20.1.40',
+			'eth0' => 'dhcp'
+		},
+		'wiki-02' => {
+			'eth1' => '10.20.1.41',
+			'eth0' => 'dhcp'
 		}
+
 	}
 
 }
