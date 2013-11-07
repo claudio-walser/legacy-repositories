@@ -1,4 +1,7 @@
 class service-mediawiki {
+    # get role name	
+	$node_role = get_node_role($hostname)
+
 	# install mysql-server with root password icinga
 	class { '::mysql::server':
 	#	root_password => 'icinga'
@@ -11,7 +14,7 @@ class service-mediawiki {
 		charset => 'utf8',
 		collate => 'utf8_general_ci',
 		host => 'localhost',
-		sql => "/mnt/backup/${domain}/${hostname}/backup/mysql/latest/mediawiki.sql",
+		sql => "/mnt/backup/${domain}/${node_role}/backup/mysql/latest/mediawiki.sql",
 		enforce_sql => false,
 		ensure => 'present'
 	} ->
@@ -67,7 +70,7 @@ class service-mediawiki {
 		mode => 0660,
 		owner => 'www-data',
 		group => 'www-data',
-		source => "file:///mnt/backup/${domain}/${hostname}/backup/php/latest/LocalSettings.php"
+		source => "file:///mnt/backup/${domain}/${node_role}/backup/files/latest/etc/mediawiki/LocalSettings.php"
 	}
 
 }

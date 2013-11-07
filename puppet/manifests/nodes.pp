@@ -7,12 +7,11 @@ node default {
 
 	# fetch node role and node number out of hostname. Match example:
 	# (anything-but-last-one-or-two-numbers-is-the-role)-01
-	if $hostname =~ /(.*)-([\d]{1,2})$/ {
-		$node_role = $1
-		$node_number = $2
+	
+	$node_role = get_node_role($hostname)
 
-		$role_class  = "role::$node_role"
-		include $role_class
+	if $node_role {
+		include "role::$node_role"
 	}
 	
 }

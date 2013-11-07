@@ -1,0 +1,31 @@
+# ************************************
+# Vhost template in module puppetlabs-apache
+# Managed by Puppet
+# ************************************
+
+<VirtualHost *:80>
+  ServerName wiki-01.development.claudio.dev
+
+  ## Vhost docroot
+  DocumentRoot /var/www/redmine
+
+
+  ## Directories, there should at least be a declaration for /var/www/redmine
+
+  <Directory /var/www/redmine>
+    Options Indexes FollowSymLinks MultiViews
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+
+	RailsBaseURI /
+	PassengerResolveSymlinksInDocumentRoot on
+</Directory>
+
+  ## Logging
+  ErrorLog /var/log/apache2/wiki-01.development.claudio.dev_error.log
+  LogLevel warn
+  ServerSignature Off
+  CustomLog /var/log/apache2/wiki-01.development.claudio.dev_access.log combined
+
+</VirtualHost>
