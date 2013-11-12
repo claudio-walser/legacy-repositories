@@ -41,4 +41,17 @@ class service-gitlab (
         gitlab_dbpwd      => $db_pass,
         require           => Package['g++', 'nginx', 'ruby1.9.3', 'redis-server']
     }
+
+
+    
+    # copy config files
+    file { '/home/git/backup.sh':
+        ensure => 'file',
+        source => "puppet:///modules/service-gitlab/home/git/backup.sh"
+    }
+
+    file { '/home/git/restore.sh':
+        ensure => 'file',
+        source => "puppet:///modules/service-gitlab/home/git/restore.sh"
+    }
 }
