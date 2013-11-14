@@ -1,7 +1,7 @@
 class service-gitlab (
-    db_name = 'gitlab',
-    db_user = 'gitlab',
-    db_pass = 'gitlab'
+    $db_name = 'gitlab',
+    $db_user = 'gitlab',
+    $db_pass = 'gitlab'
 ) { 
 
     # prerequisites
