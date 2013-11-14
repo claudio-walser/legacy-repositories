@@ -1,7 +1,7 @@
 class service-redmine::version-2-3-3 (
-	tarballUrl = 'http://files.rubyforge.vm.bytemark.co.uk/redmine/redmine-2.3.3.tar.gz',
-	packetName = 'redmine-2.3.3',
-	installationPath = '/opt/redmine' # make sure the parent directory, in this case /opt, already exists
+	$tarballUrl = 'http://files.rubyforge.vm.bytemark.co.uk/redmine/redmine-2.3.3.tar.gz',
+	$packetName = 'redmine-2.3.3',
+	$installationPath = '/opt/redmine' # make sure the parent directory, in this case /opt, already exists
 ) {
 	# Batch script would be alot easier
 	# ensure installation folder exists, think about puppet has no recursion
@@ -87,13 +87,19 @@ class service-redmine::version-2-3-3 (
 	file { '/opt/redmine/restore.sh':
 		ensure => 'file',
 		source => "puppet:///modules/service-redmine/redmine-2.3.3/opt/redmine/restore.sh"
+	} ->
+
+	file { '/opt/redmine/install.sh':
+		ensure => 'file',
+		source => "puppet:///modules/service-redmine/redmine-2.3.3/opt/redmine/install.sh"
 	} ->	
 
 	# install latest backup
 	exec { 'service-redmine::version-2-3-3-install-latest-backup':
-		command => "bash /opt/redmine/restore.sh",
+		command => "bash /opt/redmine/install.sh",
 		cwd => "${installationPath}",
-		path => '/bin'
+		path => '/bin',
+		creates => '/opt/redmine/installed'
 	} ->
 
 	# install redmine bundles
