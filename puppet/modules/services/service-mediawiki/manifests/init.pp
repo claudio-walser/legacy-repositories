@@ -27,6 +27,7 @@ class service-mediawiki {
 	class {'::apache::mod::headers': }
 	class {'::apache::mod::php': }
 
+	
 
 	#install needed php packages
 	package { [
