@@ -37,9 +37,12 @@ class service-bind9 {
         content => ''
     } ->
 
-    exec { 'service-bind9::start-service':
-        command => "service bind9 restart",
-        path => '/usr/sbin'
+    service {'bind9':
+        ensure => 'running'
     }
+    #exec { 'service-bind9::start-service':
+    #    command => "service bind9 restart",
+    #    path => '/usr/sbin'
+    #}
 
 }
