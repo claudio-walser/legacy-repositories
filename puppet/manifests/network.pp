@@ -147,6 +147,14 @@ $network = {
 
 
 
+		# management stuff - starts from .150
+		'scan-01' => {
+			'eth1' => '10.20.1.150',
+			'eth0' => 'dhcp'
+		},
+
+
+
 
 
 		# application names as a workaround for dns since i dont have anything with exported resources yet
