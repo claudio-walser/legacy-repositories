@@ -1,3 +1,5 @@
+#!/bin/bash
+
 /bin/cp -r /mnt/backup/development.claudio.dev/wiki/backup/files/latest/opt/redmine/public/plugin_assets /opt/redmine/public/;
 
 /bin/cp -r /mnt/backup/development.claudio.dev/wiki/backup/files/latest/opt/redmine/public/themes /opt/redmine/public/;

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 /bin/mkdir -p /mnt/backup/development.claudio.dev/wiki/backup/files/latest/opt/redmine/public/plugin_assets;
 /usr/bin/rsync -av /opt/redmine/public/plugin_assets /mnt/backup/development.claudio.dev/wiki/backup/files/latest/opt/redmine/public/;
 

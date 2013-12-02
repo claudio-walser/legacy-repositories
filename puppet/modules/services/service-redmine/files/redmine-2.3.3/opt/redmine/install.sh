@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cd /opt/redmine;
 /usr/local/bin/bundle install --without development test postgresql sqlite
 /usr/local/bin/rake generate_secret_token
