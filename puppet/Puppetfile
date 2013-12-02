@@ -26,8 +26,8 @@ mod "postgresql",
   :ref => "master"
 
 mod "nginx",
-  :git => "git://github.com/thias/puppet-nginx.git",
-  :ref => "master"
+  :git => "https://github.com/jfryman/puppet-nginx.git",
+  :ref => "v0.0.6"
 
 mod "apache",
   :git => "git://github.com/puppetlabs/puppetlabs-apache.git",
@@ -40,3 +40,11 @@ mod "puppetdb",
 mod "gitlab",
   :git => "https://github.com/sbadia/puppet-gitlab.git",
   :ref => "master"
+
+mod "php",
+  :git => "https://github.com/thias/puppet-php.git",
+  :ref => "0.3.7"
+
+mod "vcsrepo",
+  :git => "https://github.com/puppetlabs/puppetlabs-vcsrepo.git",
+  :ref => "0.2.0"
