@@ -1,3 +1,5 @@
+#!/bin/bash
+
 /bin/mkdir -p /mnt/backup/development.claudio.dev/git/backup/files/latest/home/git/repositories;
 /usr/bin/rsync -av /home/git/repositories /mnt/backup/development.claudio.dev/git/backup/files/latest/home/git/;
 
