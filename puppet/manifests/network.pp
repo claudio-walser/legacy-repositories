@@ -74,57 +74,54 @@ $network = {
 		# mysql cluster .10 loadbalanced
 		# proxies, forwarding reading queries to the slaves and writing queries to the masters
 		'db-proxy-01' => {
-			'eth1' => '10.20.1.11',
+			'eth1' => '10.20.1.10',
 			'eth0' => 'dhcp'
 		},
 		'db-proxy-02' => {
-			'eth1' => '10.20.1.12',
+			'eth1' => '10.20.1.19',
 			'eth0' => 'dhcp'
 		},
 		#masters
 		'db-master-01' => {
-			'eth1' => '10.20.1.13',
+			'eth1' => '10.20.1.11',
 			'eth0' => 'dhcp'
 		},
 		'db-master-02' => {
-			'eth1' => '10.20.1.13',
+			'eth1' => '10.20.1.12',
 			'eth0' => 'dhcp'
 		},
 		# slaves
 		'db-slave-01' => {
-			'eth1' => '10.20.1.14',
+			'eth1' => '10.20.1.13',
 			'eth0' => 'dhcp'
 		},
 		'db-slave-02' => {
-			'eth1' => '10.20.1.15',
+			'eth1' => '10.20.1.14',
 			'eth0' => 'dhcp'
 		}, 
 
-		# php-fpm cluster  .20 loadbalanced
-		'php-01' => {
-			'eth1' => '10.20.1.21',
-			'eth0' => 'dhcp'
-		}, 
-		'php-02' => {
-			'eth1' => '10.20.1.22',
-			'eth0' => 'dhcp'
-		}, 
-		'php-03' => {
-			'eth1' => '10.20.1.23',
-			'eth0' => 'dhcp'
-		}, 
-		'php-04' => {
-			'eth1' => '10.20.1.24',
+
+		# web application servers with nginx .30 loadbalanced
+		'webproxy-01' => {
+			'eth1' => '10.20.1.30',
 			'eth0' => 'dhcp'
 		},
 
-		# web application servers with nginx .30 loadbalanced
+		'webproxy-02' => {
+			'eth1' => '10.20.1.39',
+			'eth0' => 'dhcp'
+		},
+
 		'web-01' => {
 			'eth1' => '10.20.1.31',
 			'eth0' => 'dhcp'
 		},
 		'web-02' => {
 			'eth1' => '10.20.1.32',
+			'eth0' => 'dhcp'
+		},
+		'web-03' => {
+			'eth1' => '10.20.1.33',
 			'eth0' => 'dhcp'
 		},
 
@@ -146,7 +143,64 @@ $network = {
 		'search-02' => {
 			'eth1' => '10.20.1.52',
 			'eth0' => 'dhcp'
-		}
+		},
+
+
+
+
+
+		# application names as a workaround for dns since i dont have anything with exported resources yet
+		
+		# test
+		'test' => {
+			'eth1' => '10.20.1.30'
+		},
+		'test' => {
+			'eth1' => '10.20.1.39'
+		},
+		'test.web-01' => {
+			'eth1' => '10.20.1.31'
+		},
+		'test.web-02' => {
+			'eth1' => '10.20.1.32'
+		},						
+		'test.web-03' => {
+			'eth1' => '10.20.1.33'
+		},
+
+		# spaf
+		'spaf' => {
+			'eth1' => '10.20.1.30'
+		},
+		'spaf' => {
+			'eth1' => '10.20.1.39'
+		},
+		'spaf.web-01' => {
+			'eth1' => '10.20.1.31'
+		},
+		'spaf.web-02' => {
+			'eth1' => '10.20.1.32'
+		},						
+		'spaf.web-03' => {
+			'eth1' => '10.20.1.33'
+		},		
+
+		# php documentor
+		'phpdocumentor' => {
+			'eth1' => '10.20.1.30'
+		},
+		'phpdocumentor' => {
+			'eth1' => '10.20.1.39'
+		},				
+		'phpdocumentor.web-01' => {
+			'eth1' => '10.20.1.31'
+		},
+		'phpdocumentor.web-02' => {
+			'eth1' => '10.20.1.32'
+		},						
+		'phpdocumentor.web-03' => {
+			'eth1' => '10.20.1.33'
+		},
 
 	}
 

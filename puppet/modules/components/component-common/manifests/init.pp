@@ -7,12 +7,13 @@ class component-common {
 	include component-common::monitoring
 	
 
+	# todo: outsource into puppet-agent.pp
 	ini_setting { 'runinterval':
 		ensure  => present,
 		path    => "/etc/puppet/puppet.conf",
 		section => 'agent',
 		setting => 'runinterval',
-		value   => '1m'
+		value   => '2m'
 	} ->
 	
 	# default puppet start params
@@ -29,12 +30,12 @@ class component-common {
 	}
 
 	#todo
-	# -  setup puppet agent as service
-	# - * ensure root password is changed
+	# - ensure root password is changed
+	# - ensure fail2ban is configured and running
+	# - ensure failed logins are reported somewhere
+	# - * done setup puppet agent as service
 	# - * done ensure -claudio- admin is present and in sudoers
 	# - * done by adding a user to group sudo / ensure only defined users can sudo
 	# - * done ensure ssh root login disabled
-	# - esnure fail2ban is configured and running
-	# - ensure failed logins are reported somewhere
 
 }
