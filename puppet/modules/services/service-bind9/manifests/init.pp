@@ -38,8 +38,18 @@ class service-bind9 {
     } ->
 
     service {'bind9':
-        ensure => 'running'
+        ensure => 'running',
+        hasstatus => true,
+        enable => true,
+        hasrestart => true
     }
+    #service { "":
+    #    enable => true,
+    #    ensure => running,
+    #    #hasrestart => true,
+    #    #hasstatus => true,
+    #    #require => Class["config"],
+    #}
     #exec { 'service-bind9::start-service':
     #    command => "service bind9 restart",
     #    path => '/usr/sbin'
