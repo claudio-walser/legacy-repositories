@@ -35,7 +35,7 @@ mod "apache",
 
 mod "puppetdb",
   :git => "git://github.com/puppetlabs/puppetlabs-puppetdb.git",
-  :ref => "3.0.0"
+  :ref => "3.0.1"
 
 mod "gitlab",
   :git => "https://github.com/sbadia/puppet-gitlab.git",

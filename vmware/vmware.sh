@@ -1,134 +1,11 @@
 #!/bin/bash
 
-# Argument = -n server-01 -e environment-development -d domain.tld -m 1024 -c 2 -s 20G
+# load functions and defaults
 
-# VM base path
-VM_BASE_PATH='/home/claudio/Development/VMWare/VirtualMachines';
+SCRIPT_BASEDIR=$(dirname $0)
 
-# display the help
-usage() {
-    echo "
-    usage: $0 options
-
-    This script creates a new virtual machine on vmware workstation
-
-    OPTIONS:
-       -h      Show this message
-       -f      Pass a config file for the following configs
-       -p      Base path to the virtual machines folder
-
-       // Hostname settings
-       -n      Name of the VirtualMachine
-       -e      Environment of the VirtualMachine (development|acceptance|production)
-       -d      Domain of the VirtualMachine
-
-       // Hardware settings
-       -m      Memory size
-       -c      CPU amount
-       -s      Disk size";
-
-    exit;
-}
-
-writeVmx() {
-    
-    echo "#!/usr/bin/vmware" > $VM_PATH/$FQDN.vmx;
-    echo "" >> $VM_PATH/$FQDN.vmx;
-
-    echo "msg.autoAnswer = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "guestOS = \"debian6-64\"" >> $VM_PATH/$FQDN.vmx;
-    echo ".encoding = \"UTF-8\"" >> $VM_PATH/$FQDN.vmx;
-    echo "config.version = \"8\"" >> $VM_PATH/$FQDN.vmx;
-    echo "virtualHW.version = \"9\"" >> $VM_PATH/$FQDN.vmx;
-    echo "machine.id = \"$FQDN\"" >> $VM_PATH/$FQDN.vmx;
-
-    echo "" >> $VM_PATH/$FQDN.vmx;
-
-    echo "numvcpus = \"$CPU\"" >> $VM_PATH/$FQDN.vmx;
-    echo "memsize = \"$MEMORY\"" >> $VM_PATH/$FQDN.vmx;
-    echo "displayName = \"$FQDN\"" >> $VM_PATH/$FQDN.vmx;
-    echo "extendedConfigFile = \"$VM_PATH/$FQDN.vmxf\"" >> $VM_PATH/$FQDN.vmx;
-
-    echo "" >> $VM_PATH/$FQDN.vmx;
-
-    echo "scsi0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "scsi0.sharedBus = \"none\"" >> $VM_PATH/$FQDN.vmx;
-    echo "scsi0.virtualDev = \"lsilogic\"" >> $VM_PATH/$FQDN.vmx;
-    echo "scsi0:0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "scsi0:0.fileName = \"$VM_PATH/$FQDN.vmdk\"" >> $VM_PATH/$FQDN.vmx;
-    echo "scsi0:0.deviceType = \"disk\"" >> $VM_PATH/$FQDN.vmx;
-
-    echo "" >> $VM_PATH/$FQDN.vmx;
-
-    echo "ethernet0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.connectionType = \"bridged\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.generatedAddressOffset = \"0\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.wakeOnPcktRcv = \"false\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet0.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;   
-    echo "ethernet0.pciSlotNumber = \"30\"" >> $VM_PATH/$FQDN.vmx;
-    
-    echo "" >> $VM_PATH/$FQDN.vmx;
-
-    echo "ethernet1.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet1.connectionType = \"bridged\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet1.generatedAddressOffset = \"10\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet1.wakeOnPcktRcv = \"false\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet1.addressType = \"generated\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ethernet1.pciSlotNumber = \"31\"" >> $VM_PATH/$FQDN.vmx;
-      
-
-    echo "" >> $VM_PATH/$FQDN.vmx;
-
-    echo "ide0:0.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ide0:0.deviceType = \"cdrom-image\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ide:0.startConnected = \"false\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ide0:0.autodetect = \"true\"" >> $VM_PATH/$FQDN.vmx;
-    echo "ide0:0.fileName = \"/home/claudio/Development/VMWare/Isos/binary.hybrid.iso\"" >> $VM_PATH/$FQDN.vmx;    
-
-
-    i=0;
-    if [ -n ${SHARED_FOLDERS_GUEST+x} ]; then
-        
-        echo "" >> $VM_PATH/$FQDN.vmx;
-        echo "sharedFolder.maxNum = \"${#SHARED_FOLDERS_GUEST[@]}\"" >> $VM_PATH/$FQDN.vmx;
-        echo "isolation.tools.hgfs.disable = \"false\"" >> $VM_PATH/$FQDN.vmx;
-        echo "" >> $VM_PATH/$FQDN.vmx;
-
-        for SHARED_FOLDER_GUEST in "${SHARED_FOLDERS_GUEST[@]}"; do
-            SHARED_FOLDER_GUEST_BASE=$(basename $SHARED_FOLDER_GUEST)
-            
-            echo "sharedFolder$i.present = \"true\"" >> $VM_PATH/$FQDN.vmx;
-            echo "sharedFolder$i.enabled = \"true\"" >> $VM_PATH/$FQDN.vmx;
-            echo "sharedFolder$i.readAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
-            echo "sharedFolder$i.writeAccess = \"true\"" >> $VM_PATH/$FQDN.vmx;
-            echo "sharedFolder$i.hostPath = \"$SHARED_FOLDER_GUEST\"" >> $VM_PATH/$FQDN.vmx;    
-            echo "sharedFolder$i.guestName = \"$SHARED_FOLDER_GUEST_BASE\"" >> $VM_PATH/$FQDN.vmx;
-            echo "sharedFolder$i.expiration = \"never\"" >> $VM_PATH/$FQDN.vmx;
-            echo "" >> $VM_PATH/$FQDN.vmx;
-
-            i=$[i + 1];
-        done
-
-        
-    
-
-    fi
-
-    return 1;
- }
-
-# VM Settings
-VM_BASE_PATH='/home/claudio/Development/VMWare/VirtualMachines';
-
-# Domain defaults
-NAME='debian-1';
-ENVIRONMENT='development';
-DOMAIN='claudio.dev';
-# Hardware defaults
-MEMORY='1024';
-CPU='1';
-SIZE='10GB';
-
+. $SCRIPT_BASEDIR/functions.sh;
+. $SCRIPT_BASEDIR/defaults.cfg;
 
 while getopts “n:e:d:m:c:s:f:p:h” OPTION
 do
@@ -170,7 +47,9 @@ do
 done
 
 
-FQDN="$NAME.$ENVIRONMENT.$DOMAIN";
+
+FULL_DOMAIN="$ENVIRONMENT.$DOMAIN";
+FQDN="$NAME.$FULL_DOMAIN";
 
 echo "Create vm named $FQDN";
 echo "Its hardware specifications are as following:
@@ -178,14 +57,29 @@ echo "Its hardware specifications are as following:
     - Memory $MEMORY
     - DiskSize $SIZE
 
-";
+    - With this network configuration:";
+if [ -n "$NETWORK_IP" ]; then
+
+    if [ ! -n "$NETWORK_NETMASK" ] || [ ! -n "$NETWORK_GATEWAY" ]; then
+        echo "Network Error: You have to set NETWORK_NETMASK and NETWORK_GATEWAY in order to have proper fixed ips."
+        echo "Exiting now!";
+        exit 1;
+    fi
+    echo "        - IP $NETWORK_IP
+        - Netmask $NETWORK_NETMASK
+        - Gateway $NETWORK_GATEWAY";
+else
+    echo "        - DHCP"
+fi
+
 
 # just annoying during development
-#read -p "Continue creating the vm (y/n)?" CONT
+#read -p "Continue creating the vm (y/N)?" CONT
 #if [ "$CONT" != "y" ]; then
 #  echo "user aborted";
 #  exit 1;
 #fi
+
 
 VM_PATH=$VM_BASE_PATH/$DOMAIN/$ENVIRONMENT/$NAME;
 echo "Starting create vm in $VM_PATH";
@@ -201,9 +95,9 @@ fi
 
 # add provisioning scripts to shard folder path
 if [ -n ${SHARED_FOLDERS+x} ]; then
-    SHARED_FOLDERS="$SHARED_FOLDERS;./provisioning";
+    SHARED_FOLDERS="$SHARED_FOLDERS;$VM_DEFAULT_SHARED_FOLDER";
 else
-    SHARED_FOLDERS='./provisioning';
+    SHARED_FOLDERS=$VM_DEFAULT_SHARED_FOLDER;
 fi 
 OLD_IFS=$IFS;
 IFS=';';
@@ -229,9 +123,8 @@ IFS=$OLD_IFS;
 writeVmx;
 
 # register vm and boot it up
-#/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;
+/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;
 vmrun start $VM_PATH/$FQDN.vmx
-
 
 
 # start autoinstallation of debian wheezy
@@ -242,21 +135,66 @@ FOLDER="never checked yet";
 while [ "$FOLDER" != "The directory exists." ]; do
     echo 'waiting for properly installed operating system...';
     echo $FOLDER;
-    FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
+    FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
 
     # for some reason initial shared folders are disabled on start at a specific amount of vm's
     if [ "$FOLDER" == 'The directory does not exist.' ]; then
-        FOLDER=$(vmrun -gu root -gp 1234 enableSharedFolders $VM_PATH/$FQDN.vmx);
-        FOLDER=$(vmrun -gu root -gp 1234 directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
+        FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD enableSharedFolders $VM_PATH/$FQDN.vmx);
+        FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
     fi
 done
 
-echo 'Proper installation finally done';
-echo 'Starting provisioning now';
-SCRIPT_OUTPUT=$(vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash '/mnt/hgfs/provisioning/provision.sh');
+echo '';
+echo 'Proper installation finally done, provisioning starts now...';
+
+echo '';
+echo 'Set hostname';
+#vmrun  -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" /bin/bash /mnt/hgfs/provisioning/hosts.sh -h$NAME -d$DOMAIN -p$PUPPET_MASTER_HOSTNAME -i$PUPPET_MASTER_IP
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/bin/bash" "/mnt/hgfs/provisioning/hostname.sh -h$NAME");
 echo $SCRIPT_OUTPUT;
 
+echo 'Set hosts file';
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/bin/bash" "/mnt/hgfs/provisioning/hosts.sh -h$NAME -d$FULL_DOMAIN -p$PUPPET_MASTER_HOSTNAME -i$PUPPET_MASTER_IP");
+echo $SCRIPT_OUTPUT;
+
+if [ -n "$NETWORK_IP" ]; then
+    echo "Setup network - eth1";
+    SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/bin/bash" "/mnt/hgfs/provisioning/network.sh -i$NETWORK_IP -n$NETWORK_NETMASK -g$NETWORK_GATEWAY");
+    echo $SCRIPT_OUTPUT; 
+fi
+
+echo 'Setup puppet client';
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/bin/bash" "/mnt/hgfs/provisioning/puppet.sh -p$PUPPET_MASTER_HOSTNAME.$FULL_DOMAIN");
+echo $SCRIPT_OUTPUT;
+
+if [ $PUPPET_MASTER_HOSTNAME == $NAME ]; then
+    echo 'Setup puppet master';
+    SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/bin/bash" "/mnt/hgfs/provisioning/puppetmaster.sh");
+    echo $SCRIPT_OUTPUT;
+fi
+
+
 echo 'Basic provision done, rebooting now';
-vmrun -gu root -gp 1234 runScriptInGuest $VM_PATH/$FQDN.vmx /bin/bash 'reboot';
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/sbin/reboot");
+echo $SCRIPT_OUTPUT;
+
+# wait until vm is rebooted properly
+FOLDER="never checked yet";
+while [ "$FOLDER" != "The directory exists." ]; do
+    echo 'waiting for properly installed operating system...';
+    echo $FOLDER;
+    FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
+
+    # for some reason initial shared folders are disabled on start at a specific amount of vm's
+    if [ "$FOLDER" == 'The directory does not exist.' ]; then
+        FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD enableSharedFolders $VM_PATH/$FQDN.vmx);
+        FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
+    fi
+done
+
+echo 'Running puppet agent now';
+#vmrun  -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" /bin/bash /mnt/hgfs/provisioning/hosts.sh -h$NAME -d$DOMAIN -p$PUPPET_MASTER_HOSTNAME -i$PUPPET_MASTER_IP
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/usr/bin/puppet" "agent -t");
+echo $SCRIPT_OUTPUT;
 
 exit 0;

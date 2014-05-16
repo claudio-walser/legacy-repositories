@@ -1,3 +1,3 @@
-class role::puppet-master { 
-	include ::service-puppetmaster
+class role::puppet-master {
+	include ::service-puppet::master
 }
