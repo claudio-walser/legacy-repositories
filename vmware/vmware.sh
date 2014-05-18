@@ -175,7 +175,7 @@ fi
 
 
 echo 'Basic provision done, rebooting now';
-SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" "/sbin/reboot");
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/sbin/reboot");
 echo $SCRIPT_OUTPUT;
 
 # wait until vm is rebooted properly
