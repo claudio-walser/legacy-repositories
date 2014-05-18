@@ -8,6 +8,8 @@
 
 /bin/cp -r /mnt/backup/development.claudio.dev/wiki/backup/files/latest/opt/redmine/db/migrate /opt/redmine/db/;
 
-/usr/bin/mysql -uredmine -predmine redmine < /mnt/backup/development.claudio.dev/wiki/backup/mysql/latest/redmine-2.sql
+/usr/bin/mysql -uredmine -predmine redmine < /mnt/backup/development.claudio.dev/wiki/backup/mysql/latest/redmine-2.sql;
+
+/usr/sbin/service apache2 restart;
 
 exit 0;

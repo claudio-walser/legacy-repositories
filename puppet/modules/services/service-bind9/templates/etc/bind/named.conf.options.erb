@@ -1,5 +1,5 @@
 options {
-        directory "/var/cache/bind";
+        directory "/var/lib/bind";
         // If there is a firewall between you and nameservers you want
         // to talk to, you may need to fix the firewall to allow multiple
         // ports to talk.  See http://www.kb.cert.org/vuls/id/800113
@@ -10,7 +10,7 @@ options {
         // the all-0's placeholder.
 
         forwarders {
-<% @externalNameserverIps.each do |ip| -%>
+<% @externalNameservers.each do |ip| -%>
                 <%= ip %>;
 <% end -%>
         };
@@ -26,9 +26,9 @@ options {
         auth-nxdomain no;    # conform to RFC1035
         listen-on-v6 { none; };
 
-        listen-on { 127.0.0.1; <%= @masterNameserverIp -%>; };
+        listen-on { 127.0.0.1; <%= @ip -%>; };
         allow-query { 0.0.0.0/0; };
         notify yes;
-        allow-transfer { <%= @slaveNameserverIp -%>; };
+        allow-transfer { <%= @slaveNameserverIp -%>10.20.0.12; };
 
 };

@@ -1,0 +1,10 @@
+; configured over puppet in service-bind9::server module
+
+$ORIGIN .
+$TTL 259200		; 3 days
+<%= @domain %>	IN		SOA		<%= @hostname %>.<%= @domain %>. <%= @mailAddress %>. (
+						199609235
+						28800
+						7200
+						2419200
+						86400 )
