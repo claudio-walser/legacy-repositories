@@ -103,11 +103,11 @@ class service-redmine::version-2-3-3 (
 	} ->
 
 	# install redmine bundles
-	#exec { 'service-redmine::version-2-3-3-install-bundles':
-	#	command => "bundle install --without development test postgresql sqlite",
-	#	cwd => "${installationPath}",
-	#	path => '/usr/local/bin'
-	#} ->
+	exec { 'service-redmine::version-2-3-3-install-bundles':
+		command => "bundle install --without development test postgresql sqlite",
+		cwd => "${installationPath}",
+		path => '/usr/local/bin'
+	} ->
 
 	
 	# set owner to www-data

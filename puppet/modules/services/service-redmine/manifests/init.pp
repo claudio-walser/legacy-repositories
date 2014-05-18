@@ -4,8 +4,8 @@ class service-redmine {
 
 	# install mysql-server with root password icinga
 	class { '::mysql::server':
-	#	root_password => 'icinga'
-	} ->
+	
+	}
 
 	mysql::db { 'redmine': 
 		user => 'redmine',
@@ -16,10 +16,11 @@ class service-redmine {
 		host => 'localhost',
 		sql => "/mnt/backup/${domain}/${node_role}/backup/mysql/latest/redmine-2.sql",
 		enforce_sql => false,
-		ensure => 'present'
-	} ->
+		ensure => 'present',
+		require => Class['::mysql::server']
+	}
 
-	# Install Apache with mod php
+	# Install Apache with mod passenger
 	class {'::apache':
 		mpm_module => 'prefork'
 	}
@@ -65,6 +66,6 @@ class service-redmine {
 	    } ]
     }
 
-    include service-redmine::backup
+    #include service-redmine::backup
 
 }
