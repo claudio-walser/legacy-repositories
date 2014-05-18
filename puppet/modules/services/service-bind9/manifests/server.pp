@@ -70,9 +70,15 @@ class service-bind9::server (
 		Service-bind9::Record::A <<||>>
 		Service-bind9::Record::CNAME <<||>>
 	} else {
+		$type = 'slave'
 		Service-bind9::Slave <<||>>
 	}
 
+	## export resolv.conf resource
+	@@service-bind9::resolvconf{$::hostname: 
+		type => $type,
+		ip => $::ipaddress_eth1
+	}
 
 	## zone config file
 	file { '/etc/bind/named.conf.d':
