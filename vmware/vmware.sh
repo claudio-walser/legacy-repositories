@@ -181,7 +181,7 @@ echo $SCRIPT_OUTPUT;
 # wait until vm is rebooted properly
 FOLDER="never checked yet";
 while [ "$FOLDER" != "The directory exists." ]; do
-    echo 'waiting for properly installed operating system...';
+    echo 'waiting for operating system to come up...';
     echo $FOLDER;
     FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
 
