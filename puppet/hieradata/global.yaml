@@ -1,2 +1,1 @@
-# icinga settings
-icinga::params::version: '1.7.1-6'
+role::mysql::root_password: '1234'
