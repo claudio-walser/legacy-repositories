@@ -3,13 +3,26 @@ class role::mysql (
 ) {
 
 	if $node_number == 1 {
-		$master = true
+		$bootstrap = true
+
+		# create databases
+		service-percona::database { 'blubb': 
+			ensure => 'present',
+			root_password => $root_password,
+			user => 'test',
+			password => 'test',
+			grant => 'ALL',
+			charset => 'utf8',
+			collate => 'utf8_general_ci',
+			host => '%'
+		}
+
 	} else {
-		$master = false
+		$bootstrap = false
 	}
 
 	class { '::service-percona':
 		root_password => $root_password,
-		master => $master
+		bootstrap => $bootstrap
 	}
 }
