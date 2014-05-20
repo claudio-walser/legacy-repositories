@@ -1,9 +1,12 @@
-class profile-minimal {
+class profile-minimal (
+	$ssh_keys = []
+	) {
 	
 	# some default packages
 	package { [
 		'bash-completion',
-		'sudo'
+		'sudo',
+		'rsync'
 	]:
 		ensure => installed
 	}
