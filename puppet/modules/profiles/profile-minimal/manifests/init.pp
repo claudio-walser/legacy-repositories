@@ -1,6 +1,6 @@
 class profile-minimal (
-	$ssh_keys = []
-	) {
+	$users = []
+) {
 	
 	# some default packages
 	package { [
@@ -19,6 +19,8 @@ class profile-minimal (
 	# import resolv.conf from dns
 	Service-bind9::Resolvconf <<||>>
 
+	#fail($node_number)
+
 	# take care dhcp client is not changing resolv.conf
 	file { '/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate':
 		ensure  => file,
@@ -28,6 +30,6 @@ class profile-minimal (
 		source => "puppet:///modules/${module_name}/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate"
 	}
 
-
-	include ::profile-minimal::mounts
+	class { ::profile-minimal::mounts: }	
+	class { ::profile-minimal::motd: }
 }
