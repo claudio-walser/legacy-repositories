@@ -194,7 +194,7 @@ done
 
 echo 'Running puppet agent now';
 #vmrun  -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" /bin/bash /mnt/hgfs/provisioning/hosts.sh -h$NAME -d$DOMAIN -p$PUPPET_MASTER_HOSTNAME -i$PUPPET_MASTER_IP
-SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/usr/bin/puppet" "agent -t");
+SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/usr/bin/puppet agent -t");
 echo $SCRIPT_OUTPUT;
 
 exit 0;
