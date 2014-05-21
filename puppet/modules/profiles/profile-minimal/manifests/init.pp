@@ -32,4 +32,9 @@ class profile-minimal (
 
 	class { ::profile-minimal::mounts: }	
 	class { ::profile-minimal::motd: }
+
+	# create users
+	if is_hash($users) {
+		create_resources( 'profile-minimal::user', $users)
+	}
 }
