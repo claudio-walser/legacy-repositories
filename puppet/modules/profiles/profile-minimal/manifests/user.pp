@@ -8,6 +8,17 @@ define profile-minimal::user (
 	$no_passwd = false
 ) {
 
+	validate_re($ensure, '^(present|absent)$',
+	"${ensure} is not supported for ensure. Allowed values are 'present' and 'absent'.")
+
+	if $ensure == 'present' {
+		$file_ensure = 'file'
+		$directory_ensure = 'directory'
+	} else {
+		$file_ensure = 'absent'
+		$directory_ensure = 'absent'
+	}
+
 	if (empty($password)) and ($no_passwd != true) {
 		fail('You cannot have no_passwd to false without setting a password then')
 	}
@@ -22,7 +33,7 @@ define profile-minimal::user (
 	}
 
 	file { "/home/${username}/.ssh":
-		ensure => "directory",
+		ensure => $directory_ensure,
 		owner  => $username,
 		group  => $username,
 		mode   => 755,
@@ -33,7 +44,7 @@ define profile-minimal::user (
 	file { "/home/${username}/.ssh/authorized_keys":
 		owner => $username,
 		group => $username,
-		ensure  => file,
+		ensure  => $file_ensure,
 		mode    => 0644,
 		content => $ssh_key,
 		require => File["/home/${username}/.ssh"]
@@ -44,7 +55,7 @@ define profile-minimal::user (
 	if $no_passwd == true {
 		# no password prompt for user admin while using sudo
 		file { "/etc/sudoers.d/${username}":
-			ensure => 'file',
+			ensure => $file_ensure,
 			owner => 'root',
 			group => 'root',
 			content => "${username} ALL=NOPASSWD:ALL"
@@ -53,7 +64,7 @@ define profile-minimal::user (
 
 	# root bashrc for avoiding some errors
 	file { '/root/.bashrc':
-		ensure => 'file',
+		ensure => $file_ensure,
 		owner => 'root',
 		group => 'root',
 		source => "puppet:///modules/${module_name}/root/.bashrc"
