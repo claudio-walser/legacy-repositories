@@ -7,10 +7,12 @@ class role::mysql (
 		$bootstrap = true
 		
 		# create databases from hiera
-		create_resources( 'service-percona::database', $databases, {
-			root_password => $root_password
-		})
-
+		if is_hash($databases) {
+			create_resources( 'service-percona::database', $databases, {
+				root_password => $root_password
+			})
+		}
+		
 	} else {
 		$bootstrap = false
 	}
