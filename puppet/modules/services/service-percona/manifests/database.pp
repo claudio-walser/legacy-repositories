@@ -13,6 +13,7 @@ define service-percona::database (
 	$ensure        = 'present',
 	$flush_privileges = false
 ) {
+
 	#input validation
 	validate_re($ensure, '^(present|absent)$',
 	"${ensure} is not supported for ensure. Allowed values are 'present' and 'absent'.")

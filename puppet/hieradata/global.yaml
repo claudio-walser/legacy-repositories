@@ -1,8 +1,25 @@
 # global configuration
-profile-minimal::ssh_keys:
-  claudio: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDr7a2SJhk6m+dVl37qGjyAv6NeZY3Qk/WKdKRABhK9PM3tixbXvsuc+yxi0+vJ057QdfjQAcgaszNOiedvqtT5TOMlKnd0LaLxMWnQ0jVqsqbPyv8BdUtYa91VAvwxghcTa6RgoyQN8QO6b5GBtUewDjbaIa4aVyKjaUF8Ffq2SoamK/WqJPQXgnn0i96JlaXCoS5TS8MOQbiffmC9PhrqPzXAHgPcvfsNjk85UyL4w2r8Jwn37qrpRZDLk3ggey64haDKmPESNNia6OyqarkWcNsrLxzkUfdjVXzDPYmYkjN4bbCH88rkZZH6KnEBdcvdCQsQWrdm6xjuhs7uUZ7n claudio@dev.local'
-
+profile-minimal::users:
+  claudio: 
+    key: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDr7a2SJhk6m+dVl37qGjyAv6NeZY3Qk/WKdKRABhK9PM3tixbXvsuc+yxi0+vJ057QdfjQAcgaszNOiedvqtT5TOMlKnd0LaLxMWnQ0jVqsqbPyv8BdUtYa91VAvwxghcTa6RgoyQN8QO6b5GBtUewDjbaIa4aVyKjaUF8Ffq2SoamK/WqJPQXgnn0i96JlaXCoS5TS8MOQbiffmC9PhrqPzXAHgPcvfsNjk85UyL4w2r8Jwn37qrpRZDLk3ggey64haDKmPESNNia6OyqarkWcNsrLxzkUfdjVXzDPYmYkjN4bbCH88rkZZH6KnEBdcvdCQsQWrdm6xjuhs7uUZ7n claudio@dev.local'
+    groups: 'sudoer'
 
 
 # role configurations
 role::mysql::root_password: '1234'
+role::mysql::databases:
+  # ensure test is absent
+  test:
+    ensure: 'absent'
+    user: 'test'
+    password: 'test'
+
+  #
+  demo:
+    ensure: 'present'
+    user: 'demo'
+    password: 'demo'
+    grant: 'ALL'
+    charset: 'utf8'
+    collate: 'utf8_general_ci'
+    host: '%'
