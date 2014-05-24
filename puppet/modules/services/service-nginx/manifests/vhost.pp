@@ -5,11 +5,9 @@ define service-nginx::vhost (
 	$proxy_aliases = [],
 	$root = undef,
 	$php = false,
-	$php_root = undef,
-	$git = undef,
-	$git_root = undef
+	$php_root = undef
 ) {
-
+	
 	# make sure server root exists as directory
 	if $root != undef {
 		exec {"mkdir -p ${root} - root":
@@ -18,31 +16,7 @@ define service-nginx::vhost (
 		}
 	}
 
-	if $git_root != undef {
-		exec {"mkdir -p ${git_root} - git_root":
-			command => "mkdir -p ${git_root}",
-			path => "/bin/"
-		}
-	}
-	
-	# check params properly
-	if $git != undef {
-		# if no root defined we dont have a target to checkout
-		if $git_root == undef {
-			error('You cannot pass git path without a root to checkout into.')
-		}
-
-		# git checkout with module
-		vcsrepo { $root:
-			ensure => present,
-			provider => git,
-			source => $git,
-			require => Package ['git']
-		}
-	}
-
-	# default host name
-	#$server_names = merge
+	# gather vhost name and all possible aliases
 	$server_names_tmp = concat([$server_name], $server_aliases)
 	if $proxy_name != undef {
 		$proxy_names_tmp = concat([$proxy_name], $proxy_aliases)
@@ -50,6 +24,16 @@ define service-nginx::vhost (
 	} else {
 		$server_names = $server_names_tmp
 	}
+
+	$server_hashes = create_cname_hash($server_names)
+
+	if is_hash($server_hashes) {
+		#export dns cnames, this is just a wrapper for create_resources and export resources
+		create_resources( 'service-nginx::cname', $server_hashes, {
+			host => $::hostname
+		})
+	}
+	
 
 	::nginx::resource::vhost { $server_name:
 		server_name => $server_names,
@@ -79,43 +63,17 @@ define service-nginx::vhost (
 		  fastcgi => '127.0.0.1:9001',
 		  fastcgi_params => "/etc/nginx/fastcgi_params.d/${proxy_name}"
 		}
+		
 	}
 
-	if $proxy_name != undef {
+	#if $proxy_name != undef {
 		# do load balancing on webproxy-xx
-		@@service-webproxy::member { "${proxy_name}-${fqdn}" :
-			server_name => $proxy_name,
-			server_aliases => $proxy_aliases,
-			member_name => $fqdn
-		}
+		#@@service-webproxy::member { "${proxy_name}-${fqdn}" :
+		#	server_name => $proxy_name,
+		#	server_aliases => $proxy_aliases,
+		#	member_name => $fqdn
+		#}
 
-	}
-
-	#class { '::nginx': }
-
-	#exec { 'mkdir -p /etc/nginx/fastcgi_params.d/':
-	#	command => "mkdir -p /etc/nginx/fastcgi_params.d/",
-	#	path => '/bin',
-	#	creates => '/etc/nginx/fastcgi_params.d'
-	#} ->
-
-   	#file { '/etc/nginx/fastcgi_params.d/web':
-    #    ensure => 'file',
-    #    source => "puppet:///modules/service-nginx/etc/nginx/fastcgi_params.d/web"
-    #}
-
-	# default host name
-	#::nginx::resource::vhost { $fqdn:
-	#  server_name => [$fqdn, 'web.development.claudio.dev'],
-	#  ensure   => present,
-	#  www_root => '/var/www'
-	#}
-
-	#::nginx::resource::location { '~ .php$':
-	#  ensure   => present,
-	#  vhost => $fqdn,
-	#  fastcgi => '127.0.0.1:9001',
-	#  fastcgi_params => '/etc/nginx/fastcgi_params.d/web'
 	#}
 
 }

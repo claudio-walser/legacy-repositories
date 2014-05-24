@@ -1,13 +1,4 @@
-class service-nginx (
-	$git = false
-) {
-
-	# php support for this app
-	if str2bool("$git") {
-		package {'git':
-			ensure => 'installed'
-		}
-	}	
+define service-nginx::server {
 
 	class { '::nginx': }
 
@@ -15,18 +6,27 @@ class service-nginx (
 		command => "mkdir -p /etc/nginx/fastcgi_params.d/",
 		path => '/bin',
 		creates => '/etc/nginx/fastcgi_params.d'
-	} ->
+	}
 
    	file { '/etc/nginx/fastcgi_params.d/web':
         ensure => 'file',
-        source => "puppet:///modules/service-nginx/etc/nginx/fastcgi_params.d/web"
+        source => "puppet:///modules/service-nginx/etc/nginx/fastcgi_params.d/web",
+        require => Exec['mkdir -p /etc/nginx/fastcgi_params.d/']
+    }
+
+    file { '/var/www/default':
+        ensure => 'directory',
+        owner => 'www-data',
+        group => 'www-data',
+        mode => 0755
     }
 
 	# default host name
 	::nginx::resource::vhost { $fqdn:
-	  server_name => [$fqdn, 'web.development.claudio.dev'],
+	  server_name => [$::fqdn],
 	  ensure   => present,
-	  www_root => '/var/www'
+	  www_root => '/var/www/default',
+	  require => File['/var/www/default']
 	}
 
 	::nginx::resource::location { "${fqdn} ~ .php$":

@@ -1,4 +1,4 @@
-class service-nginx::php {
+define service-nginx::php {
 
 	include ::php::fpm::daemon
 	::php::fpm::conf { "${::fqdn}":
