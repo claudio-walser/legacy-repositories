@@ -10,8 +10,12 @@ define service-git::repository (
 	# check params properly
 	if $repo_url != undef {
 		# ensure package git is present
-		ensure_resource('package', 'git', {'ensure' => 'present' })
-
+		if ! defined(Package['git']) {
+			package {'git':
+				ensure => 'installed'
+			}
+		}
+		
 		# if no target_directory defined we dont have a target to checkout
 		if $target_directory == undef {
 			error('You cannot use service-git::repository path without a target_directory to checkout into.')
