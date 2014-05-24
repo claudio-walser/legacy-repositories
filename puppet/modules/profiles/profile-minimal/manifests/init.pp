@@ -30,6 +30,14 @@ class profile-minimal (
 		source => "puppet:///modules/${module_name}/etc/dhcp/dhclient-enter-hooks.d/nodnsupdate"
 	}
 
+	file { '/etc/rc.local':
+		ensure  => file,
+		mode => 0654,
+		owner => 'root',
+		group => 'root',
+		source => "puppet:///modules/${module_name}/etc/rc.local"
+	}
+
 	class { ::profile-minimal::mounts: }	
 	class { ::profile-minimal::motd: }
 
