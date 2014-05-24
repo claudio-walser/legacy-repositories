@@ -45,6 +45,7 @@ role::web::vhosts:
     php: true
     php_root: '/var/www/SpafExample'
     root: '/var/www/SpafExample'
+    entry_on_default_host: true
 
 
   test.%{fqdn}:
@@ -59,6 +60,7 @@ role::web::vhosts:
     php: true
     php_root: '/var/www/test'
     root: '/var/www/test'
+    entry_on_default_host: true
 
 
   phpdocumentor.%{fqdn}:
@@ -73,6 +75,7 @@ role::web::vhosts:
     php: true
     php_root: '/var/www/phpdocumentor'
     root: '/var/www/phpdocumentor'
+    entry_on_default_host: true
 
 
 # repositories to checkout

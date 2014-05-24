@@ -12,6 +12,7 @@ class role::web (
 		create_resources( '::service-nginx::vhost', $vhosts)
 	}
 
+	## create git repos to easy checkout code
 	if is_hash($gitRepositories) {
 		create_resources( '::service-git::repository', $gitRepositories)
 	}	

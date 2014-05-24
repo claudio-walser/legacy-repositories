@@ -21,6 +21,27 @@ define service-nginx::server {
         mode => 0755
     }
 
+    # write index file for default host
+    $indexFile = '/var/www/default/index.html'
+    concat { $indexFile:
+		require => File['/var/www/default'],
+		ensure_newline => true
+	}
+
+	concat::fragment { "${indexFile}.head":
+		target  => $indexFile,
+		content => '<h1>known vhosts on this box</h1><p></p><ul>',
+		order   => '01'
+	}
+
+
+
+	concat::fragment { "${indexFile}.footer":
+		target  => $indexFile,
+		content => '</ul>',
+		order   => '99'
+	}
+
 	# default host name
 	::nginx::resource::vhost { $fqdn:
 	  server_name => [$::fqdn],

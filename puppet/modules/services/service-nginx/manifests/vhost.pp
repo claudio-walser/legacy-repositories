@@ -5,7 +5,8 @@ define service-nginx::vhost (
 	$proxy_aliases = [],
 	$root = undef,
 	$php = false,
-	$php_root = undef
+	$php_root = undef,
+	$entry_on_default_host = false
 ) {
 	
 	# make sure server root exists as directory
@@ -64,6 +65,16 @@ define service-nginx::vhost (
 		  fastcgi_params => "/etc/nginx/fastcgi_params.d/${proxy_name}"
 		}
 		
+	}
+
+	if $entry_on_default_host == true {
+		$defaultIndexFile = '/var/www/default/index.html'
+		concat::fragment { "${defaultIndexFile}.entry-${server_name}":
+			target  => $defaultIndexFile,
+			content => "<li><a href=\"http://${server_name}\">${server_name}</a></li>",
+			order   => '02'
+		}
+	
 	}
 
 	#if $proxy_name != undef {
