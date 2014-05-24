@@ -10,7 +10,9 @@ profile-minimal::users:
 
 
 
-# role configurations
+## role configurations
+
+# mysql servers
 role::mysql::root_password: '1234'
 role::mysql::databases:
   # ensure test is absent
@@ -28,3 +30,63 @@ role::mysql::databases:
     charset: 'utf8'
     collate: 'utf8_general_ci'
     host: '%'
+
+# web servers
+role::web::vhosts:
+  example.spaf.%{fqdn}:
+    server_name: "example.spaf.%{fqdn}"
+    server_aliases: 
+      - example.spaf.%{hostname}
+
+    proxy_name: "example.spaf.%{domain}"
+    proxy_aliases: 
+      - example.spaf
+
+    php: true
+    php_root: '/var/www/SpafExample'
+    root: '/var/www/SpafExample'
+
+
+  test.%{fqdn}:
+    server_name: "test.%{fqdn}"
+    server_aliases: 
+      - test.%{hostname}
+
+    proxy_name: "test.%{domain}"
+    proxy_aliases: 
+      - test
+
+    php: true
+    php_root: '/var/www/test'
+    root: '/var/www/test'
+
+
+  phpdocumentor.%{fqdn}:
+    server_name: "phpdocumentor.%{fqdn}"
+    server_aliases: 
+      - phpdocumentor.%{hostname}
+
+    proxy_name: "phpdocumentor.%{domain}"
+    proxy_aliases: 
+      - phpdocumentor
+
+    php: true
+    php_root: '/var/www/phpdocumentor'
+    root: '/var/www/phpdocumentor'
+
+
+# repositories to checkout
+role::web::gitRepositories:
+  Spaf:
+    target_directory: '/var/www/Spaf'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/spaf.git'
+  SpafExample:
+    target_directory: '/var/www/SpafExample'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/spafexample.git'
+  Test:
+    target_directory: '/var/www/test'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/test.git'
+  PhpDocumentor:
+    target_directory: '/var/www/phpdocumentor'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/phpdocumentor.git'
+
