@@ -1,4 +1,4 @@
-class service-percona::server (
+define service-percona::server (
 	$bootstrap,
 	$root_password,
 	$cluster_name = $node_role,
