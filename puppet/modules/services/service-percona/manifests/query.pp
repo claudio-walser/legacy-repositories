@@ -5,7 +5,7 @@ define service-percona::query (
 	$creates = false
 ) {
 
-	#fail("/usr/bin/mysql -u${user} -p${password} -e \"${query}\"")
+	#fail("/usr/bin/mysql -u${user} -p${password} -e  \"${query}\"")
 	exec { "service-percona::database-${query}":
 		command => "/usr/bin/mysql -u${user} -p${password} -e \"${query}\"; return 0;",
 		creates => $creates

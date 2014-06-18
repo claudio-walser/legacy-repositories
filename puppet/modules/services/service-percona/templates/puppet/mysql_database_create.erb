@@ -1,4 +1,7 @@
-create database if not exists <%= @dbname -%> character set <%= @charset -%> collate <%= @collate -%>;
+create database if not exists \`<%= @dbname -%>\` character set <%= @charset -%> collate <%= @collate -%>;
 CREATE USER '<%= @user -%>'@'<%= @host -%>' IDENTIFIED BY '<%= @password -%>';
-GRANT <%= @grant -%> ON `<%= @dbname -%>`.* TO '<%= @user -%>'@'<%= @host -%>'; 
+
+GRANT <%= @grant -%> ON \`<%= @dbname -%>\` . * TO '<%= @user -%>'@'<%= @host -%>' IDENTIFIED BY '<%= @password -%>'; 
+
+
 FLUSH PRIVILEGES;
