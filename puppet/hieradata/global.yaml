@@ -21,18 +21,78 @@ role::mysql::databases:
     user: 'test'
     password: 'test'
 
-  #
-  demo:
+  webshell:
     ensure: 'present'
-    user: 'demo'
-    password: 'demo'
-    grant: 'ALL'
+    user: 'webshell'
+    password: 'webshell'
+    grant: 'ALL PRIVILEGES'
     charset: 'utf8'
     collate: 'utf8_general_ci'
     host: '%'
 
+  scrum:
+    ensure: 'present'
+    user: 'scrum'
+    password: 'scrum'
+    grant: 'ALL PRIVILEGES'
+    charset: 'utf8'
+    collate: 'utf8_general_ci'
+    host: '%'
+  my-traces:
+    ensure: 'present'
+    user: 'my-traces'
+    password: 'MyTraC3s@DEv3lOpMENt'
+    grant: 'ALL PRIVILEGES'
+    charset: 'utf8'
+    collate: 'utf8_general_ci'
+    host: '%'
+
+
 # web servers
 role::web::vhosts:
+  quaxi.%{fqdn}:
+    server_name: "quaxi.%{fqdn}"
+    server_aliases: 
+      - quaxi.%{hostname}
+
+    proxy_name: "quaxi.%{domain}"
+    proxy_aliases: 
+      - quaxi
+
+    php: true
+    php_root: '/var/www/srf-dev/quaxi'
+    root: '/var/www/srf-dev/quaxi'
+    entry_on_default_host: true
+
+
+  webshell.%{fqdn}:
+    server_name: "webshell.%{fqdn}"
+    server_aliases: 
+      - webshell.%{hostname}
+
+    proxy_name: "webshell.%{domain}"
+    proxy_aliases: 
+      - webshell
+
+    php: true
+    php_root: '/var/www/webshell'
+    root: '/var/www/webshell'
+    entry_on_default_host: true
+
+  scrum.%{fqdn}:
+    server_name: "scrum.%{fqdn}"
+    server_aliases: 
+      - scrum.%{hostname}
+
+    proxy_name: "scrum.%{domain}"
+    proxy_aliases: 
+      - scrum
+
+    php: true
+    php_root: '/var/www/scrum'
+    root: '/var/www/scrum'
+    entry_on_default_host: true
+
   example.spaf.%{fqdn}:
     server_name: "example.spaf.%{fqdn}"
     server_aliases: 
@@ -77,9 +137,53 @@ role::web::vhosts:
     root: '/var/www/phpdocumentor'
     entry_on_default_host: true
 
+  orm.%{fqdn}:
+    server_name: "orm.%{fqdn}"
+    server_aliases: 
+      - orm.%{hostname}
+
+    proxy_name: "orm.%{domain}"
+    proxy_aliases: 
+      - orm
+
+    php: true
+    php_root: '/var/www/orm'
+    root: '/var/www/orm'
+    entry_on_default_host: true
+
+
+  cdn.%{fqdn}:
+    server_name: "cdn.%{fqdn}"
+    server_aliases: 
+      - cdn.%{hostname}
+
+    proxy_name: "cdn.%{domain}"
+    proxy_aliases: 
+      - cdn
+
+    php: false
+    root: '/var/www/cdn'
+    entry_on_default_host: true
+
+  my-traces.%{fqdn}:
+    server_name: "my-traces.%{fqdn}"
+    server_aliases: 
+      - my-traces.%{hostname}
+
+    proxy_name: "my-traces.%{domain}"
+    proxy_aliases: 
+      - my-traces
+
+    php: false
+    root: '/var/www/my-traces'
+    entry_on_default_host: true
+
 
 # repositories to checkout
 role::web::gitRepositories:
+  Cwa:
+    target_directory: '/var/www/Cwa'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/cwa.git'
   Spaf:
     target_directory: '/var/www/Spaf'
     repo_url: 'http://git-01.development.claudio.dev/claudio.walser/spaf.git'
@@ -91,5 +195,19 @@ role::web::gitRepositories:
     repo_url: 'http://git-01.development.claudio.dev/claudio.walser/test.git'
   PhpDocumentor:
     target_directory: '/var/www/phpdocumentor'
-    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/phpdocumentor.git'
-
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/cwadocumentorinterface.git'
+  PhpDocumentor:
+    target_directory: '/var/www/orm'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/cwaorminterface.git'
+  WebShell:
+    target_directory: '/var/www/webshell'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/webshell.git'
+  Scrum:
+    target_directory: '/var/www/scrum'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/scrum.git'
+  Extjs:
+    target_directory: '/var/www/cdn/extjs'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/extjs.git'
+  MyTraces:
+    target_directory: '/var/www/my-traces'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/mytraces.git'
