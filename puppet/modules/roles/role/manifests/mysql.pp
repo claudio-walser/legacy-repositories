@@ -18,7 +18,7 @@ class role::mysql (
 	}
 
 
-	class { '::service-percona::server':
+	::service-percona::server { $::hostname:
 		root_password => $root_password,
 		bootstrap => $bootstrap
 	}
