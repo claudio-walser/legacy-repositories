@@ -16,6 +16,7 @@ if (isset($_POST['record'])) {
 
 if ($broadcasts['success'] !== false) {
 	?>
+	<h1><?php echo 'Programm vom ' . date('d.m.Y'); ?></h1>
 	<form action="" method="post">
 		<?php
 		foreach ($broadcasts['data'] as $broadcast) {

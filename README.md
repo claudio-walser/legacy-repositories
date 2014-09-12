@@ -29,3 +29,4 @@ TODO
 - Make it multi user capable
 - If its multi user and has a friend system, make proposals from what my friends recorded
 - BEAUTIFY ALL THE STUFF
+- CACHING, CACHING, CACHING...

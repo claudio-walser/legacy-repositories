@@ -12,3 +12,4 @@ foreach ($channels['data'] as $channel) {
 }
 ?>
 </ul>
+<div class="clear"></div>
