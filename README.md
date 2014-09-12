@@ -21,6 +21,7 @@ TODO
 
 - Fix HD Suisse API call
 - Make UI more fancy - Maybe a javascript only frontend instead of that ugly php/html mix - since all controller can be called with ajax very easily
+- Overview of recorded videos with a search and delete option
 - Implement calendar to browse more than one day
 - Delete recordings
 - Record series
