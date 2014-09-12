@@ -45,6 +45,7 @@ class Observer(Daemon):
 				## only if statement from top was true
 				# check if livestream state is already recording - its not due to the query
 				# start recording and update state - Within consumer class
+				# save stream using https://pypi.python.org/pypi/hlsclient and ffmpeg
 				self.logging.debug("start livestream consumer for given token: %s" % (token))
 		except:
 			self.logging.debug("Error: unable to fecth data")
