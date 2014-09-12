@@ -34,14 +34,17 @@ final class Connector {
 		$this->business->setDefaultAction('view');
 	}
 
-	public function business($controller = 'Hackday\\Controller\\Index', $action = 'view') {
+	public function business($controller = 'Hackday\\Controller\\Index', $action = 'view', $params = array()) {
 		
 
 		$_REQUEST['controller'] = $controller;
 		$_REQUEST['action'] = $action;
 
-
-		
+		if (!empty($params)) {
+			foreach ($params as $key => $value) {
+				$_REQUEST[$key] = $value;
+			}
+		}
 
 		return $this->business->run();
 	}

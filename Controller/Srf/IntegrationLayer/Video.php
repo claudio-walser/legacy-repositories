@@ -1,26 +1,21 @@
 <?php
 namespace Hackday\Controller\Srf\IntegrationLayer;
 
-use Hackday\Core\ApiClient;
+use Hackday\Core\ApiClient,
+	Hackday\Controller\Srf\Abstraction;
 /**
  * This class returns always a array with the following elements:
  * success		=>		bool success, true || false
  * data			=>		mixed data, could be every datatype and contains your needed data
  */
-class Video extends \Spaf\Core\Controller\Abstraction {
+class Video extends Abstraction {
 
 	private $tld = 'http://il.srf.ch';
 	private $integrationLayerBaseUrl = '/integrationlayer/1.0/ue/';
-	private $integrationLayerUes = array(
-		'srf',
-		'rts',
-		'rsi',
-		'rtr',
-		'swi'
-	);
+	
 
 	public function init() {
-		$this->apiClient = new ApiClient($this->tld);
+		$this->apiClient = new ApiClient();
 	}
 	
 	/**
@@ -32,10 +27,9 @@ class Video extends \Spaf\Core\Controller\Abstraction {
 		$this->_checkCompanyUnit($ue);
 
 		$url = $this->tld . $this->integrationLayerBaseUrl . $ue . '/video/mostClicked.json';
-		$xmlResponse = $this->apiClient->processUrl($url);
-		$xml = new \SimpleXMLElement($xmlResponse);
-
-		return $this->_response->write($xmlResponse);
+		$response = $this->apiClient->processUrl($url);
+		
+		return $this->_response->write($response);
 	}
 
 	public function getVideoDetail($ue = 'srf') {
@@ -43,17 +37,12 @@ class Video extends \Spaf\Core\Controller\Abstraction {
 		$this->_checkCompanyUnit($ue, $videoId);
 
 		$url = $this->tld . $this->integrationLayerBaseUrl . $ue . '/video/detail/' . $videoId;
-		$xmlResponse = $this->apiClient->processUrl($url);
-		$xml = new \SimpleXMLElement($xmlResponse);
-
-		return $this->_response->write($xmlResponse);
+		$response = $this->apiClient->processUrl($url);
+		
+		return $this->_response->write($response);
 	}
 
 
-	private function _checkCompanyUnit($ue) {
-		if (!in_array($ue, $this->integrationLayerUes)) {
-			throw new Exception('UE ' . $ue . ' not allowed');
-		}
-	}
+	
 }
 ?>

@@ -18,8 +18,7 @@ class ApiClient extends \Spaf\Core\Registry {
 		curl_setopt($this->curl, CURLOPT_CONNECTTIMEOUT, $timeout);
 		// grab URL and pass it to the browser
 		$data = curl_exec($this->curl);
-		var_dump($data);
-		die();
+		
 		// close cURL resource, and free up system resources
 		curl_close($this->curl);
 
