@@ -71,7 +71,8 @@ class Index extends Abstraction {
 
 	public function getBroadcastByChannelIdAndDay() {
 		$channelId = $this->_request->getParam('channelId');
-		$dayId = $this->_request->getParam('dayId');
+		
+        $dayId = $this->_request->getParam('dayId');
 
 		//http://webservice.sf.tv/tvprogramm/query/broadcasts.xml?channel=33002&day=2654
 		$url = $this->baseUrl . 'query/broadcasts.xml?channel=' . (int) $channelId . '&day=' . (int) $dayId;
@@ -80,7 +81,10 @@ class Index extends Abstraction {
 		
 		$array = json_decode($json);
 		$response = array();
-		foreach($array->resultSet->result as $broadcast) {
+		if (!isset($array->resultSet) || !isset($array->resultSet->result)) {
+            return $this->_response->write(null);
+        }
+        foreach($array->resultSet->result as $broadcast) {
 
 			//echo 'WTF';
 			//print_r($broadcast->broadcast->program);

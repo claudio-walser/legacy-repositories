@@ -49,5 +49,10 @@ final class Connector {
 		return $this->business->run();
 	}
 
+	public function setMySQLi(\MySQLi $db) {
+		$registry = Core\Registry::getInstance();
+		$registry->set('mysqli', $db, true);
+	}
+
 }
 ?>

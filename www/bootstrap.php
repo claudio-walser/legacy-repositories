@@ -16,5 +16,6 @@ ini_set('display_errors', true);
 require_once('../Autoloader.php');
 $autoloader = new Autoloader();
 $connector = new Connector();
+$connector->setMySQLi(new MySQLi('localhost', 'root', '', 'hackday'));
 
 ?>
