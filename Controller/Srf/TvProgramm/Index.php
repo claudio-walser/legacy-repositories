@@ -3,8 +3,8 @@ namespace Hackday\Controller\Srf\TvProgramm;
 
 use Hackday\Core\ApiClient,
 	Hackday\Controller\Srf\Abstraction,
-	Hackday\Object\VideoChannel,
-	Hackday\Object\Broadcast;
+	Hackday\Dto\VideoChannel,
+	Hackday\Dto\Broadcast;
 
 /**
  * This class returns always a array with the following elements:

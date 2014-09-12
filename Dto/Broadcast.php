@@ -1,5 +1,5 @@
 <?php
-namespace Hackday\Object;
+namespace Hackday\Dto;
 
 /**
  * This class returns always a array with the following elements:
