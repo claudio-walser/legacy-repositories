@@ -14,7 +14,8 @@ node default {
 	$node_role = get_node_role($hostname)
 	if $node_role {
 		$node_number = get_node_number($hostname)
-		include "role::$node_role"
+		#if defined(Class["role::$node_role"]) {
+			include "role::$node_role"
+		#}
 	}
-	
 }
