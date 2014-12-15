@@ -16,7 +16,7 @@ class gitlab {
 
 	file { '/opt/gitlab/install.sh':
 		ensure => file,
-		source => 'puppet:///modules/${module_name}/opt/gitlab/install.sh'
+		source => "puppet:///modules/${module_name}/opt/gitlab/install.sh"
 	}
 
 	exec { 'gitlab-install':
