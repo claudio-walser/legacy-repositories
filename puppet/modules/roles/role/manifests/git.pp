@@ -1,3 +1,3 @@
 class role::git {
-	include service-gitlab
+	class {'::gitlab':}
 }
