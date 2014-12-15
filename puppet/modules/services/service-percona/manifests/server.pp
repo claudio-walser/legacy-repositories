@@ -75,7 +75,7 @@ define service-percona::server (
 		# create sst user
 		$sql = "CREATE USER 'sstuser'@'localhost' IDENTIFIED BY 's3cretPass';\nGRANT RELOAD, LOCK TABLES, REPLICATION CLIENT ON *.* TO 'sstuser'@'localhost';\nFLUSH PRIVILEGES;"
 		exec { 'sst_user':
-			command => "/usr/bin/mysql -uroot -p${root_password} -e ${sql}",
+			command => "/usr/bin/mysql -uroot -p${root_password} -e \"${sql}\"",
 			require => Exec['percona-master-bootstrap'],
 			creates => '/etc/mysql/bootstrapped'
 			#path => "/usr/bin:/usr/sbin:/bin:/usr/local/bin",
@@ -115,6 +115,11 @@ define service-percona::server (
 		ensure => file,
 		content => 'clustered',
 		require => Exec['mysql-restart']
+	}
+
+	file { "/etc/mysql/conf.d/log.cnf":
+		ensure => file,
+		content => template("${module_name}/etc/mysql/conf.d/log.cnf.erb"),
 	}
 
 }
