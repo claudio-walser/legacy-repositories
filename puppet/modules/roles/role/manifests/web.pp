@@ -17,4 +17,9 @@ class role::web (
 		create_resources( '::service-git::repository', $gitRepositories)
 	}	
 
+	class { 'composer':
+		command_name => 'composer',
+		target_dir   => '/usr/local/bin'
+	}
+
 }
