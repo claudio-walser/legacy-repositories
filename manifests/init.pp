@@ -36,13 +36,13 @@ class gitlab (
 
 	file { '/etc/gitlab/gitlab.rb':
 		ensure => file,
-		content => template('etc/gitlab/gitlab.rb.erb'),
+		content => template("${module_name}/etc/gitlab/gitlab.rb.erb"),
 		notify => Exec['gitlab-reconfigure']
 	}
 
 	file { '/opt/gitlab/scripts/restore.sh':
 		ensure => file,
-		content => template('opt/gitlab/scripts/restore.sh.erb')
+		content => template("${module_name}/opt/gitlab/scripts/restore.sh.erb")
 	}
 
 
