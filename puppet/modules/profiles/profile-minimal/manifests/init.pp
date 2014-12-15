@@ -6,7 +6,9 @@ class profile-minimal (
 	package { [
 		'bash-completion',
 		'sudo',
-		'rsync'
+		'rsync',
+		'apt-show-versions',
+		'ca-certificates'
 	]:
 		ensure => installed
 	}
