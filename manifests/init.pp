@@ -1,5 +1,5 @@
 class gitlab (
-	$data_dir = ''
+	$data_dir = '/var/opt/gitlab/git-data/'
 ) {
 
 	$dependencies = [
