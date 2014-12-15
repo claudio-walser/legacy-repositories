@@ -38,6 +38,7 @@ role::mysql::databases:
     charset: 'utf8'
     collate: 'utf8_general_ci'
     host: '%'
+
   my-traces:
     ensure: 'present'
     user: 'my-traces'
@@ -165,17 +166,32 @@ role::web::vhosts:
     root: '/var/www/cdn'
     entry_on_default_host: true
 
-  my-traces.%{fqdn}:
+  www.my-traces.%{fqdn}:
     server_name: "my-traces.%{fqdn}"
     server_aliases: 
       - my-traces.%{hostname}
+      - www.my-traces.%{hostname}
 
     proxy_name: "my-traces.%{domain}"
     proxy_aliases: 
       - my-traces
+      - www.my-traces
+      - www.my-traces.%{domain}
 
-    php: false
-    root: '/var/www/my-traces'
+    php: true
+    root: '/var/www/www.my-traces.com'
+    entry_on_default_host: true
+  api.my-traces.%{fqdn}:
+    server_name: "api.my-traces.%{fqdn}"
+    server_aliases: 
+      - api.my-traces.%{hostname}
+
+    proxy_name: "api.my-traces.%{domain}"
+    proxy_aliases: 
+      - api.my-traces
+
+    php: true
+    root: '/var/www/api.my-traces.com'
     entry_on_default_host: true
 
 
@@ -209,5 +225,8 @@ role::web::gitRepositories:
     target_directory: '/var/www/cdn/extjs'
     repo_url: 'http://git-01.development.claudio.dev/claudio.walser/extjs.git'
   MyTraces:
-    target_directory: '/var/www/my-traces'
-    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/mytraces.git'
+    target_directory: '/var/www/www.my-traces.com'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/www-my-traces-com.git'
+  ApiMyTraces:
+    target_directory: '/var/www/api.my-traces.com'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/api-my-traces-com.git'
