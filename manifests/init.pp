@@ -20,8 +20,7 @@ class gitlab {
 	}
 
 	exec { 'gitlab-install':
-		command      => '/bin/bash /opt/gitlab/install.sh; exit 0;',
-		#path        => '/usr/bin:/usr/sbin:/bin:/usr/local/bin',
-		#refreshonly => true,
+		command => '/bin/bash /opt/gitlab/install.sh; exit 0;',
+		onlyif  => "/usr/bin/apt-show-versions gitlab | /bin/grep 'not installed'"
 	}
 }
