@@ -1,5 +1,6 @@
 class gitlab (
 	$data_dir = '/var/opt/gitlab/git-data/'
+	$backup_dir = '/var/opt/gitlab/backups/'
 ) {
 
 	$dependencies = [
@@ -44,6 +45,7 @@ class gitlab (
 		require => Exec['gitlab-install'],
 		notify => Exec['gitlab-reconfigure']
 	}
+	# todo: put backup dir into /opt/gitlab/embedded/service/gitlab-rails/config/gitlab.yml
 
 	file { '/opt/gitlab/scripts/restore.sh':
 		ensure => file,
