@@ -3,7 +3,9 @@ class gitlab (
 	$backup_dir = '/var/opt/gitlab/backups/',
 	$gitlab_url = $::fqdn,
 	$gitlab_ci = false,
-	$gitlab_ci_url = "ci.${::fqdn}"
+	$gitlab_ci_url = "ci.${::fqdn}",
+	$gitlab_ci_only = false,
+	$gitlab_server_urls = []
 ) {
 
 	$dependencies = [
@@ -58,7 +60,7 @@ class gitlab (
 	}
 
 	# gitlab ci - fixes and setup
-	if $gitlab_ci == true {
+	if $gitlab_ci == true or $gitlab_ci_only == true {
 		
 		file_line {'gitlab-ci-omnibus-fix':
 			path => '/opt/gitlab/embedded/cookbooks/gitlab/libraries/gitlab.rb',
@@ -72,6 +74,33 @@ class gitlab (
 			command	=> '/usr/bin/gitlab-ci-rake setup',
 			refreshonly => true,
 			require => Exec['gitlab-reconfigure']
+		}
+
+		# ci only, deactivate gitlab server
+		if $gitlab_ci_only == true {
+
+			file_line { 'gitlab-disable-unicorn':
+				path => '/etc/gitlab/gitlab.rb',
+				line => "unicorn['enable'] = false",
+				require => File['/etc/gitlab/gitlab.rb'],
+				notify  => Exec['gitlab-reconfigure']
+			}
+			
+			file_line { 'gitlab-disable-sidekiq':
+				path => '/etc/gitlab/gitlab.rb',
+				line => "sidekiq['enable'] = false",
+				require => File['/etc/gitlab/gitlab.rb'],
+				notify  => Exec['gitlab-reconfigure']
+			}
+
+			$gitlab_server_urls_string = join($gitlab_server_urls, "','")
+			file_line { 'gitlab-ci-gitlab-urls':
+				path => '/etc/gitlab/gitlab.rb',
+				line => "gitlab_ci['gitlab_server_urls'] = ['${gitlab_server_urls_string}']",
+				require => File['/etc/gitlab/gitlab.rb'],
+				notify  => Exec['gitlab-reconfigure']
+			}
+
 		}
 
 	}
