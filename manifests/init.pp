@@ -41,6 +41,7 @@ class gitlab (
 	file { '/etc/gitlab/gitlab.rb':
 		ensure => file,
 		content => template("${module_name}/etc/gitlab/gitlab.rb.erb"),
+		require => Exec['gitlab-install'],
 		notify => Exec['gitlab-reconfigure']
 	}
 
