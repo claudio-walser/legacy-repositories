@@ -3,7 +3,7 @@ class gitlab (
 	$backup_dir = '/var/opt/gitlab/backups/',
 	$gitlab_url = $::fqdn,
 	$gitlab_ci = false,
-	$gitlab_ci_url = ci.${::fqdn}
+	$gitlab_ci_url = "ci.${::fqdn}"
 ) {
 
 	$dependencies = [
