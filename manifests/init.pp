@@ -63,7 +63,7 @@ class gitlab (
 		file_line {'gitlab-ci-omnibus-fix':
 			path => '/opt/gitlab/embedded/cookbooks/gitlab/libraries/gitlab.rb',
 			line  => "      ci_external_url = '${gitlab_ci_url}'",
-			match => '^      return unless ci_external_url$',
+			match => "^      return unless ci_external_url$",
 			require => Exec['gitlab-install'],
 			notify => [Exec['gitlab-reconfigure'],Exec['gitlab-ci-setup']]
 		}
