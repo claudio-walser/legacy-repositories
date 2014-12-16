@@ -10,10 +10,10 @@ class {'::gitlab':
 
 Backup
 ------
-
-sudo gitlab-rake gitlab:backup:create
+#### Create Backup
+    sudo gitlab-rake gitlab:backup:create
 
 Restore
 -------
-
-sudo gitlab-rake gitlab:backup:restore
+#### Restore Backup
+    sudo gitlab-rake gitlab:backup:restore
