@@ -3,7 +3,7 @@ class gitlab (
 	$backup_dir = '/var/opt/gitlab/backups/',
 	$gitlab_url = $::fqdn,
 	$gitlab_ci = false,
-	$gitlab_ci_url = "ci.${::fqdn}"
+	$gitlab_ci_url = ci.${::fqdn}
 ) {
 
 	$dependencies = [
@@ -56,4 +56,24 @@ class gitlab (
 		command	=> '/usr/bin/gitlab-ctl restart',
 		refreshonly => true
 	}
+
+	# gitlab ci - fixes and setup
+	if $gitlab_ci == true {
+		
+		file_line {'gitlab-ci-omnibus-fix':
+			path => '/opt/gitlab/embedded/cookbooks/gitlab/libraries/gitlab.rb',
+			line  => "      ci_external_url = '${gitlab_ci_url}'",
+			match => '^      return unless ci_external_url$',
+			require => Exec['gitlab-install'],
+			notify => [Exec['gitlab-reconfigure'],Exec['gitlab-ci-setup']]
+		}
+
+		exec { 'gitlab-ci-setup':
+			command	=> '/usr/bin/gitlab-ci-rake setup',
+			refreshonly => true,
+			require => Exec['gitlab-reconfigure']
+		}
+
+	}
+	
 }
