@@ -13,7 +13,7 @@ class gitlab (
 		ensure => installed,
 	}
 
-	file { {
+	file { [
 		'/opt/gitlab',
 		'/opt/gitlab/source',
 		'/opt/gitlab/scripts'
