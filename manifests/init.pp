@@ -43,12 +43,6 @@ class gitlab (
 	}
 	# todo: put backup dir into /opt/gitlab/embedded/service/gitlab-rails/config/gitlab.yml
 
-	file { '/opt/gitlab/scripts/restore.sh':
-		ensure => file,
-		content => template("${module_name}/opt/gitlab/scripts/restore.sh.erb"),
-		require => File['/opt/gitlab/scripts']
-	}
-
 	# reconfigure and restart only on refresh
 	exec { 'gitlab-reconfigure':
 		command	=> '/usr/bin/gitlab-ctl reconfigure',
