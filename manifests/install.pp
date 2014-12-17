@@ -24,6 +24,8 @@ class gitlab::install {
 	file { '/etc/gitlab/gitlab.rb':
 		ensure => file,
 		owner => 'git',
-		group => 'git'
+		group => 'git',
+		content => '', # empty cause the default one is buggy, missing the equals
+		require => Exec['gitlab-install']
 	}
 }
