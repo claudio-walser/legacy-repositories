@@ -11,14 +11,14 @@ class gitlab (
 	# do default gitlab configuration
 	file_line { '/etc/gitlab/gitlab.rb-external_url':
 		path => '/etc/gitlab/gitlab.rb',
-		line => "external_url = ${url}",
+		line => "external_url = '${url}'",
 		require => File['/etc/gitlab/gitlab.rb'],
 		notify  => Exec['gitlab-reconfigure']
 	}
 
 	file_line { '/etc/gitlab/gitlab.rb-git_data_dir':
 		path => '/etc/gitlab/gitlab.rb',
-		line => "git_data_dir = ${data_dir}",
+		line => "git_data_dir = '${data_dir}'",
 		require => File['/etc/gitlab/gitlab.rb'],
 		notify  => Exec['gitlab-reconfigure']
 	}

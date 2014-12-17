@@ -11,7 +11,7 @@ class gitlab::ci (
 	# default stuff you have to do to run gitlab-ci
 	file_line { '/etc/gitlab/gitlab.rb-ci_external_url':
 		path => '/etc/gitlab/gitlab.rb',
-		line => "ci_external_url = ${url}",
+		line => "ci_external_url = '${url}'",
 		require => File['/etc/gitlab/gitlab.rb'],
 		notify  => Exec['gitlab-reconfigure']
 	}
