@@ -33,14 +33,14 @@ class gitlab::ci (
 
 	# ci only if some gitlab_server_urls got passed
 	if empty($gitlab_server_urls) == false {
-		file_line { '/etc/gitlab/gitlab.rb-unicorn[enable]':
+		file_line { '/etc/gitlab/gitlab.rb-unicorn-disable':
 			path => '/etc/gitlab/gitlab.rb',
 			line => "unicorn['enable'] = false",
 			require => File['/etc/gitlab/gitlab.rb'],
 			notify  => Exec['gitlab-reconfigure']
 		}
 		
-		file_line { '/etc/gitlab/gitlab.rb-sidekiq[enable]':
+		file_line { '/etc/gitlab/gitlab.rb-sidekiq-disable':
 			path => '/etc/gitlab/gitlab.rb',
 			line => "sidekiq['enable'] = false",
 			require => File['/etc/gitlab/gitlab.rb'],
