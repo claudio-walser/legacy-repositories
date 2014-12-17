@@ -14,6 +14,9 @@ class gitlab (
 		require => File['/etc/gitlab/gitlab.rb'],
 		notify  => Exec['gitlab-reconfigure']
 	}
+	ensure_resource('class', 'gitlab::fixes::gitlab', {
+		url => $url
+	})
 
 	file_line { '/etc/gitlab/gitlab.rb-git_data_dir':
 		path => '/etc/gitlab/gitlab.rb',
