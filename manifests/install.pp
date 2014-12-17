@@ -2,7 +2,7 @@ class gitlab::install {
 
 	file { [
 		'/opt/gitlab/',
-		'/opt/gitlab/scripts/'
+		'/opt/gitlab/source/'
 	]:
 		ensure => directory
 	}
