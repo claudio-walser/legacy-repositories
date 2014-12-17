@@ -4,9 +4,8 @@ class gitlab::ci (
 	$gitlab_server_urls = []
 ) {
 
-	class {'gitlab::actions': }
-	class {'gitlab::install': }
-
+	ensure_resource('class', 'gitlab::actions', {})	
+	ensure_resource('class', 'gitlab::install', {})	
 
 	# default stuff you have to do to run gitlab-ci
 	file_line { '/etc/gitlab/gitlab.rb-ci_external_url':

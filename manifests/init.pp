@@ -4,9 +4,8 @@ class gitlab (
 	$url = $::fqdn,
 ) {
 
-	class {'gitlab::actions': }
-	class {'gitlab::install': }
-
+	ensure_resource('class', 'gitlab::actions', {})	
+	ensure_resource('class', 'gitlab::install', {})	
 
 	# do default gitlab configuration
 	file_line { '/etc/gitlab/gitlab.rb-external_url':
