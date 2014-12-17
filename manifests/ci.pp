@@ -18,11 +18,12 @@ class gitlab::ci (
 	# so lets fix the chef recipe included in omnibus package
 	file_line {'gitlab-ci-omnibus-fix':
 		path => '/opt/gitlab/embedded/cookbooks/gitlab/libraries/gitlab.rb',
-		line  => "    def parse_ci_external_url\n      ci_external_url = 'http://${url}'",
-		match => '^    def parse_ci_external_url',
+		line  => "      ci_external_url = 'http://${url}'",
+		match => '^      (return unless ci_external_url|ci_external_url \= (.*))$',
 		require => Exec['gitlab-install'],
 		notify => [Exec['gitlab-reconfigure'],Exec['gitlab-ci-setup']]
 	}
+
 	# execute rake task to setup gitlab-ci
 	exec { 'gitlab-ci-setup':
 		command	=> '/usr/bin/gitlab-ci-rake setup',
@@ -33,6 +34,23 @@ class gitlab::ci (
 
 	# ci only if some gitlab_server_urls got passed
 	if empty($gitlab_server_urls) == false {
+		# put it in configs anyway, even if it dont work
+		file_line { '/etc/gitlab/gitlab.rb-external_url':
+			path => '/etc/gitlab/gitlab.rb',
+			line => "external_url = 'no-url.${url}'",
+			require => File['/etc/gitlab/gitlab.rb'],
+			notify  => Exec['gitlab-reconfigure']
+		}
+		# that configs from /etc/gitlab/gitlab.rb are just ignored sometimes, i dont get it
+		# fix it again in chef recipe which comes with omnibus
+		file_line {'another-stupid-gitlab-omnibus-fix':
+			path => '/opt/gitlab/embedded/cookbooks/gitlab/libraries/gitlab.rb',
+			line  => "      external_url = 'http://no-url.${url}'",
+			match => '^      (return unless external_url|external_url \= (.*))$',
+			require => Exec['gitlab-install'],
+			notify => [Exec['gitlab-reconfigure'],Exec['gitlab-ci-setup']]
+		}
+
 		file_line { '/etc/gitlab/gitlab.rb-unicorn-disable':
 			path => '/etc/gitlab/gitlab.rb',
 			line => "unicorn['enable'] = false",
