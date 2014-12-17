@@ -1,5 +1,15 @@
 class gitlab::install::debian {
 
+	# install package dependencies
+	$dependencies = [
+		'openssh-server',
+		'postfix',
+		'wget'
+	]
+	package { $dependencies:
+		ensure => installed,
+	}
+
 	wget::fetch { 'download-gitlab-deb-package':
 		source      => 'https://downloads-packages.s3.amazonaws.com/debian-7.6/gitlab_7.5.3-omnibus.5.2.1.ci-1_amd64.deb',
 		destination => '/opt/gitlab/gitlab_7.5.3-omnibus.5.2.1.ci-1_amd64.deb',
