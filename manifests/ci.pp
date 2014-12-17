@@ -10,7 +10,7 @@ class gitlab::ci (
 	# default stuff you have to do to run gitlab-ci
 	file_line { '/etc/gitlab/gitlab.rb-ci_external_url':
 		path => '/etc/gitlab/gitlab.rb',
-		line => "ci_external_url = '${url}'",
+		line => "ci_external_url = 'http://${url}'",
 		require => File['/etc/gitlab/gitlab.rb'],
 		notify  => Exec['gitlab-reconfigure']
 	}
@@ -18,7 +18,7 @@ class gitlab::ci (
 	# so lets fix the chef recipe included in omnibus package
 	file_line {'gitlab-ci-omnibus-fix':
 		path => '/opt/gitlab/embedded/cookbooks/gitlab/libraries/gitlab.rb',
-		line  => "    def parse_ci_external_url\n      ci_external_url = 'http://${gitlab_ci_url}'",
+		line  => "    def parse_ci_external_url\n      ci_external_url = 'http://${url}'",
 		match => '^    def parse_ci_external_url',
 		require => Exec['gitlab-install'],
 		notify => [Exec['gitlab-reconfigure'],Exec['gitlab-ci-setup']]
