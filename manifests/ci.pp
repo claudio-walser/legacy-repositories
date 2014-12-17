@@ -48,7 +48,7 @@ class gitlab::ci (
 		}
 
 		$gitlab_server_urls_string = join($gitlab_server_urls, "','")
-		file_line { '/etc/gitlab/gitlab.rb-gitlab_ci[gitlab_server_urls]':
+		file_line { '/etc/gitlab/gitlab.rb-gitlab_ci-gitlab_server_urls':
 			path => '/etc/gitlab/gitlab.rb',
 			line => "gitlab_ci['gitlab_server_urls'] = ['${gitlab_server_urls_string}']",
 			require => File['/etc/gitlab/gitlab.rb'],
