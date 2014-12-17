@@ -27,7 +27,7 @@ On gitlab-ci Node
 
     class {'::gitlab::ci':
         url => 'gitlab-ci.example.com',
-        gitlab_server_urls => ['http://'gitlab.example.com'']
+        gitlab_server_urls => ['http://gitlab.example.com']
     }
 
 #### Create Backup
