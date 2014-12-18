@@ -10,7 +10,7 @@ class gitlab::fixes::gitlab (
 		line  => "      external_url = 'http://${url}'",
 		match => '^      (return unless external_url|external_url \= (.*))$',
 		require => Exec['gitlab-install'],
-		notify => [Exec['gitlab-reconfigure'],Exec['gitlab-install']]
+		notify => [Exec['gitlab-reconfigure']]
 	}
 
 }
