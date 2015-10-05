@@ -1,54 +1,58 @@
 open_source_license.txt
 
-VMware Fusion 5.0.2 and Workstation 9.0.2 GA Tools
+VMware Fusion and Workstation Tools 9.9.3 GA
 
 
 ===========================================================================
 
 The following copyright statements and licenses apply to various open
-source software components (or portions thereof) that are distributed with
-this VMware software products.
+source software packages (or portions thereof) that are distributed with
+this VMware Product.
 
-The VMware Product may also include other VMware components, which may contain additional open 
-source software packages. One or more such open_source_licenses.txt files may therefore 
-accompany this VMware Product. 
+The VMware Product may also include other VMware components, which may
+contain additional open source software packages. One or more such
+open_source_licenses.txt files may therefore accompany this VMware
+Product.
 
-The VMware product that includes this file does not necessarily use all the
-open source software components referred to below and may also only use
-portions of a given component.
+The VMware Product that includes this file does not necessarily use all
+the open source software packages referred to below and may also only
+use portions of a given package.
 
 
 =============== TABLE OF CONTENTS =============================
 
 
-The following is a listing of the open source components detailed in this
-document.  This list is provided for your convenience; please read further if
-you wish to review the copyright notice(s) and the full text of the license
-associated with each component.
+The following is a listing of the open source components detailed in
+this document. This list is provided for your convenience; please read
+further if you wish to review the copyright notice(s) and the full text
+of the license associated with each component.
 
 
 SECTION 1: BSD-STYLE, MIT-STYLE, OR SIMILAR STYLE LICENSES
 
    >>> base64.c-none
+   >>> boost-1.47.0
    >>> convertutf.c/.h from unicode, inc.-none
-   >>> freetype-2.3.12
+   >>> fontconfig-2.6.0
+   >>> freetype-2.4.10-1
    >>> icu-data-4.4-1
-   >>> icu4c-3.8-3
+   >>> libdnet-1.11
    >>> libdnet-1.11-1
    >>> libdnet-1.12
-   >>> libpng-1.2.12
-   >>> libpng-1.2.46
+   >>> libview-0.7.0
    >>> libxdr-openbsd-4.3
-   >>> libxml2-2.8.0
-   >>> mesa-7.12
-   >>> mesa-drm-77ddc78
-   >>> openssl-0.9.8t
+   >>> libxml2-2.9.2
+   >>> mesa-8.1-1036518
+   >>> openssl-1.0.1m
    >>> pixman-0.11.6
-   >>> pixman-0.15.2
-   >>> popt-1.7
-   >>> thinprint-8.6.58
+   >>> pixman-0.21.6
+   >>> protobuf-2.3.0
+   >>> sha256-8/26/2003
+   >>> thinprint-8.6.70
+   >>> tpvmlp-2.0.15
    >>> unzip-5.52
    >>> uriparser-0.7.0
+   >>> uriparser-0.7.0-1
    >>> xdg-utils-head-20110930-5010c3
    >>> xorg-7.3
    >>> zip-2.32
@@ -56,70 +60,69 @@ SECTION 1: BSD-STYLE, MIT-STYLE, OR SIMILAR STYLE LICENSES
 
 
 
-SECTION 2: GNU General Public License, V2.0
+SECTION 2: Apache License, V2.0
+
+   >>> apache santuario-1.6.1-1
+   >>> xerces-c++-3.1.1
+
+
+
+SECTION 3: GNU General Public License, V2.0
 
    >>> gcc-4.1.2-4
    >>> gcc-4.1.2-7
-   >>> gettext-0.14.6
-   >>> gksu-2.0.0
+   >>> gettext-0.14.6-2
    >>> gnome-menus-2.30.2
    >>> libbonobo-2.22.0
    >>> procps-3.2.7-1
 
 
 
-SECTION 3: GNU General Public License, V3.0
+SECTION 4: GNU General Public License, V3.0
 
    >>> gettext-0.17
    >>> gettext-0.17-1
 
 
 
-SECTION 4: GNU Lesser General Public License, V2.1
+SECTION 5: GNU Lesser General Public License, V2.1
 
+   >>> cairo-1.10.2
    >>> cairo-1.6.4
-   >>> cairo-1.8.8
    >>> glibmm-2.22.1
    >>> glibmm-2.22.1-3
    >>> glibmm-2.24.0
    >>> gtk-engines-2.18.4
    >>> gtkmm-2.20.1
+   >>> libsigc++-2.4.0
    >>> pangomm-2.26.0
 
 
 
-SECTION 5: GNU Library General Public License, V2.0
+SECTION 6: GNU Library General Public License, V2.0
 
    >>> at-spi-1.22.1
    >>> atk-1.22.0
    >>> atk-1.30.0
+   >>> cairomm-1.10.0
    >>> cairomm-1.6.0
-   >>> cairomm-1.8.2
    >>> gail-1.22.3
    >>> glib-2.22.1-1
+   >>> glib-2.22.4-1
    >>> glib-2.22.4-3
    >>> glib-2.24.2-1
    >>> glibmm-2.16.4
    >>> gtk+-2.12.11
    >>> gtk+-2.20.0
    >>> gtkmm-2.12.7
-   >>> libart_lgpl-2.3.17
    >>> libfuse-2.5.3
    >>> libgksu-2.0.11-1
    >>> libglade-2.6.0
-   >>> libgnomecanvas-2.14.0
-   >>> libgnomecanvasmm-2.16.0
+   >>> libiconv-1.9.2
    >>> librsvg-2.16.0
-   >>> libsexy-0.1.10
-   >>> libsexymm-0.1.9
    >>> pango-1.20.5
    >>> pango-1.26.0
 
-
-
-SECTION 6: Microsoft Permissive Public License
-
-   >>> wtl-8.0
 
 
 APPENDIX. Standard License Files
@@ -132,11 +135,11 @@ APPENDIX. Standard License Files
 
    >>> GNU Library General Public License, V2.0
 
-   >>> Microsoft Permissive Public License
-
-
-
+   >>> Apache License, V2.0
    
+   >>> Creative Commons Attribution 4.0 International Public License   
+
+
 
 --------------- SECTION 1:  BSD-STYLE, MIT-STYLE, OR SIMILAR STYLE LICENSES ----------
 
@@ -231,6 +234,33 @@ Berkeley Internet Name Daemon (BIND) as distributed by ISC.  They
 were adapted for inclusion in OpenLDAP Software by Kurt D. Zeilenga.
 
 
+>>> boost-1.47.0
+
+Boost Software License - Version 1.0 - August 17th, 2003
+
+Permission is hereby granted, free of charge, to any person or organization
+obtaining a copy of the software and accompanying documentation covered by
+this license (the "Software") to use, reproduce, display, distribute,
+execute, and transmit the Software, and to prepare derivative works of the
+Software, and to permit third-parties to whom the Software is furnished to
+do so, all subject to the following:
+
+The copyright notices in the Software and this entire statement, including
+the above license grant, this restriction and the following disclaimer,
+must be included in all copies of the Software, in whole or in part, and
+all derivative works of the Software, unless such copies or derivative
+works are solely in the form of machine-executable object code generated by
+a source language processor.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
+SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
+FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+
 >>> convertutf.c/.h from unicode, inc.-none
 
 Copyright 2001-2004 Unicode, Inc. 
@@ -254,177 +284,109 @@ for internal or external distribution as long as this notice
 remains attached.
 
 
->>> freetype-2.3.12
+>>> fontconfig-2.6.0
 
-[PLEASE NOTE:  VMWARE, INC. ELECTS TO USE AND DISTRIBUTE THIS COMPONENT UNDER THE TERMS OF THE FREE TYPE LICENSE.  PLEASE SEE BELOW FOR THE FULL TEXT OF THE FREE TYPE LICENSE.  THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW ONLY AS A REFERENCE.] 
+Copyright (c) 2001-2003 Keith Packard
 
+Permission to use, copy, modify, distribute, and sell this software and its documentation for any purpose is hereby granted without fee, provided that the above copyright notice appear in all copies and that both that copyright notice and this permission notice appear in supporting documentation, and that the name of Keith Packard not be used in advertising or publicity pertaining to distribution of the software without specific, written prior permission. Keith Packard makes no representations about the suitability of this software for any purpose. It is provided "as is" without express or implied warranty.
 
-                    The FreeType Project LICENSE
-                    ----------------------------
-
-                            2006-Jan-27
-
-                    Copyright 1996-2002, 2006 by
-          David Turner, Robert Wilhelm, and Werner Lemberg
+THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
+>>> freetype-2.4.10-1
 
-Introduction
-============
+[PLEASE NOTE:  VMWARE, INC. ELECTS TO USE AND DISTRIBUTE THIS COMPONENT UNDER THE TERMS OF THE BSD.  PLEASE SEE BELOW FOR THE FULL TEXT OF THE BSD.  THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW ONLY AS A REFERENCE.]
 
-  The FreeType  Project is distributed in  several archive packages;
-  some of them may contain, in addition to the FreeType font engine,
-  various tools and  contributions which rely on, or  relate to, the
-  FreeType Project.
+The  FreeType 2  font  engine is  copyrighted  work and  cannot be  used
+legally  without a  software license.   In  order to  make this  project
+usable  to a vast  majority of  developers, we  distribute it  under two
+mutually exclusive open-source licenses.
 
-  This  license applies  to all  files found  in such  packages, and
-  which do not  fall under their own explicit  license.  The license
-  affects  thus  the  FreeType   font  engine,  the  test  programs,
-  documentation and makefiles, at the very least.
+This means  that *you* must choose  *one* of the  two licenses described
+below, then obey  all its terms and conditions when  using FreeType 2 in
+any of your projects or products.
 
-  This  license   was  inspired  by  the  BSD,   Artistic,  and  IJG
-  (Independent JPEG  Group) licenses, which  all encourage inclusion
-  and  use of  free  software in  commercial  and freeware  products
-  alike.  As a consequence, its main points are that:
+- The FreeType License, found in  the file `FTL.TXT', which is similar
+to the original BSD license *with* an advertising clause that forces
+you  to  explicitly cite  the  FreeType  project  in your  product's
+documentation.  All  details are in the license  file.  This license
+is  suited  to products  which  don't  use  the GNU  General  Public
+License.
 
-    o We don't promise that this software works. However, we will be
-      interested in any kind of bug reports. (`as is' distribution)
+Note that  this license  is  compatible  to the  GNU General  Public
+License version 3, but not version 2.
 
-    o You can  use this software for whatever you  want, in parts or
-      full form, without having to pay us. (`royalty-free' usage)
+- The GNU General Public License version 2, found in  `GPLv2.TXT' (any
+later version can be used  also), for programs which already use the
+GPL.  Note  that the  FTL is  incompatible  with  GPLv2 due  to  its
+advertisement clause.
 
-    o You may not pretend that  you wrote this software.  If you use
-      it, or  only parts of it,  in a program,  you must acknowledge
-      somewhere  in  your  documentation  that  you  have  used  the
-      FreeType code. (`credits')
+The contributed BDF and PCF drivers come with a license similar  to that
+of the X Window System.  It is compatible to the above two licenses (see
+file src/bdf/README and src/pcf/README).
 
-  We  specifically  permit  and  encourage  the  inclusion  of  this
-  software, with  or without modifications,  in commercial products.
-  We  disclaim  all warranties  covering  The  FreeType Project  and
-  assume no liability related to The FreeType Project.
-
-
-  Finally,  many  people  asked  us  for  a  preferred  form  for  a
-  credit/disclaimer to use in compliance with this license.  We thus
-  encourage you to use the following text:
-
-   """
-    Portions of this software are copyright  <year> The FreeType
-    Project (www.freetype.org).  All rights reserved.
-   """
-
-  Please replace <year> with the value from the FreeType version you
-  actually use.
+The gzip module uses the zlib license (see src/gzip/zlib.h) which too is
+compatible to the above two licenses.
 
 
-Legal Terms
-===========
+--- end of LICENSE.TXT ---
 
-0. Definitions
---------------
+ADDITIONAL LICENSE INFORMATION:
 
-  Throughout this license,  the terms `package', `FreeType Project',
-  and  `FreeType  archive' refer  to  the  set  of files  originally
-  distributed  by the  authors  (David Turner,  Robert Wilhelm,  and
-  Werner Lemberg) as the `FreeType Project', be they named as alpha,
-  beta or final release.
+> MIT
 
-  `You' refers to  the licensee, or person using  the project, where
-  `using' is a generic term including compiling the project's source
-  code as  well as linking it  to form a  `program' or `executable'.
-  This  program is  referred to  as  `a program  using the  FreeType
-  engine'.
+freetype-2.4.10-1\freetype-2.4.10.tar.gz\freetype-2.4.10.tar\freetype-2.4.10\src\bdf\bdf.c
+Copyright (C) 2001, 2002 by
+Francesco Zappa Nardelli
 
-  This  license applies  to all  files distributed  in  the original
-  FreeType  Project,   including  all  source   code,  binaries  and
-  documentation,  unless  otherwise  stated   in  the  file  in  its
-  original, unmodified form as  distributed in the original archive.
-  If you are  unsure whether or not a particular  file is covered by
-  this license, you must contact us to verify this.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-  The FreeType  Project is copyright (C) 1996-2000  by David Turner,
-  Robert Wilhelm, and Werner Lemberg.  All rights reserved except as
-  specified below.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-1. No Warranty
---------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
-  THE FREETYPE PROJECT  IS PROVIDED `AS IS' WITHOUT  WARRANTY OF ANY
-  KIND, EITHER  EXPRESS OR IMPLIED,  INCLUDING, BUT NOT  LIMITED TO,
-  WARRANTIES  OF  MERCHANTABILITY   AND  FITNESS  FOR  A  PARTICULAR
-  PURPOSE.  IN NO EVENT WILL ANY OF THE AUTHORS OR COPYRIGHT HOLDERS
-  BE LIABLE  FOR ANY DAMAGES CAUSED  BY THE USE OR  THE INABILITY TO
-  USE, OF THE FREETYPE PROJECT.
 
-2. Redistribution
------------------
+> BSD
 
-  This  license  grants  a  worldwide, royalty-free,  perpetual  and
-  irrevocable right  and license to use,  execute, perform, compile,
-  display,  copy,   create  derivative  works   of,  distribute  and
-  sublicense the  FreeType Project (in  both source and  object code
-  forms)  and  derivative works  thereof  for  any  purpose; and  to
-  authorize others  to exercise  some or all  of the  rights granted
-  herein, subject to the following conditions:
+freetype-2.4.10-1\freetype-2.4.10.tar.gz\freetype-2.4.10.tar\freetype-2.4.10\src\tools\ftrandom\ftrandom.c
 
-    o Redistribution of  source code  must retain this  license file
-      (`FTL.TXT') unaltered; any  additions, deletions or changes to
-      the original  files must be clearly  indicated in accompanying
-      documentation.   The  copyright   notices  of  the  unaltered,
-      original  files must  be  preserved in  all  copies of  source
-      files.
+Copyright (C) 2005, 2007, 2008 by George Williams
 
-    o Redistribution in binary form must provide a  disclaimer  that
-      states  that  the software is based in part of the work of the
-      FreeType Team,  in  the  distribution  documentation.  We also
-      encourage you to put an URL to the FreeType web page  in  your
-      documentation, though this isn't mandatory.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
 
-  These conditions  apply to any  software derived from or  based on
-  the FreeType Project,  not just the unmodified files.   If you use
-  our work, you  must acknowledge us.  However, no  fee need be paid
-  to us.
+Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
 
-3. Advertising
---------------
+Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
 
-  Neither the  FreeType authors and  contributors nor you  shall use
-  the name of the  other for commercial, advertising, or promotional
-  purposes without specific prior written permission.
+The name of the author may not be used to endorse or promote products
+derived from this software without specific prior written permission.
 
-  We suggest,  but do not require, that  you use one or  more of the
-  following phrases to refer  to this software in your documentation
-  or advertising  materials: `FreeType Project',  `FreeType Engine',
-  `FreeType library', or `FreeType Distribution'.
-
-  As  you have  not signed  this license,  you are  not  required to
-  accept  it.   However,  as  the FreeType  Project  is  copyrighted
-  material, only  this license, or  another one contracted  with the
-  authors, grants you  the right to use, distribute,  and modify it.
-  Therefore,  by  using,  distributing,  or modifying  the  FreeType
-  Project, you indicate that you understand and accept all the terms
-  of this license.
-
-4. Contacts
------------
-
-  There are two mailing lists related to FreeType:
-
-    o freetype@nongnu.org
-
-      Discusses general use and applications of FreeType, as well as
-      future and  wanted additions to the  library and distribution.
-      If  you are looking  for support,  start in  this list  if you
-      haven't found anything to help you in the documentation.
-
-    o freetype-devel@nongnu.org
-
-      Discusses bugs,  as well  as engine internals,  design issues,
-      specific licenses, porting, etc.
-
-  Our home page can be found at
-
-    http://www.freetype.org
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 >>> icu-data-4.4-1
@@ -446,28 +408,34 @@ Except as contained in this notice, the name of a copyright holder shall not be 
 All trademarks and registered trademarks mentioned herein are the property of their respective owners.
 
 
->>> icu4c-3.8-3
+>>> libdnet-1.11
 
-ICU License - ICU 1.8.1 and later                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-   COPYRIGHT AND PERMISSION NOTICE                                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-   Copyright (c) 1995-2006 International Business Machines Corporation and others                                                                                                                                                
-                                                                                                                                                                                                                                 
-   All rights reserved.                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without             
-   limitation the rights to use, copy, modify, merge, publish, distribute, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, provided that the above copyright               
-   notice(s) and this permission notice appear in all copies of the Software and that both the above copyright notice(s) and this permission notice appear in supporting documentation.                                          
-                                                                                                                                                                                                                                 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY       
-   RIGHTS. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA       
-   OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.                                                              
-                                                                                                                                                                                                                                 
-   Except as contained in this notice, the name of a copyright holder shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization of the       
-   copyright holder.             
-                                                                                                                                                                                   
-   All trademarks and registered trademarks mentioned herein are the property of their respective owners.
+Copyright (c) 2000-2006 Dug Song <dugsong@monkey.org>
+  All rights reserved, all wrongs reversed.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  3. The names of the authors and copyright holders may not be used to
+     endorse or promote products derived from this software without
+     specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+  THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 >>> libdnet-1.11-1
@@ -534,230 +502,27 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
->>> libpng-1.2.12
+>>> libview-0.7.0
 
-This copy of the libpng notices is provided for your convenience.  In case of
-any discrepancy between this copy and the notices in the file png.h that is
-included in the libpng distribution, the latter shall prevail.
+Copyright (c) 2005-2015 VMware, Inc.  All rights reserved.
 
-COPYRIGHT NOTICE, DISCLAIMER, and LICENSE:
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
-If you modify libpng you may insert additional notices immediately following
-this sentence.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-libpng versions 1.2.6, August 15, 2004, through 1.2.22, October 13, 2007, are
-Copyright (c) 2004, 2006-2007 Glenn Randers-Pehrson, and are
-distributed according to the same disclaimer and license as libpng-1.2.5
-with the following individual added to the list of Contributing Authors
-
-   Cosmin Truta
-
-libpng versions 1.0.7, July 1, 2000, through 1.2.5 - October 3, 2002, are
-Copyright (c) 2000-2002 Glenn Randers-Pehrson, and are
-distributed according to the same disclaimer and license as libpng-1.0.6
-with the following individuals added to the list of Contributing Authors
-
-   Simon-Pierre Cadieux
-   Eric S. Raymond
-   Gilles Vollant
-
-and with the following additions to the disclaimer:
-
-   There is no warranty against interference with your enjoyment of the
-   library or against infringement.  There is no warranty that our
-   efforts or the library will fulfill any of your particular purposes
-   or needs.  This library is provided with all faults, and the entire
-   risk of satisfactory quality, performance, accuracy, and effort is with
-   the user.
-
-libpng versions 0.97, January 1998, through 1.0.6, March 20, 2000, are
-Copyright (c) 1998, 1999 Glenn Randers-Pehrson, and are
-distributed according to the same disclaimer and license as libpng-0.96,
-with the following individuals added to the list of Contributing Authors:
-
-   Tom Lane
-   Glenn Randers-Pehrson
-   Willem van Schaik
-
-libpng versions 0.89, June 1996, through 0.96, May 1997, are
-Copyright (c) 1996, 1997 Andreas Dilger
-Distributed according to the same disclaimer and license as libpng-0.88,
-with the following individuals added to the list of Contributing Authors:
-
-   John Bowler
-   Kevin Bracey
-   Sam Bushell
-   Magnus Holmgren
-   Greg Roelofs
-   Tom Tanner
-
-libpng versions 0.5, May 1995, through 0.88, January 1996, are
-Copyright (c) 1995, 1996 Guy Eric Schalnat, Group 42, Inc.
-
-For the purposes of this copyright and license, "Contributing Authors"
-is defined as the following set of individuals:
-
-   Andreas Dilger
-   Dave Martindale
-   Guy Eric Schalnat
-   Paul Schmidt
-   Tim Wegner
-
-The PNG Reference Library is supplied "AS IS".  The Contributing Authors
-and Group 42, Inc. disclaim all warranties, expressed or implied,
-including, without limitation, the warranties of merchantability and of
-fitness for any purpose.  The Contributing Authors and Group 42, Inc.
-assume no liability for direct, indirect, incidental, special, exemplary,
-or consequential damages, which may result from the use of the PNG
-Reference Library, even if advised of the possibility of such damage.
-
-Permission is hereby granted to use, copy, modify, and distribute this
-source code, or portions hereof, for any purpose, without fee, subject
-to the following restrictions:
-
-1. The origin of this source code must not be misrepresented.
-
-2. Altered versions must be plainly marked as such and must not
-   be misrepresented as being the original source.
-
-3. This Copyright notice may not be removed or altered from any
-   source or altered source distribution.
-
-The Contributing Authors and Group 42, Inc. specifically permit, without
-fee, and encourage the use of this source code as a component to
-supporting the PNG file format in commercial products.  If you use this
-source code in a product, acknowledgment is not required but would be
-appreciated.
-
-
-A "png_get_copyright" function is available, for convenient use in "about"
-boxes and the like:
-
-   printf("%s",png_get_copyright(NULL));
-
-Also, the PNG logo (in PNG format, of course) is supplied in the
-files "pngbar.png" and "pngbar.jpg (88x31) and "pngnow.png" (98x31).
-
-Libpng is OSI Certified Open Source Software.  OSI Certified Open Source is a
-certification mark of the Open Source Initiative.
-
-Glenn Randers-Pehrson
-glennrp at users.sourceforge.net
-October 13, 2007
-
-
->>> libpng-1.2.46
-
-This copy of the libpng notices is provided for your convenience.  In case of
-any discrepancy between this copy and the notices in the file png.h that is
-included in the libpng distribution, the latter shall prevail.
-
-COPYRIGHT NOTICE, DISCLAIMER, and LICENSE:
-
-If you modify libpng you may insert additional notices immediately following
-this sentence.
-
-This code is released under the libpng license.
-
-libpng versions 1.2.6, August 15, 2004, through 1.2.46, July 9, 2011, are
-Copyright (c) 2004, 2006-2009 Glenn Randers-Pehrson, and are
-distributed according to the same disclaimer and license as libpng-1.2.5
-with the following individual added to the list of Contributing Authors
-
-Cosmin Truta
-
-libpng versions 1.0.7, July 1, 2000, through 1.2.5 - October 3, 2002, are
-Copyright (c) 2000-2002 Glenn Randers-Pehrson, and are
-distributed according to the same disclaimer and license as libpng-1.0.6
-with the following individuals added to the list of Contributing Authors
-
-Simon-Pierre Cadieux
-Eric S. Raymond
-Gilles Vollant
-
-and with the following additions to the disclaimer:
-
-There is no warranty against interference with your enjoyment of the
-library or against infringement.  There is no warranty that our
-efforts or the library will fulfill any of your particular purposes
-or needs.  This library is provided with all faults, and the entire
-risk of satisfactory quality, performance, accuracy, and effort is with
-the user.
-
-libpng versions 0.97, January 1998, through 1.0.6, March 20, 2000, are
-Copyright (c) 1998, 1999 Glenn Randers-Pehrson, and are
-distributed according to the same disclaimer and license as libpng-0.96,
-with the following individuals added to the list of Contributing Authors:
-
-Tom Lane
-Glenn Randers-Pehrson
-Willem van Schaik
-
-libpng versions 0.89, June 1996, through 0.96, May 1997, are
-Copyright (c) 1996, 1997 Andreas Dilger
-Distributed according to the same disclaimer and license as libpng-0.88,
-with the following individuals added to the list of Contributing Authors:
-
-John Bowler
-Kevin Bracey
-Sam Bushell
-Magnus Holmgren
-Greg Roelofs
-Tom Tanner
-
-libpng versions 0.5, May 1995, through 0.88, January 1996, are
-Copyright (c) 1995, 1996 Guy Eric Schalnat, Group 42, Inc.
-
-For the purposes of this copyright and license, "Contributing Authors"
-is defined as the following set of individuals:
-
-Andreas Dilger
-Dave Martindale
-Guy Eric Schalnat
-Paul Schmidt
-Tim Wegner
-
-The PNG Reference Library is supplied "AS IS".  The Contributing Authors
-and Group 42, Inc. disclaim all warranties, expressed or implied,
-including, without limitation, the warranties of merchantability and of
-fitness for any purpose.  The Contributing Authors and Group 42, Inc.
-assume no liability for direct, indirect, incidental, special, exemplary,
-or consequential damages, which may result from the use of the PNG
-Reference Library, even if advised of the possibility of such damage.
-
-Permission is hereby granted to use, copy, modify, and distribute this
-source code, or portions hereof, for any purpose, without fee, subject
-to the following restrictions:
-
-1. The origin of this source code must not be misrepresented.
-
-2. Altered versions must be plainly marked as such and must not
-be misrepresented as being the original source.
-
-3. This Copyright notice may not be removed or altered from any
-source or altered source distribution.
-
-The Contributing Authors and Group 42, Inc. specifically permit, without
-fee, and encourage the use of this source code as a component to
-supporting the PNG file format in commercial products.  If you use this
-source code in a product, acknowledgment is not required but would be
-appreciated.
-
-
-A "png_get_copyright" function is available, for convenient use in "about"
-boxes and the like:
-
-printf("%s",png_get_copyright(NULL));
-
-Also, the PNG logo (in PNG format, of course) is supplied in the
-files "pngbar.png" and "pngbar.jpg (88x31) and "pngnow.png" (98x31).
-
-Libpng is OSI Certified Open Source Software.  OSI Certified Open Source is a
-certification mark of the Open Source Initiative.
-
-Glenn Randers-Pehrson
-glennrp at users.sourceforge.net
-July 9, 2011
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 >>> libxdr-openbsd-4.3
@@ -790,9 +555,13 @@ Sun Microsystems, Inc.
 Mountain View, California 94043
 
 
->>> libxml2-2.8.0
+>>> libxml2-2.9.2
 
-Copyright (C) 1998-2003 Daniel Veillard.  All Rights Reserved.
+Except where otherwise noted in the source code (e.g. the files hash.c,
+list.c and the trio files, which are covered by a similar licence but
+with different Copyright notices) all the files are:
+
+ Copyright (C) 1998-2012 Daniel Veillard.  All Rights Reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -807,16 +576,13 @@ all copies or substantial portions of the Software.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FIT-
 NESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-DANIEL VEILLARD BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CON-
-NECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Except as contained in this notice, the name of Daniel Veillard shall not
-be used in advertising or otherwise to promote the sale, use or other deal-
-ings in this Software without prior written authorization from him.
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 
->>> mesa-7.12
+>>> mesa-8.1-1036518
 
 The Mesa distribution consists of several components. Different copyrights and licenses apply to different components. For example, GLUT is copyrighted by Mark Kilgard, some demo programs are copyrighted by SGI, some of the Mesa device drivers are copyrighted by their authors. See below for a list of Mesa's main components and the license for each.
 
@@ -844,183 +610,331 @@ AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
->>> mesa-drm-77ddc78
-
-Copyright 2006 Tungsten Graphics, Inc., Bismarck, ND. USA.
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sub license, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-The above copyright notice and this permission notice (including the
-next paragraph) shall be included in all copies or substantial portions
-of the Software.
-
-Portions Licensed:
-
-Copyright (c) 2009-2013 VMware, Inc.  All rights reserved.
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sub license, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice (including the
-next paragraph) shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
->>> openssl-0.9.8t
+>>> openssl-1.0.1m
 
 LICENSE ISSUES
-  ==============
+==============
 
-  The OpenSSL toolkit stays under a dual license, i.e. both the conditions of
-  the OpenSSL License and the original SSLeay license apply to the toolkit.
-  See below for the actual license texts. Actually both licenses are BSD-style
-  Open Source licenses. In case of any license issues related to OpenSSL
-  please contact openssl-core@openssl.org.
+The OpenSSL toolkit stays under a dual license, i.e. both the conditions of
+the OpenSSL License and the original SSLeay license apply to the toolkit.
+See below for the actual license texts. Actually both licenses are BSD-style
+Open Source licenses. In case of any license issues related to OpenSSL
+please contact openssl-core@openssl.org.
 
-  OpenSSL License
-  ---------------
+OpenSSL License
+---------------
 
-/ ====================================================================
-  Copyright (c) 1998-2011 The OpenSSL Project.  All rights reserved.
- 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
- 
-  1. Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer. 
- 
-  2. Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in
-     the documentation and/or other materials provided with the
-     distribution.
- 
-  3. All advertising materials mentioning features or use of this
-     software must display the following acknowledgment:
-     "This product includes software developed by the OpenSSL Project
-     for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
- 
-  4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
-     endorse or promote products derived from this software without
-     prior written permission. For written permission, please contact
-     openssl-core@openssl.org.
- 
-  5. Products derived from this software may not be called "OpenSSL"
-     nor may "OpenSSL" appear in their names without prior written
-     permission of the OpenSSL Project.
- 
-  6. Redistributions of any form whatsoever must retain the following
-     acknowledgment:
-     "This product includes software developed by the OpenSSL Project
-     for use in the OpenSSL Toolkit (http://www.openssl.org/)"
- 
-  THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
-  EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-  PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
-  ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-  OF THE POSSIBILITY OF SUCH DAMAGE.
-  ====================================================================
- 
-  This product includes cryptographic software written by Eric Young
-  (eay@cryptsoft.com).  This product includes software written by Tim
-  Hudson (tjh@cryptsoft.com).
- 
- /
+====================================================================
+Copyright (c) 1998-2011 The OpenSSL Project.  All rights reserved.
 
- Original SSLeay License
- -----------------------
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-/ Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
-  All rights reserved.
- 
-  This package is an SSL implementation written
-  by Eric Young (eay@cryptsoft.com).
-  The implementation was written so as to conform with Netscapes SSL.
-  
-  This library is free for commercial and non-commercial use as long as
-  the following conditions are aheared to.  The following conditions
-  apply to all code found in this distribution, be it the RC4, RSA,
-  lhash, DES, etc., code; not just the SSL code.  The SSL documentation
-  included with this distribution is covered by the same copyright terms
-  except that the holder is Tim Hudson (tjh@cryptsoft.com).
-  
-  Copyright remains Eric Young's, and as such any Copyright notices in
-  the code are not to be removed.
-  If this package is used in a product, Eric Young should be given attribution
-  as the author of the parts of the library used.
-  This can be in the form of a textual message at program startup or
-  in documentation (online or textual) provided with the package.
-  
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-  1. Redistributions of source code must retain the copyright
-     notice, this list of conditions and the following disclaimer.
-  2. Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
-  3. All advertising materials mentioning features or use of this software
-     must display the following acknowledgement:
-     "This product includes cryptographic software written by
-      Eric Young (eay@cryptsoft.com)"
-     The word 'cryptographic' can be left out if the rouines from the library
-     being used are not cryptographic related :-).
-  4. If you include any Windows specific code (or a derivative thereof) from 
-     the apps directory (application code) you must include an acknowledgement:
-     "This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
-  
-  THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
-  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-  SUCH DAMAGE.
-  
-  The licence and distribution terms for any publically available version or
-  derivative of this code cannot be changed.  i.e. this code cannot simply be
-  copied and put under another distribution licence
-  [including the GNU Public Licence.]
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.
+
+3. All advertising materials mentioning features or use of this
+software must display the following acknowledgment:
+"This product includes software developed by the OpenSSL Project
+for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
+
+4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
+endorse or promote products derived from this software without
+prior written permission. For written permission, please contact
+openssl-core@openssl.org.
+
+5. Products derived from this software may not be called "OpenSSL"
+nor may "OpenSSL" appear in their names without prior written
+permission of the OpenSSL Project.
+
+6. Redistributions of any form whatsoever must retain the following
+acknowledgment:
+"This product includes software developed by the OpenSSL Project
+for use in the OpenSSL Toolkit (http://www.openssl.org/)"
+
+THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
+EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
+ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+====================================================================
+
+This product includes cryptographic software written by Eric Young
+(eay@cryptsoft.com).  This product includes software written by Tim
+Hudson (tjh@cryptsoft.com).
+
+
+
+Original SSLeay License
+-----------------------
+
+Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
+All rights reserved.
+
+This package is an SSL implementation written
+by Eric Young (eay@cryptsoft.com).
+The implementation was written so as to conform with Netscapes SSL.
+
+This library is free for commercial and non-commercial use as long as
+the following conditions are aheared to.  The following conditions
+apply to all code found in this distribution, be it the RC4, RSA,
+lhash, DES, etc., code; not just the SSL code.  The SSL documentation
+included with this distribution is covered by the same copyright terms
+except that the holder is Tim Hudson (tjh@cryptsoft.com).
+
+Copyright remains Eric Young's, and as such any Copyright notices in
+the code are not to be removed.
+If this package is used in a product, Eric Young should be given attribution
+as the author of the parts of the library used.
+This can be in the form of a textual message at program startup or
+in documentation (online or textual) provided with the package.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the copyright
+notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+3. All advertising materials mentioning features or use of this software
+must display the following acknowledgement:
+"This product includes cryptographic software written by
+Eric Young (eay@cryptsoft.com)"
+The word 'cryptographic' can be left out if the rouines from the library
+being used are not cryptographic related :-).
+4. If you include any Windows specific code (or a derivative thereof) from
+the apps directory (application code) you must include an acknowledgement:
+"This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
+
+THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+The licence and distribution terms for any publically available version or
+derivative of this code cannot be changed.  i.e. this code cannot simply be
+copied and put under another distribution licence
+[including the GNU Public Licence.]
+
+
+> OpenSSL
+
+[PLEASE NOTE:  VMWARE, INC. ELECTS TO USE AND DISTRIBUTE THIS COMPONENT UNDER THE TERMS OF THE OPENSSL LICENSE. THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW ONLY AS A REFERENCE.]
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\crypto\aes\asm\aes-x86_64.pl
+
+====================================================================
+Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
+project. The module is, however, dual licensed under OpenSSL and
+CRYPTOGAMS licenses depending on where you obtain it. For further
+details see http://www.openssl.org/~appro/cryptogams/.
+====================================================================
+
+
+> Public Domain
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\crypto\aes\asm\vpaes-x86_64.pl
+
+By Mike Hamburg (Stanford University), 2009
+Public domain.
+
+For details see http://shiftleft.org/papers/vector_aes/ and
+http://crypto.stanford.edu/vpaes/.
+
+>BSD
+
+[PLEASE NOTE:  VMWARE, INC. ELECTS TO USE AND DISTRIBUTE THIS COMPONENT UNDER THE TERMS OF THE BSD LICENSE. THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW ONLY AS A REFERENCE.]
+
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\crypto\camellia\asm\cmll-x86_64.pl
+
+====================================================================
+Copyright (c) 2008 Andy Polyakov <appro@openssl.org>
+
+This module may be used under the terms of either the GNU General
+Public License version 2 or later, the GNU Lesser General Public
+License version 2.1 or later, the Mozilla Public License version
+1.1 or the BSD License. The exact terms of either license are
+distributed along with this module. For further details see
+http://www.openssl.org/~appro/camellia/.
+====================================================================
+
+> Apache 2.0
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\crypto\ec\ecp_nistputil.c
+
+Copyright 2011 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+> MIT
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\crypto\md5\asm\md5-ia64.S
+
+
+Copyright (c) 2005 Hewlett-Packard Development Company, L.P.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+> BSD
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\crypto\x509v3\v3_pci.c
+
+Copyright (c) 2004 Kungliga Tekniska Hgskolan
+(Royal Institute of Technology, Stockholm, Sweden).
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the Institute nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+> BSD Style
+
+[PLEASE NOTE:  VMWARE, INC. ELECTS TO USE AND DISTRIBUTE THIS COMPONENT UNDER THE TERMS OF THE BSD STYLE LICENSE. THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW ONLY AS A REFERENCE.]
+
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\demos\easy_tls\easy-tls.c
+
+(c) Copyright 1999 Bodo Moeller.  All rights reserved.
+
+This is free software; you can redistributed and/or modify it
+unter the terms of either
+-  the GNU General Public License as published by the
+Free Software Foundation, version 1, or (at your option)
+any later version,
+or
+-  the following license:
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that each of the following
+conditions is met:
+
+1. Redistributions qualify as "freeware" or "Open Source Software" under
+one of the following terms:
+
+(a) Redistributions are made at no charge beyond the reasonable cost of
+materials and delivery.
+
+(b) Redistributions are accompanied by a copy of the Source Code
+or by an irrevocable offer to provide a copy of the Source Code
+for up to three years at the cost of materials and delivery.
+Such redistributions must allow further use, modification, and
+redistribution of the Source Code under substantially the same
+terms as this license.
+
+2. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+3. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.
+
+4. All advertising materials mentioning features or use of this
+software must display the following acknowledgment:
+"This product includes software developed by Bodo Moeller."
+(If available, substitute umlauted o for oe.)
+
+5. Redistributions of any form whatsoever must retain the following
+acknowledgment:
+"This product includes software developed by Bodo Moeller."
+
+THIS SOFTWARE IS PROVIDED BY BODO MOELLER ``AS IS'' AND ANY
+EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL BODO MOELLER OR
+HIS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+> Creative Commons Attribution License 4.0
+
+openssl-1.0.1m.tar.gz\openssl-1.0.1m.tar\openssl-1.0.1m\ssl\heartbeat_test.c
+
+Acts as a regression test against the Heartbleed bug (CVE-2014-0160).
+
+Author:  Mike Bland (mbland@acm.org, http://mike-bland.com/)
+Date:    2014-04-12
+License: Creative Commons Attribution 4.0 International (CC By 4.0)
+http://creativecommons.org/licenses/by/4.0/deed.en_US
 
 
 >>> pixman-0.11.6
@@ -1066,19 +980,19 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
->>> pixman-0.15.2
+>>> pixman-0.21.6
 
-The following is the 'standard copyright' agreed upon by most contributors,
-and is currently the canonical license, though a modification is currently
-under discussion.  Copyright holders of new code should use this license
-statement where possible, and append their name to this list.  
+The following is the MIT license, agreed upon by most contributors.
+Copyright holders of new code should use this license statement where
+possible. They may also add themselves to the list below.
+
 
 Copyright 1987, 1988, 1989, 1998  The Open Group
 Copyright 1987, 1988, 1989 Digital Equipment Corporation
 Copyright 1999, 2004, 2008 Keith Packard
 Copyright 2000 SuSE, Inc.
 Copyright 2000 Keith Packard, member of The XFree86 Project, Inc.
-Copyright 2004, 2005, 2007, 2008 Red Hat, Inc.
+Copyright 2004, 2005, 2007, 2008, 2009, 2010 Red Hat, Inc.
 Copyright 2004 Nicholas Miell
 Copyright 2005 Lars Knoll & Zack Rusin, Trolltech
 Copyright 2005 Trolltech AS
@@ -1088,6 +1002,8 @@ Copyright 2008 Rodrigo Kumpera
 Copyright 2008 Andr Tupinamb
 Copyright 2008 Mozilla Corporation
 Copyright 2008 Frederic Plourde
+Copyright 2009, Oracle and/or its affiliates. All rights reserved.
+Copyright 2009, 2010 Nokia Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -1109,52 +1025,47 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
->>> popt-1.7
+>>> protobuf-2.3.0
 
-Copyright (c) 1998  Red Hat Software
+Copyright 2008 Google Inc.  All rights reserved.
+http:code.google.com/p/protobuf/
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Except as contained in this notice, the name of the X Consortium shall not be
-used in advertising or otherwise to promote the sale, use or other dealings
-in this Software without prior written authorization from the X Consortium.
-
-Portions Licensed:
-
-Copyright (C) 1995-1997, 2000-2002 Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Library General Public License as published
-   by the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
-   USA.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
->>> thinprint-8.6.58
+>>> sha256-8/26/2003
+
+SHA-256 in C
+Original implementation is written by Andrey Smagin <andrey@smagin.com>
+Based on SHA-1 implementation by Steve Reid <steve@edmweb.com>
+100% Public Domain
+
+
+>>> thinprint-8.6.70
 
 Cortado has indicated that the following dependencies are included in the ThinPrint Engine for VMware View:
 
@@ -1183,6 +1094,45 @@ zlib.h -- interface of the 'zlib' general purpose compression library
 
   Jean-loup Gailly jloup@gzip.org
   Mark Adler madler@alumni.caltech.edu
+
+
+>>> tpvmlp-2.0.15
+
+Cortado has indicated that the following dependencies are included in the ThinPrint Engine for VMware View:
+
+> zlib
+
+zlib.h -- interface of the 'zlib' general purpose compression library
+  version 1.2.3, July 18th, 2005
+
+  Copyright (C) 1995-2005 Jean-loup Gailly and Mark Adler
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+  Jean-loup Gailly jloup@gzip.org
+  Mark Adler madler@alumni.caltech.edu
+
+>GNU C runtime (libc)
+
+see http://www.gnu.org/software/libc/manual/html_node/Copying.html#Copying
+
+>OpenSSL
+
+http://www.openssl.org/source/license.html
 
 
 >>> unzip-5.52
@@ -1282,6 +1232,84 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 STRICT  LIABILITY,  OR  TORT (INCLUDING  NEGLIGENCE  OR  OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+>>> uriparser-0.7.0-1
+
+Copyright (C) 2007, Weijia Song <songweijia@gmail.com>
+Copyright (C) 2007, Sebastian Pipping <webmaster@hartwork.org>
+All rights reserved.
+
+Redistribution  and use in source and binary forms, with or without
+modification,  are permitted provided that the following conditions
+are met:
+
+ Redistributions   of  source  code  must  retain  the   above
+copyright  notice, this list of conditions and the  following
+disclaimer.
+
+ Redistributions  in  binary  form must  reproduce  the  above
+copyright  notice, this list of conditions and the  following
+disclaimer   in  the  documentation  and/or  other  materials
+provided with the distribution.
+
+ Neither  the name of the <ORGANIZATION> nor the names of  its
+contributors  may  be  used to endorse  or  promote  products
+derived  from  this software without specific  prior  written
+permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS  IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT  NOT
+LIMITED  TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS
+FOR  A  PARTICULAR  PURPOSE ARE DISCLAIMED. IN NO EVENT  SHALL  THE
+COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL,    SPECIAL,   EXEMPLARY,   OR   CONSEQUENTIAL   DAMAGES
+(INCLUDING,  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES;  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT  LIABILITY,  OR  TORT (INCLUDING  NEGLIGENCE  OR  OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+ADDITIONAL LICENSE INFORMATION:
+
+> LGPL 2.1
+
+uriparser-0.7.0-1\uriparser-0.7.0.tar.bz2\uriparser-0.7.0.tar\uriparser-0.7.0\test\FourSuite.cpp
+
+Copyright (C) 2007, Weijia Song <songweijia@gmail.com>
+Copyright (C) 2007, Sebastian Pipping <webmaster@hartwork.org>
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+
+> MIT Style
+
+uriparser-0.7.0-1\uriparser-0.7.0.tar.bz2\uriparser-0.7.0.tar\uriparser-0.7.0\doc\aclocal.m4
+
+Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+2005, 2006, 2007, 2008  Free Software Foundation, Inc.
+This file is free software; the Free Software Foundation
+gives unlimited permission to copy and/or distribute it,
+with or without modifications, as long as this notice is preserved.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
 
 
 >>> xdg-utils-head-20110930-5010c3
@@ -1428,7 +1456,50 @@ read the FAQ for more information on the distribution of modified source
 versions.
 
 
---------------- SECTION 2: GNU General Public License, V2.0 ----------
+--------------- SECTION 2: Apache License, V2.0 ----------
+
+Apache License, V2.0 is applicable to the following component(s).
+
+
+>>> apache santuario-1.6.1-1
+
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+
+
+>>> xerces-c++-3.1.1
+
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+--------------- SECTION 3: GNU General Public License, V2.0 ----------
 
 GNU General Public License, V2.0 is applicable to the following component(s).
 
@@ -2491,7 +2562,9 @@ if necessary.  Here is a sample; alter the names:
 That's all there is to it!
 
 
->>> gettext-0.14.6
+>>> gettext-0.14.6-2
+
+Copyright (C) 2003, 2005 Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -2510,46 +2583,93 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 ADDITIONAL LICENSE INFORMATION:
 
-
 > LGPL 2.0
 
 
-gettext-0.14.6\gettext-runtime\intl\dcgettext.c
-
-Copyright (C) 1995-1999, 2000-2003 Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Library General Public License as published
-   by the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-   USA.
+gettext-0.14.6-2\gettext-0.14.6.tar.gz\gettext-0.14.6.tar\gettext-0.14.6\gettext-runtime\intl\bindtextdom.c
 
 
->>> gksu-2.0.0
+Copyright (C) 1995-1998, 2000-2003 Free Software Foundation, Inc.
 
-This file is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU Library General Public License as published
+by the Free Software Foundation; either version 2, or (at your option)
+any later version.
 
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+Library General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA
-02110-1301, USA.
+You should have received a copy of the GNU Library General Public
+License along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+USA.
+
+
+
+> MIT
+
+
+
+gettext-0.14.6-2\gettext-0.14.6.tar.gz\gettext-0.14.6.tar\gettext-0.14.6\gettext-runtime\libasprintf\autosprintf.info
+
+
+
+Copyright (C) 2002 Free Software Foundation, Inc.
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided that
+the entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that this permission notice may be stated in a
+translation approved by the Foundation.
+
+
+
+> LGPL 3.0
+
+
+gettext-0.14.6-2\gettext-0.14.6.tar.gz\gettext-0.14.6.tar\gettext-0.14.6\gettext-runtime\m4\gettext.m4
+
+
+Copyright (C) 1995-2005 Free Software Foundation, Inc.
+This file is free software; the Free Software Foundation
+gives unlimited permission to copy and/or distribute it,
+with or without modifications, as long as this notice is preserved.
+
+This file can can be used in projects which are not available under
+the GNU General Public License or the GNU Library General Public
+License but which still want to provide support for the GNU gettext
+functionality.
+Please note that the actual code of the GNU gettext library is covered
+by the GNU Library General Public License, and the rest of the GNU
+gettext package package is covered by the GNU General Public License.
+They are not in the public domain.
+
+
+> Public Domain
+
+
+gettext-0.14.6-2\gettext-0.14.6.tar.gz\gettext-0.14.6.tar\gettext-0.14.6\gettext-tools\examples\hello-c\autogen.sh
+
+Copyright (C) 2003-2005 Free Software Foundation, Inc.
+This file is in the public domain.
+
+
+> LGPL 2.1
+
+
+gettext-0.14.6-2\gettext-0.14.6.tar.gz\gettext-0.14.6.tar\gettext-0.14.6\gettext-runtime\intl\COPYING.LIB-2.1
+
+LICENSE : LGPL 2.1
 
 
 >>> gnome-menus-2.30.2
@@ -3136,7 +3256,7 @@ PURPOSE. See the GNU Library General Public License for more
 details.
 
 
---------------- SECTION 3: GNU General Public License, V3.0 ----------
+--------------- SECTION 4: GNU General Public License, V3.0 ----------
 
 GNU General Public License, V3.0 is applicable to the following component(s).
 
@@ -3242,9 +3362,114 @@ Portions Licensed:
    USA.
 
 
---------------- SECTION 4: GNU Lesser General Public License, V2.1 ----------
+--------------- SECTION 5: GNU Lesser General Public License, V2.1 ----------
 
 GNU Lesser General Public License, V2.1 is applicable to the following component(s).
+
+
+>>> cairo-1.10.2
+
+[PLEASE NOTE:  VMWARE, INC. ELECTS TO USE AND DISTRIBUTE THIS COMPONENT UNDER THE TERMS OF THE LGPL 2.1.  PLEASE SEE THE APPENDIX TO REVIEW THE FULL TEXT OF THE LGPL 2.1.  THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW ONLY AS A REFERENCE.]
+
+
+
+Copyright  2005 Keith Packard
+
+This library is free software; you can redistribute it and/or
+modify it either under the terms of the GNU Lesser General Public
+License version 2.1 as published by the Free Software Foundation
+(the "LGPL") or, at your option, under the terms of the Mozilla
+Public License Version 1.1 (the "MPL"). If you do not alter this
+notice, a recipient may use your version of this file under either
+the MPL or the LGPL.
+
+You should have received a copy of the LGPL along with this library
+in the file COPYING-LGPL-2.1; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
+You should have received a copy of the MPL along with this library
+in the file COPYING-MPL-1.1
+
+The contents of this file are subject to the Mozilla Public License
+Version 1.1 (the "License"); you may not use this file except in
+compliance with the License. You may obtain a copy of the License at
+http://www.mozilla.org/MPL/
+
+This software is distributed on an "AS IS" basis, WITHOUT WARRANTY
+OF ANY KIND, either express or implied. See the LGPL or the MPL for
+the specific language governing rights and limitations.
+
+The Original Code is the cairo graphics library.
+
+The Initial Developer of the Original Code is Keith Packard
+
+Contributor(s):
+Keith Packard <keithp@keithp.com>
+
+
+
+ADDITIONAL LICENSE INFORMATION:
+
+
+> MIT
+
+cairo-1.10.2.tar\cairo-1.10.2\src\cairo-tor-scan-converter.c
+
+Copyright (c) 2008  M Joonas Pihlaja
+Copyright (c) 2007  David Turner
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+
+> BSD
+
+cairo-1.10.2.tar\cairo-1.10.2\src\glew\glew.c
+
+Copyright (C) 2002-2008, Milan Ikits <milan ikits[]ieee org>
+Copyright (C) 2002-2008, Marcelo E. Magallon <mmagallo[]debian org>
+Copyright (C) 2002, Lev Povalahev
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+The name of the author may be used to endorse or promote products
+derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
 
 
 >>> cairo-1.6.4
@@ -3283,71 +3508,6 @@ The Initial Developer of the Original Code is Red Hat, Inc.
 
 Contributor(s):
     Carl D. Worth <cworth@cworth.org>
-
-
->>> cairo-1.8.8
-
-[PLEASE NOTE: PORTIONS OF THIS SOFTWARE ARE DUAL-LICENSED UNDER THE GNU LESSER GENERAL PUBLIC LICENSE (LGPL), version 2.1 OR THE MOZILLA PUBLIC LICENSE (MPL) version 1.1.  FOR THOSE SOURCE FILES THAT ALLOW THE ELECTION OF EITHER THE LGPL 2.1 OR MPL 1.1, VMWARE, INC.  ELECTS TO USE AND DISTRIBUTE THESE FILES UNDER THE TERMS OF THE LGPL 2.1.  PLEASE SEE THE APPENDIX TO REVIEW THE FULL TEXT OF THE LGPL 2.1.  THE ORIGINAL LICENSE TERMS ARE REPRODUCED BELOW FOR REFERENCE ONLY; HOWEVER, THE FULL TEXT OF THE MPL 1.1 HAS BEEN OMITTED.]
-
-
-This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License along with this library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
-
-ORIGINAL LICENSE:
-
-Copyright  1999 Tom Tromey
-Copyright  2005 Red Hat, Inc
-
- * This library is free software; you can redistribute it and/or
- * modify it either under the terms of the GNU Lesser General Public
- * License version 2.1 as published by the Free Software Foundation
- * (the "LGPL") or, at your option, under the terms of the Mozilla
- * Public License Version 1.1 (the "MPL"). If you do not alter this
- * notice, a recipient may use your version of this file under either
- * the MPL or the LGPL.
- *
- * You should have received a copy of the LGPL along with this library
- * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * You should have received a copy of the MPL along with this library
- * in the file COPYING-MPL-1.1
- *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY
- * OF ANY KIND, either express or implied. See the LGPL or the MPL for
- * the specific language governing rights and limitations.
-
-Additional License Information:
-
-The majority of cairo sub-components under the perf and test folders are licensed under an MIT-style license.  See the below example.  To view the entire copyright notice and license for each sub-component, please see the source code, which VMware makes available.
-
-"Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use, copy,
-modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
-BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE."
 
 
 >>> glibmm-2.22.1
@@ -3489,6 +3649,71 @@ Copyright (C) 2003 The gtkmm Development Team
   Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
+>>> libsigc++-2.4.0
+
+Copyright (c) 2009  Openismus GmbH  <http://www.openismus.com/>
+
+This file is part of libsigc++.
+
+libsigc++ is free software: you can redistribute it and/or modify it
+under the terms of the GNU Lesser General Public License as published
+by the Free Software Foundation, either version 2.1 of the License,
+or (at your option) any later version.
+
+libsigc++ is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this library.  If not, see <http://www.gnu.org/licenses/>.
+
+ADDITIONAL LICENSE INFORMATION
+
+> Public Domain
+
+libsigc++-2.4.0.tar.xz\libsigc++-2.4.0.tar\libsigc++-2.4.0\tests\test_signal.cc
+
+Copyright 2002, The libsigc++ Development Team
+Assigned to public domain.  Use as you wish without restriction.
+
+> MIT Style
+
+libsigc++-2.4.0.tar.xz\libsigc++-2.4.0.tar\libsigc++-2.4.0\aclocal.m4
+
+Copyright (C) 1994-2013 Free Software Foundation, Inc.
+
+This Makefile.in is free software; the Free Software Foundation
+gives unlimited permission to copy and/or distribute it,
+with or without modifications, as long as this notice is preserved.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+
+> GPL 2.0
+
+libsigc++-2.4.0.tar.xz\libsigc++-2.4.0.tar\libsigc++-2.4.0\docs\doc-postprocess.pl
+
+Copyright (c) 2009  Openismus GmbH  <http://www.openismus.com/>
+
+This file is part of mm-common.
+
+mm-common is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published
+by the Free Software Foundation, either version 2 of the License,
+or (at your option) any later version.
+
+mm-common is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with mm-common.  If not, see <http://www.gnu.org/licenses/>.
+
+
 >>> pangomm-2.26.0
 
 Copyright 2002 Free Software Foundation
@@ -3508,7 +3733,7 @@ License along with this library; if not, write to the Free
 Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
---------------- SECTION 5: GNU Library General Public License, V2.0 ----------
+--------------- SECTION 6: GNU Library General Public License, V2.0 ----------
 
 GNU Library General Public License, V2.0 is applicable to the following component(s).
 
@@ -3570,27 +3795,66 @@ ATK -  Accessibility Toolkit
   Boston, MA 02111-1307, USA.
 
 
+>>> cairomm-1.10.0
+
+LICENSE: LGPL 2.0 
+
+
+ADDITIONAL LICENSE INFORMATION:
+
+>LGPL 2.1
+
+Copyright (c) 2009  Openismus GmbH  <http://www.openismus.com/>
+
+ This file is part of cairomm.
+
+ cairomm is free software: you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License as published
+ by the Free Software Foundation, either version 2.1 of the License,
+ or (at your option) any later version.
+
+ cairomm is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ See the GNU Lesser General Public License for more details.
+
+>MIT
+
+cairomm-1.10.0.tar.gz\cairomm-1.10.0.tar\cairomm-1.10.0\aclocal.m4
+
+Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+ 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
+ This file is free software; the Free Software Foundation
+ gives unlimited permission to copy and/or distribute it,
+ with or without modifications, as long as this notice is preserved.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+ even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE.
+
+>GPL 2.0
+
+
+cairomm-1.10.0.tar.gz\cairomm-1.10.0.tar\cairomm-1.10.0\MSVC_Net2010\gendef\gendef.cc
+
+Copyright (c) 2003 Harald Bhme
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+ 
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
 >>> cairomm-1.6.0
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Library General Public
-License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Library General Public License for more details.
-
-You should have received a copy of the GNU Library General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.
-
-
->>> cairomm-1.8.2
-
-Copyright (C) 2005 The cairomm Development Team
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Library General Public
@@ -3645,6 +3909,26 @@ LIB - Library of useful routines for C programming
   License along with this library; if not, write to the
   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
   Boston, MA 02111-1307, USA.
+
+
+>>> glib-2.22.4-1
+
+Copyright 2005 Matthias Clasen
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+Boston, MA 02111-1307, USA.
 
 
 >>> glib-2.22.4-3
@@ -3764,24 +4048,6 @@ License along with this library; if not, write to the Free
 Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
->>> libart_lgpl-2.3.17
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Library General Public
-License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Library General Public License for more details.
-
-You should have received a copy of the GNU Library General Public
-License along with this library; if not, write to the
-Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
-
-
 >>> libfuse-2.5.3
 
 Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
@@ -3823,42 +4089,24 @@ You should have received a copy of the GNU Library General Public
 License along with this library; if not, write to the 
 Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
-/
 
 
->>> libgnomecanvas-2.14.0
+>>> libiconv-1.9.2
 
-The Gnome Library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Library General Public License as
-published by the Free Software Foundation; either version 2 of the
-License, or (at your option) any later version.
+The GNU LIBICONV Library is free software; you can redistribute it
+and/or modify it under the terms of the GNU Library General Public
+License as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
-The Gnome Library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
+The GNU LIBICONV Library is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Library General Public License for more details.
 
 You should have received a copy of the GNU Library General Public
-License along with the Gnome Library; see the file COPYING.LIB.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
-
-
->>> libgnomecanvasmm-2.16.0
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Library General Public
-License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Library General Public License for more details.
-
-You should have received a copy of the GNU Library General Public
-License along with this library; if not, write to the Free
-Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+License along with the GNU LIBICONV Library; see the file COPYING.LIB.
+If not, write to the Free Software Foundation, Inc., 59 Temple Place -
+Suite 330, Boston, MA 02111-1307, USA.
 
 
 >>> librsvg-2.16.0
@@ -4222,42 +4470,6 @@ library.  If this is what you want to do, use the GNU Library General
 Public License instead of this License.
 
 
->>> libsexy-0.1.10
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the
-Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA  02111-1307, USA.
-
-
->>> libsexymm-0.1.9
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Library General Public
-License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Library General Public License for more details.
-
-You should have received a copy of the GNU Library General Public
-License along with this library; if not, write to the
-Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA  02111-1307, USA.
-
-
 >>> pango-1.20.5
 
 This library is free software; you can redistribute it and/or
@@ -4318,24 +4530,6 @@ ADDITIONAL LICENSE INFORMATION:
   FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
   ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
   PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
-
-
---------------- SECTION 6: Microsoft Permissive Public License ----------
-
-Microsoft Permissive Public License is applicable to the following component(s).
-
-
->>> wtl-8.0
-
-Windows Template Library - WTL version 8.0
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-This file is a part of the Windows Template Library.
-The use and distribution terms for this software are covered by the
-Microsoft Permissive License (Ms-PL) which can be found in the file
-Ms-PL.txt at the root of this distribution.
-
-
 
 
 =============== APPENDIX. Standard License Files ============== 
@@ -6357,88 +6551,312 @@ That's all there is to it!
 
 
 
---------------- SECTION 5 Microsoft Permissive Public License -----------
+--------------- SECTION 5: Apache License, V2.0 -----------
 
-Microsoft Public License (Ms-PL)
+Apache License 
 
-This license governs use of the accompanying software. If you use the
-software, you accept this license. If you do not accept the license,
-do not use the software.
+Version 2.0, January 2004 
+http://www.apache.org/licenses/ 
 
-1. Definitions
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION 
 
-The terms "reproduce," "reproduction," "derivative works," and
-"distribution" have the same meaning here as under U.S. copyright law.
+1. Definitions.
 
-A "contribution" is the original software, or any additions or changes
-to the software.
+"License" shall mean the terms and conditions for use, reproduction,
+and distribution as defined by Sections 1 through 9 of this document.
 
-A "contributor" is any person that distributes its contribution under
-this license.
+"Licensor" shall mean the copyright owner or entity authorized by the
+copyright owner that is granting the License.  
 
-"Licensed patents" are a contributor's patent claims that read directly
-on its contribution.
+"Legal Entity" shall mean the union of the acting entity and all other
+entities that control, are controlled by, or are under common control
+with that entity. For the purposes of this definition, "control" means
+(i) the power, direct or indirect, to cause the direction or management
+of such entity, whether by contract or otherwise, or (ii) ownership
+of fifty percent (50%) or more of the outstanding shares, or (iii)
+beneficial ownership of such entity.
 
-2. Grant of Rights
+"You" (or "Your") shall mean an individual or Legal Entity exercising
+permissions granted by this License.  
 
-(A) Copyright Grant- Subject to the terms of this license, including
-the license conditions and limitations in section 3, each contributor
-grants you a non-exclusive, worldwide, royalty-free copyright license to
-reproduce its contribution, prepare derivative works of its contribution,
-and distribute its contribution or any derivative works that you create.
+"Source" form shall mean the preferred form for making modifications,
+including but not limited to software source code, documentation source,
+and configuration files.
 
-(B) Patent Grant- Subject to the terms of this license, including the
-license conditions and limitations in section 3, each contributor grants
-you a non-exclusive, worldwide, royalty-free license under its licensed
-patents to make, have made, use, sell, offer for sale, import, and/or
-otherwise dispose of its contribution in the software or derivative
-works of the contribution in the software.
+"Object" form shall mean any form resulting from mechanical transformation
+or translation of a Source form, including but not limited to compiled
+object code, generated documentation, and conversions to other media
+types.  
 
-3. Conditions and Limitations
+"Work" shall mean the work of authorship, whether in Source or
+Object form, made available under the License, as indicated by a copyright
+notice that is included in or attached to the work (an example is provided
+in the Appendix below).  
 
-(A) No Trademark License- This license does not grant you rights to use
-any contributors' name, logo, or trademarks.
+"Derivative Works" shall mean any work, whether in Source or Object form,
+that is based on (or derived from) the Work and for which the editorial
+revisions, annotations, elaborations, or other modifications represent,
+as a whole, an original work of authorship. For the purposes of this
+License, Derivative Works shall not include works that remain separable
+from, or merely link (or bind by name) to the interfaces of, the Work
+and Derivative Works thereof.
 
-(B) If you bring a patent claim against any contributor over patents
-that you claim are infringed by the software, your patent license from
-such contributor to the software ends automatically.
+"Contribution" shall mean any work of authorship, including the
+original version of the Work and any modifications or additions to
+that Work or Derivative Works thereof, that is intentionally submitted
+to Licensor for inclusion in the Work by the copyright owner or by an
+individual or Legal Entity authorized to submit on behalf of the copyright
+owner. For the purposes of this definition, "submitted" means any form of
+electronic, verbal, or written communication sent to the Licensor or its
+representatives, including but not limited to communication on electronic
+mailing lists, source code control systems, and issue tracking systems
+that are managed by, or on behalf of, the Licensor for the purpose of
+discussing and improving the Work, but excluding communication that is
+conspicuously marked or otherwise designated in writing by the copyright
+owner as "Not a Contribution."
 
-(C) If you distribute any portion of the software, you must retain all
-copyright, patent, trademark, and attribution notices that are present
-in the software.
+"Contributor" shall mean Licensor and any individual or Legal Entity
+on behalf of whom a Contribution has been received by Licensor and
+subsequently incorporated within the Work.
 
-(D) If you distribute any portion of the software in source code form,
-you may do so only under this license by including a complete copy of
-this license with your distribution. If you distribute any portion of
-the software in compiled or object code form, you may only do so under
-a license that complies with this license.
+2. Grant of Copyright License.
+Subject to the terms and conditions of this License, each Contributor
+hereby grants to You a perpetual, worldwide, non-exclusive, no-charge,
+royalty-free, irrevocable copyright license to reproduce, prepare
+Derivative Works of, publicly display, publicly perform, sublicense, and
+distribute the Work and such Derivative Works in Source or Object form.
 
-(E) The software is licensed "as-is." You bear the risk of using it. The
-contributors give no express warranties, guarantees or conditions. You
-may have additional consumer rights under your local laws which this
-license cannot change. To the extent permitted under your local laws,
-the contributors exclude the implied warranties of merchantability,
-fitness for a particular purpose and non-infringement.
+3. Grant of Patent License.
+Subject to the terms and conditions of this License, each Contributor
+hereby grants to You a perpetual, worldwide, non-exclusive, no-charge,
+royalty- free, irrevocable (except as stated in this section) patent
+license to make, have made, use, offer to sell, sell, import, and
+otherwise transfer the Work, where such license applies only to those
+patent claims licensable by such Contributor that are necessarily
+infringed by their Contribution(s) alone or by combination of
+their Contribution(s) with the Work to which such Contribution(s)
+was submitted. If You institute patent litigation against any entity
+(including a cross-claim or counterclaim in a lawsuit) alleging that the
+Work or a Contribution incorporated within the Work constitutes direct
+or contributory patent infringement, then any patent licenses granted
+to You under this License for that Work shall terminate as of the date
+such litigation is filed.
 
+4. Redistribution.
+You may reproduce and distribute copies of the Work or Derivative Works
+thereof in any medium, with or without modifications, and in Source or
+Object form, provided that You meet the following conditions:
+
+  a. You must give any other recipients of the Work or Derivative Works
+     a copy of this License; and
+
+  b. You must cause any modified files to carry prominent notices stating
+     that You changed the files; and
+
+  c. You must retain, in the Source form of any Derivative Works that
+     You distribute, all copyright, patent, trademark, and attribution
+     notices from the Source form of the Work, excluding those notices
+     that do not pertain to any part of the Derivative Works; and
+
+  d. If the Work includes a "NOTICE" text file as part of its
+     distribution, then any Derivative Works that You distribute must
+     include a readable copy of the attribution notices contained
+     within such NOTICE file, excluding those notices that do not
+     pertain to any part of the Derivative Works, in at least one of
+     the following places: within a NOTICE text file distributed as part
+     of the Derivative Works; within the Source form or documentation,
+     if provided along with the Derivative Works; or, within a display
+     generated by the Derivative Works, if and wherever such third-party
+     notices normally appear. The contents of the NOTICE file are for
+     informational purposes only and do not modify the License. You
+     may add Your own attribution notices within Derivative Works that
+     You distribute, alongside or as an addendum to the NOTICE text
+     from the Work, provided that such additional attribution notices
+     cannot be construed as modifying the License.  You may add Your own
+     copyright statement to Your modifications and may provide additional
+     or different license terms and conditions for use, reproduction, or
+     distribution of Your modifications, or for any such Derivative Works
+     as a whole, provided Your use, reproduction, and distribution of the
+     Work otherwise complies with the conditions stated in this License.
+
+5. Submission of Contributions.
+Unless You explicitly state otherwise, any Contribution intentionally
+submitted for inclusion in the Work by You to the Licensor shall be
+under the terms and conditions of this License, without any additional
+terms or conditions.  Notwithstanding the above, nothing herein shall
+supersede or modify the terms of any separate license agreement you may
+have executed with Licensor regarding such Contributions.
+
+6. Trademarks.
+This License does not grant permission to use the trade names, trademarks,
+service marks, or product names of the Licensor, except as required for
+reasonable and customary use in describing the origin of the Work and
+reproducing the content of the NOTICE file.
+
+7. Disclaimer of Warranty.
+Unless required by applicable law or agreed to in writing, Licensor
+provides the Work (and each Contributor provides its Contributions) on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+express or implied, including, without limitation, any warranties or
+conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR
+A PARTICULAR PURPOSE. You are solely responsible for determining the
+appropriateness of using or redistributing the Work and assume any risks
+associated with Your exercise of permissions under this License.
+
+8. Limitation of Liability.
+In no event and under no legal theory, whether in tort (including
+negligence), contract, or otherwise, unless required by applicable law
+(such as deliberate and grossly negligent acts) or agreed to in writing,
+shall any Contributor be liable to You for damages, including any direct,
+indirect, special, incidental, or consequential damages of any character
+arising as a result of this License or out of the use or inability to
+use the Work (including but not limited to damages for loss of goodwill,
+work stoppage, computer failure or malfunction, or any and all other
+commercial damages or losses), even if such Contributor has been advised
+of the possibility of such damages.
+
+9. Accepting Warranty or Additional Liability.
+While redistributing the Work or Derivative Works thereof, You may
+choose to offer, and charge a fee for, acceptance of support, warranty,
+indemnity, or other liability obligations and/or rights consistent with
+this License. However, in accepting such obligations, You may act only
+on Your own behalf and on Your sole responsibility, not on behalf of
+any other Contributor, and only if You agree to indemnify, defend, and
+hold each Contributor harmless for any liability incurred by, or claims
+asserted against, such Contributor by reason of your accepting any such
+warranty or additional liability.
+
+END OF TERMS AND CONDITIONS 
+
+
+--------------- SECTION 6: Creative Commons Attribution 4.0 International Public License -----------
+
+Creative Commons Corporation (Creative Commons) is not a law firm and does not provide legal services or legal advice. Distribution of Creative Commons public licenses does not create a lawyer-client or other relationship. Creative Commons makes its licenses and related information available on an as-is basis. Creative Commons gives no warranties regarding its licenses, any material licensed under their terms and conditions, or any related information. Creative Commons disclaims all liability for damages resulting from their use to the fullest extent possible.
+
+Using Creative Commons Public Licenses
+
+Creative Commons public licenses provide a standard set of terms and conditions that creators and other rights holders may use to share original works of authorship and other material subject to copyright and certain other rights specified in the public license below. The following considerations are for informational purposes only, are not exhaustive, and do not form part of our licenses.
+
+Considerations for licensors: Our public licenses are intended for use by those authorized to give the public permission to use material in ways otherwise restricted by copyright and certain other rights. Our licenses are irrevocable. Licensors should read and understand the terms and conditions of the license they choose before applying it. Licensors should also secure all rights necessary before applying our licenses so that the public can reuse the material as expected. Licensors should clearly mark any material not subject to the license. This includes other CC-licensed material, or material used under an exception or limitation to copyright. More considerations for licensors.
+
+Considerations for the public: By using one of our public licenses, a licensor grants the public permission to use the licensed material under specified terms and conditions. If the licensor's permission is not necessary for any reason for example, because of any applicable exception or limitation to copyright then that use is not regulated by the license. Our licenses grant only permissions under copyright and certain other rights that a licensor has authority to grant. Use of the licensed material may still be restricted for other reasons, including because others have copyright or other rights in the material. A licensor may make special requests, such as asking that all changes be marked or described. Although not required by our licenses, you are encouraged to respect those requests where reasonable. More considerations for the public.
+
+Creative Commons Attribution 4.0 International Public License
+
+By exercising the Licensed Rights (defined below), You accept and agree to be bound by the terms and conditions of this Creative Commons Attribution 4.0 International Public License ("Public License"). To the extent this Public License may be interpreted as a contract, You are granted the Licensed Rights in consideration of Your acceptance of these terms and conditions, and the Licensor grants You such rights in consideration of benefits the Licensor receives from making the Licensed Material available under these terms and conditions.
+
+Section 1  Definitions.
+
+Adapted Material means material subject to Copyright and Similar Rights that is derived from or based upon the Licensed Material and in which the Licensed Material is translated, altered, arranged, transformed, or otherwise modified in a manner requiring permission under the Copyright and Similar Rights held by the Licensor. For purposes of this Public License, where the Licensed Material is a musical work, performance, or sound recording, Adapted Material is always produced where the Licensed Material is synched in timed relation with a moving image.
+Adapter's License means the license You apply to Your Copyright and Similar Rights in Your contributions to Adapted Material in accordance with the terms and conditions of this Public License.
+Copyright and Similar Rights means copyright and/or similar rights closely related to copyright including, without limitation, performance, broadcast, sound recording, and Sui Generis Database Rights, without regard to how the rights are labeled or categorized. For purposes of this Public License, the rights specified in Section 2(b)(1)-(2) are not Copyright and Similar Rights.
+Effective Technological Measures means those measures that, in the absence of proper authority, may not be circumvented under laws fulfilling obligations under Article 11 of the WIPO Copyright Treaty adopted on December 20, 1996, and/or similar international agreements.
+Exceptions and Limitations means fair use, fair dealing, and/or any other exception or limitation to Copyright and Similar Rights that applies to Your use of the Licensed Material.
+Licensed Material means the artistic or literary work, database, or other material to which the Licensor applied this Public License.
+Licensed Rights means the rights granted to You subject to the terms and conditions of this Public License, which are limited to all Copyright and Similar Rights that apply to Your use of the Licensed Material and that the Licensor has authority to license.
+Licensor means the individual(s) or entity(ies) granting rights under this Public License.
+Share means to provide material to the public by any means or process that requires permission under the Licensed Rights, such as reproduction, public display, public performance, distribution, dissemination, communication, or importation, and to make material available to the public including in ways that members of the public may access the material from a place and at a time individually chosen by them.
+Sui Generis Database Rights means rights other than copyright resulting from Directive 96/9/EC of the European Parliament and of the Council of 11 March 1996 on the legal protection of databases, as amended and/or succeeded, as well as other essentially equivalent rights anywhere in the world.
+You means the individual or entity exercising the Licensed Rights under this Public License. Your has a corresponding meaning.
+
+Section 2  Scope.
+
+License grant.
+Subject to the terms and conditions of this Public License, the Licensor hereby grants You a worldwide, royalty-free, non-sublicensable, non-exclusive, irrevocable license to exercise the Licensed Rights in the Licensed Material to:
+reproduce and Share the Licensed Material, in whole or in part; and
+produce, reproduce, and Share Adapted Material.
+Exceptions and Limitations. For the avoidance of doubt, where Exceptions and Limitations apply to Your use, this Public License does not apply, and You do not need to comply with its terms and conditions.
+Term. The term of this Public License is specified in Section 6(a).
+Media and formats; technical modifications allowed. The Licensor authorizes You to exercise the Licensed Rights in all media and formats whether now known or hereafter created, and to make technical modifications necessary to do so. The Licensor waives and/or agrees not to assert any right or authority to forbid You from making technical modifications necessary to exercise the Licensed Rights, including technical modifications necessary to circumvent Effective Technological Measures. For purposes of this Public License, simply making modifications authorized by this Section 2(a)(4) never produces Adapted Material.
+Downstream recipients.
+Offer from the Licensor  Licensed Material. Every recipient of the Licensed Material automatically receives an offer from the Licensor to exercise the Licensed Rights under the terms and conditions of this Public License.
+No downstream restrictions. You may not offer or impose any additional or different terms or conditions on, or apply any Effective Technological Measures to, the Licensed Material if doing so restricts exercise of the Licensed Rights by any recipient of the Licensed Material.
+No endorsement. Nothing in this Public License constitutes or may be construed as permission to assert or imply that You are, or that Your use of the Licensed Material is, connected with, or sponsored, endorsed, or granted official status by, the Licensor or others designated to receive attribution as provided in Section 3(a)(1)(A)(i).
+
+Other rights.
+Moral rights, such as the right of integrity, are not licensed under this Public License, nor are publicity, privacy, and/or other similar personality rights; however, to the extent possible, the Licensor waives and/or agrees not to assert any such rights held by the Licensor to the limited extent necessary to allow You to exercise the Licensed Rights, but not otherwise.
+Patent and trademark rights are not licensed under this Public License.
+To the extent possible, the Licensor waives any right to collect royalties from You for the exercise of the Licensed Rights, whether directly or through a collecting society under any voluntary or waivable statutory or compulsory licensing scheme. In all other cases the Licensor expressly reserves any right to collect such royalties.
+
+Section 3  License Conditions.
+
+Your exercise of the Licensed Rights is expressly made subject to the following conditions.
+
+Attribution.
+
+If You Share the Licensed Material (including in modified form), You must:
+retain the following if it is supplied by the Licensor with the Licensed Material:
+identification of the creator(s) of the Licensed Material and any others designated to receive attribution, in any reasonable manner requested by the Licensor (including by pseudonym if designated);
+a copyright notice;
+a notice that refers to this Public License;
+a notice that refers to the disclaimer of warranties;
+a URI or hyperlink to the Licensed Material to the extent reasonably practicable;
+indicate if You modified the Licensed Material and retain an indication of any previous modifications; and
+indicate the Licensed Material is licensed under this Public License, and include the text of, or the URI or hyperlink to, this Public License.
+You may satisfy the conditions in Section 3(a)(1) in any reasonable manner based on the medium, means, and context in which You Share the Licensed Material. For example, it may be reasonable to satisfy the conditions by providing a URI or hyperlink to a resource that includes the required information.
+If requested by the Licensor, You must remove any of the information required by Section 3(a)(1)(A) to the extent reasonably practicable.
+If You Share Adapted Material You produce, the Adapter's License You apply must not prevent recipients of the Adapted Material from complying with this Public License.
+
+Section 4  Sui Generis Database Rights.
+
+Where the Licensed Rights include Sui Generis Database Rights that apply to Your use of the Licensed Material:
+
+for the avoidance of doubt, Section 2(a)(1) grants You the right to extract, reuse, reproduce, and Share all or a substantial portion of the contents of the database;
+if You include all or a substantial portion of the database contents in a database in which You have Sui Generis Database Rights, then the database in which You have Sui Generis Database Rights (but not its individual contents) is Adapted Material; and
+You must comply with the conditions in Section 3(a) if You Share all or a substantial portion of the contents of the database.
+
+For the avoidance of doubt, this Section 4 supplements and does not replace Your obligations under this Public License where the Licensed Rights include other Copyright and Similar Rights.
+
+Section 5  Disclaimer of Warranties and Limitation of Liability.
+
+Unless otherwise separately undertaken by the Licensor, to the extent possible, the Licensor offers the Licensed Material as-is and as-available, and makes no representations or warranties of any kind concerning the Licensed Material, whether express, implied, statutory, or other. This includes, without limitation, warranties of title, merchantability, fitness for a particular purpose, non-infringement, absence of latent or other defects, accuracy, or the presence or absence of errors, whether or not known or discoverable. Where disclaimers of warranties are not allowed in full or in part, this disclaimer may not apply to You.
+To the extent possible, in no event will the Licensor be liable to You on any legal theory (including, without limitation, negligence) or otherwise for any direct, special, indirect, incidental, consequential, punitive, exemplary, or other losses, costs, expenses, or damages arising out of this Public License or use of the Licensed Material, even if the Licensor has been advised of the possibility of such losses, costs, expenses, or damages. Where a limitation of liability is not allowed in full or in part, this limitation may not apply to You.
+
+The disclaimer of warranties and limitation of liability provided above shall be interpreted in a manner that, to the extent possible, most closely approximates an absolute disclaimer and waiver of all liability.
+
+Section 6  Term and Termination.
+
+This Public License applies for the term of the Copyright and Similar Rights licensed here. However, if You fail to comply with this Public License, then Your rights under this Public License terminate automatically.
+
+Where Your right to use the Licensed Material has terminated under Section 6(a), it reinstates:
+automatically as of the date the violation is cured, provided it is cured within 30 days of Your discovery of the violation; or
+upon express reinstatement by the Licensor.
+For the avoidance of doubt, this Section 6(b) does not affect any right the Licensor may have to seek remedies for Your violations of this Public License.
+For the avoidance of doubt, the Licensor may also offer the Licensed Material under separate terms or conditions or stop distributing the Licensed Material at any time; however, doing so will not terminate this Public License.
+Sections 1, 5, 6, 7, and 8 survive termination of this Public License.
+
+Section 7  Other Terms and Conditions.
+
+The Licensor shall not be bound by any additional or different terms or conditions communicated by You unless expressly agreed.
+Any arrangements, understandings, or agreements regarding the Licensed Material not stated herein are separate from and independent of the terms and conditions of this Public License.
+
+Section 8  Interpretation.
+
+For the avoidance of doubt, this Public License does not, and shall not be interpreted to, reduce, limit, restrict, or impose conditions on any use of the Licensed Material that could lawfully be made without permission under this Public License.
+To the extent possible, if any provision of this Public License is deemed unenforceable, it shall be automatically reformed to the minimum extent necessary to make it enforceable. If the provision cannot be reformed, it shall be severed from this Public License without affecting the enforceability of the remaining terms and conditions.
+No term or condition of this Public License will be waived and no failure to comply consented to unless expressly agreed to by the Licensor.
+Nothing in this Public License constitutes or may be interpreted as a limitation upon, or waiver of, any privileges and immunities that apply to the Licensor or You, including from the legal processes of any jurisdiction or authority.
+
+Creative Commons is not a party to its public licenses. Notwithstanding, Creative Commons may elect to apply one of its public licenses to material it publishes and in those instances will be considered the Licensor. Except for the limited purpose of indicating that material is shared under a Creative Commons public license or as otherwise permitted by the Creative Commons policies published at creativecommons.org/policies, Creative Commons does not authorize the use of the trademark Creative Commons or any other trademark or logo of Creative Commons without its prior written consent including, without limitation, in connection with any unauthorized modifications to any of its public licenses or any other arrangements, understandings, or agreements concerning use of licensed material. For the avoidance of doubt, this paragraph does not form part of the public licenses.
+
+Creative Commons may be contacted at creativecommons.org.
 
 ===========================================================================
 
-To the extent any open source components are licensed under the
-GPL and/or LGPL, or other similar licenses that require the
-source code and/or modifications to source code to be made
-available (as would be noted above), you may obtain a copy of
-the source code corresponding to the binaries for such open
-source components and modifications thereto, if any, (the
-"Source Files"), by downloading the Source Files from VMware's website at
-http://www.vmware.com/download/open_source.html, or by sending a request, with
-your name and address to: VMware, Inc., 3401 Hillview Avenue,
-Palo Alto, CA 94304,United States of America. All such
-requests should clearly specify: OPEN SOURCE FILES REQUEST,
-Attention General Counsel. VMware shall mail a copy of the
-Source Files to you on a CD or equivalent physical medium. This
-offer to obtain a copy of the Source Files is valid for three
-years from the date you acquired this Software product. Alternatively,
-the Source Files may accompany the VMware product.
+To the extent any open source components are licensed under the GPL
+and/or LGPL, or other similar licenses that require the source code
+and/or modifications to source code to be made available (as would be
+noted above), you may obtain a copy of the source code corresponding to
+the binaries for such open source components and modifications thereto,
+if any, (the "Source Files"), by downloading the Source Files from
+VMware's website at http://www.vmware.com/download/open_source.html, or
+by sending a request, with your name and address to: VMware, Inc., 3401
+Hillview Avenue, Palo Alto, CA 94304, United States of America. All such
+requests should clearly specify: OPEN SOURCE FILES REQUEST, Attention
+General Counsel. VMware shall mail a copy of the Source Files to you on
+a CD or equivalent physical medium. This offer to obtain a copy of the
+Source Files is valid for three years from the date you acquired this
+Software product. Alternatively, the Source Files may accompany the
+VMware product.
 
-
-[WS902GANV021813]
+[WS1112GANV051915]

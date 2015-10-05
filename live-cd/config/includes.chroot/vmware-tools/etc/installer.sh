@@ -11,13 +11,23 @@
 # BEGINNING_OF_UTIL_DOT_SH
 #!/bin/sh
 #
-# Copyright (c) 2005-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2005-2015 VMware, Inc.  All rights reserved.
 #
 # A few utility functions used by our shell scripts.  Some expect the settings
 # database to already be loaded and evaluated.
 
 vmblockmntpt="/proc/fs/vmblock/mountPoint"
 vmblockfusemntpt="/var/run/vmblock-fuse"
+
+have_vgauth=no
+
+vmware_warn_failure() {
+  if [ "`type -t 'echo_warning' 2>/dev/null`" = 'function' ]; then
+    echo_warning
+  else
+    echo -n "$rc_failed"
+  fi
+}
 
 vmware_failed() {
   if [ "`type -t 'echo_failure' 2>/dev/null`" = 'function' ]; then
@@ -55,6 +65,31 @@ vmware_exec() {
   fi
   if [ "$?" -gt 0 ]; then
     vmware_failed
+    echo
+    return 1
+  fi
+
+  vmware_success
+  echo
+  return 0
+}
+
+
+# Execute a macro, report warning on failure
+vmware_exec_warn() {
+  local msg="$1"  # IN
+  local func="$2" # IN
+  shift 2
+
+  echo -n '   '"$msg"
+
+  if [ "$VMWARE_DEBUG" = 'yes' ]; then
+    (trap '' HUP; "$func" "$@")
+  else
+    (trap '' HUP; "$func" "$@") >/dev/null 2>&1
+  fi
+  if [ "$?" -gt 0 ]; then
+    vmware_warn_failure
     echo
     return 1
   fi
@@ -352,13 +387,44 @@ vmware_delay_for_node() {
    done
 }
 
+vmware_real_modname() {
+   # modprobe might be old and not understand the --resolve-alias option, or
+   # there might not be an alias. In both cases we assume
+   # that the module is not upstreamed.
+   mod=$1
+   mod_alias=$2
+
+   modname=$(/sbin/modprobe --resolve-alias ${mod_alias} 2>/dev/null)
+   if [ $? = 0 -a "$modname" != "" ] ; then
+        echo $modname
+   else
+        echo $mod
+   fi
+}
+
+vmware_is_upstream() {
+   modname=$1
+   vmware_exec_selinux "$vmdb_answer_LIBDIR/sbin/vmware-modconfig-console \
+                           --install-status" | grep -q "${modname}: other"
+   if [ $? = 0 ]; then
+      echo "yes"
+   else
+      echo 'no'
+   fi
+}
+
 # starts after vmci is loaded
 vmware_start_vsock() {
-  if [ "`isLoaded "$vmci"`" = 'no' ]; then
+  real_vmci=$(vmware_real_modname $vmci $vmci_alias)
+
+  if [ "`isLoaded "$real_vmci"`" = 'no' ]; then
     # vsock depends on vmci
     return 1
   fi
-  vmware_load_module $vsock
+
+  real_vsock=$(vmware_real_modname $vsock $vsock_alias)
+
+  vmware_load_module $real_vsock
   vmware_rm_stale_node vsock
   # Give udev 5 seconds to create our node
   vmware_delay_for_node "/dev/vsock" 5
@@ -374,16 +440,22 @@ vmware_start_vsock() {
 
 # unloads before vmci
 vmware_stop_vsock() {
-  vmware_unload_module $vsock
+  # Nothing to do if module is upstream
+  if [ "`vmware_is_upstream $vsock`" = 'yes' ]; then
+    return 0
+  fi
+
+  real_vsock=$(vmware_real_modname $vsock $vsock_alias)
+  vmware_unload_module $real_vsock
   rm -f /dev/vsock
 }
 
 is_ESX_running() {
-  if [ ! -f "$vmdb_answer_SBINDIR"/vmware-checkvm ] ; then
+  if [ ! -f "$vmdb_answer_LIBDIR"/sbin/vmware-checkvm ] ; then
     echo no
     return
   fi
-  if "$vmdb_answer_SBINDIR"/vmware-checkvm -p | grep -q ESX; then
+  if "$vmdb_answer_LIBDIR"/sbin/vmware-checkvm -p | grep -q ESX; then
     echo yes
   else
     echo no
@@ -393,9 +465,10 @@ is_ESX_running() {
 #
 # Start vmblock only if ESX is not running and the config script
 # built/loaded it (kernel is >= 2.4.0 and  product is tools-for-linux).
+# Also don't start when in open-vm compat mode
 #
 is_vmblock_needed() {
-  if [ "`is_ESX_running`" = 'yes' ]; then
+  if [ "`is_ESX_running`" = 'yes' -o "$vmdb_answer_OPEN_VM_COMPAT" = 'yes' ]; then
     echo no
   else
     if [ "$vmdb_answer_VMBLOCK_CONFED" = 'yes' ]; then
@@ -418,8 +491,9 @@ vmware_signal_vmware_user() {
 # A USR1 causes vmware-user to release any references to vmblock or
 # /proc/fs/vmblock/mountPoint, allowing vmblock to unload, but vmware-user
 # to continue running. This preserves the user context vmware-user is
-# running within.
-vmware_unblock_vmware_user() {
+# running within. We also shutdown rpc connections to release usage of
+# vmci/vsocket.
+vmware_user_request_release_resources() {
   vmware_signal_vmware_user 'USR1'
 }
 

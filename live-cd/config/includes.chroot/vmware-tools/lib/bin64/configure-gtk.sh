@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 1998-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 1998-2015 VMware, Inc.  All rights reserved.
 #
 # Configures file paths in GTK+ library.
 #
@@ -171,6 +171,24 @@ db_add_dir() {
 }
 # END_OF_DB_DOT_SH
 
+# function that does what readlink -f does, but portable:
+readlinkf() {
+  file=$1
+
+  cd $(dirname $file)
+  file=$(basename $file)
+
+  # Iterate down a (possible) chain of symlinks
+  while [ -L "$file" ] ; do
+    file=$(readlink $file)
+    cd $(dirname $file)
+    file=$(basename $file)
+  done
+
+  realdir=$(pwd -P)
+  echo $realdir/$file
+}
+
 vmware_db='/etc/vmware-tools/locations'
 db_load 'vm_db' "$vmware_db"
 
@@ -193,8 +211,9 @@ for i in pangorc pangoModules pangoxAliases gdkPixbufLoaders gtkIMModules; do
   tmp_file="$tmp_dir/$(basename $path)"
   sed -e "s,$template,$confs,g" < "$path" > "$tmp_file"
   cp "$tmp_file" "$path"; rm "$tmp_file"
-  db_remove_file "$vmware_db" "$path"
-  db_add_file "$vmware_db" "$path" "$path"
+  realpath=$(readlinkf $path)
+  db_remove_file "$vmware_db" "$realpath"
+  db_add_file "$vmware_db" "$realpath" "$realpath"
 done
 
 rm -rf $tmp_dir

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # If your copy of perl is not in /usr/bin, please adjust the line above.
 #
-# Copyright (c) 1998-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 1998-2015 VMware, Inc.  All rights reserved.
 #
 # Host configurator for VMware
 
@@ -512,6 +512,10 @@ sub parse_line($) {
 use strict;
 no warnings 'once'; # Warns about use of Config::Config in config.pl
 
+my $have_thinprint='yes';
+my $have_vgauth='no';
+my $have_grabbitmqproxy='no';
+
 # A list of known open-vmware tools packages
 #
 my @cOpenVMToolsRPMPackages = ("vmware-kmp-debug",
@@ -548,7 +552,7 @@ my %gHelper;
 my @cKernelModules = ('vmblock', 'vmhgfs', 'vmmemctl',
                       'vmxnet', 'vmci', 'vsock',
                       'vmsync', 'pvscsi', 'vmxnet3',
-		      'vmwgfx');
+		      'vmwsvga');
 
 #
 # This list simply defined what modules need to be included
@@ -601,22 +605,27 @@ my %cUpstrKernelModNames = (
 #
 
 my %cProductServiceTable = (
-   'acevm'              => 'acevm',
    'nvdk'               => 'nvdk',
    'player'             => 'vmware',
    'tools-for-freebsd'  => 'vmware-tools.sh',
    'tools-for-linux'    => 'vmware-tools',
    'tools-for-solaris'  => 'vmware-tools',
    'vix-disklib'        => 'vmware-vix-disklib',
-   'wgs'                => 'vmware',
    'ws'                 => 'vmware',
    '@@VCLI_PRODUCT@@'   => '@@VCLI_PRODUCT_PATH_NAME@@',
 );
 
-my %cToolsLinuxServices = (
-   'services' => 'vmware-tools',
-   'thinprint' => 'vmware-tools-thinprint',
-);
+my %cToolsLinuxServices;
+if ($have_thinprint eq 'yes') {
+  %cToolsLinuxServices = (
+     'services' => 'vmware-tools',
+     'thinprint' => 'vmware-tools-thinprint',
+  );
+} else {
+  %cToolsLinuxServices = (
+     'services' => 'vmware-tools',
+  );
+}
 
 my %cToolsSolarisServices = (
    'services' => 'vmware-tools',
@@ -651,14 +660,16 @@ my $cMarkerBegin = "# Beginning of the block added by the VMware software - DO N
 my $cMarkerEnd = "# End of the block added by the VMware software\n";
 my $cDBAppendString = 'APPENDED_FILES';
 
-# Constants
-my $gWebAccessWorkDir = '/var/log/vmware/webAccess/work';
-
 # util.pl Globals
 my %gSystem;
 
 # Needed to access $Config{...}, the Perl system configuration information.
 require Config;
+
+# Tell if the user is the super user
+sub is_root {
+  return $> == 0;
+}
 
 # Use the Perl system configuration information to make a good guess about
 # the bit-itude of our platform.  If we're running on Solaris we don't have
@@ -681,11 +692,6 @@ sub is64BitUserLand {
 # Return whether or not this is a hosted desktop product.
 sub isDesktopProduct {
    return vmware_product() eq "ws" || vmware_product() eq "player";
-}
-
-# Return whether or not this is a hosted server product.
-sub isServerProduct {
-   return vmware_product() eq "wgs";
 }
 
 sub isToolsProduct {
@@ -950,6 +956,17 @@ sub send_rpc {
   }
 }
 
+# chmod() that reports errors
+sub safe_chmod {
+  my $mode = shift;
+  my $file = shift;
+
+  if (chmod($mode, $file) != 1) {
+    error('Unable to change the access rights of the file ' . $file . '.'
+          . "\n\n");
+  }
+}
+
 # Create a temporary directory
 #
 # They are a lot of small utility programs to create temporary files in a
@@ -994,330 +1011,14 @@ sub make_tmp_dir {
   return $tmp . '/' . $prefix . $serial;
 }
 
-# Check available space when asking the user for destination directory.
-sub spacechk_answer {
-  my $msg = shift;
-  my $type = shift;
-  my $default = shift;
-  my $srcDir = shift;
-  my $id = shift;
-  my $ifdefault = shift;
-  my $answer;
-  my $space = -1;
-
-  while ($space < 0) {
-
-    if (!defined($id)) {
-      $answer = get_answer($msg, $type, $default);
-    } else {
-      if (!defined($ifdefault)) {
-         $answer = get_persistent_answer($msg, $id, $type, $default);
-      } else {
-         $answer = get_persistent_answer($msg, $id, $type, $default, $ifdefault);
-      }
-    }
-
-    # XXX check $answer for a null value which can happen with the get_answer
-    # in config.pl but not with the get_answer in pkg_mgr.pl.  Moving these
-    # (get_answer, get_persistent_answer) routines into util.pl eventually.
-    if ($answer && ($space = check_disk_space($srcDir, $answer)) < 0) {
-      my $lmsg;
-      $lmsg = 'There is insufficient disk space available in ' . $answer
-              . '.  Please make at least an additional ' . -$space
-              . 'KB available';
-      if ($gOption{'default'} == 1) {
-        error($lmsg . ".\n");
-      }
-      print wrap($lmsg . " or choose another directory.\n", 0);
-    }
-  }
-  return $answer;
-}
-
-
-#
-# Checks to see if the given module shares a name or PCI id with ours.
-# If there's a PCI or name match, send it to check_if_vmw_installed_module
-# to see if it's actually ours.
-#
-# This does the checks in the following order
-# 1.  Check for PCI IDs
-# 2.  Check for VMware module Aliases
-# 3.  Check for module file names (legacy).
-#
-sub check_if_vmware_module {
-  my $modPath = shift;
-  my $modInfoCmd = shell_string($gHelper{'modinfo'})
-                   . " -F alias $modPath 2>/dev/null";
-  my @modInfoOutput = map { chomp; $_ } (`$modInfoCmd`);
-  my $line;
-  my $modName;
-  undef $modName;
-
-  # First check for PCI IDs/Aliases
-  foreach $line (@modInfoOutput) {
-    $line = reduce_pciid($line);
-    $modName = $cKernelModuleAliases{"$line"};
-    if (defined $modName) {
-      check_if_vmw_installed_module($modName, $modPath);
-      return;
-    }
-  }
-
-  # Finally check the module name.
-  if ($modPath =~ m,^.*/(\w+)\.k?o,) {
-    foreach my $mod (@cKernelModules) {
-      if ("$1" eq $mod) {
-        check_if_vmw_installed_module($mod, $modPath);
-        return;
-      }
-    }
-    # If the module has been clobbered, the name is in the alias list.
-    if (defined $cKernelModuleAliases{$1}) {
-        return $cKernelModuleAliases{$1};
-    }
-  }
-}
-
-# This function checks to see if the given module (modName)
-# is not in the db file; it adds the result
-# to gVmwareInstalledModules if it is in the db file
-#
-sub check_if_vmw_installed_module {
-  my $modName = shift;
-  my $modPath = shift;
-
-  if (not -e $modPath) {
-    return;
-  }
-
-  if (not db_file_in($modPath)) {
-    # Add $modName module with path $modPath to bad list
-
-    # Check to see if we have already found a module for this.  If
-    # so, there is not much we can do.  Instead just warn the user.
-    if (defined $gNonVmwareModules{$modName}) {
-      print wrap("WARNING: A module identified as $modName has been found " .
-        "at $gNonVmwareModules{$modName} and at $modPath.  " .
-        "Leaving both modules in there could potentially " .
-        "cause a race condition when a device is added.  " .
-        "We recommend you remove one of them, run " .
-        "'depmod -a', and then re-run this configurator.\n\n", 0);
-    }
-
-    $gNonVmwareModules{$modName} = "$modPath";
-  } else {
-    # Its one of our modules.  Lets keep track of where they are as
-    # they might not be in the standard locations
-    $gVmwareInstalledModules{$modName} = "$modPath";
-  }
-}
-
-# Returns the full path to the first argument. Returns first argument
-# if it is already a full path, returns the join() of the second and
-# first arguments otherwise.
-#
-sub get_full_module_path {
-  my $module = shift;
-  my $path = shift;
-  chomp($module);
-
-  # get rid of colon and anything following (if it exists)
-  if($module =~ m/(.*):/) {
-    $module = "$1";
-  }
-
-  my $fullPath;
-  # if it starts with a slash, then it's already the full path
-  if ($module =~ m/^\//) {
-    $fullPath = $module;
-  } else {
-    # otherwise, get the path from the parameters and append
-    $fullPath = join('/', $path, $module);
-  }
-
-  if(not -e $fullPath) {
-    print wrap("WARNING: A module identified in modules.dep " .
-      "could not be found. modules.dep may be out of date. " .
-      "We recommend you run 'depmod -a' and then re-run this " .
-      "configurator.\n\n", 0);
-  }
-  return $fullPath;
-}
-
-# Extracts the alias and module name from a line, if it starts with "alias";
-# Returns empty strings otherwise. Designed for use only when parsing
-# modules.alias.
-#
-sub extract_alias_and_modname {
-  my $line = shift;
-  my $alias = "";
-  my $modname = "";
-
-  if($line =~ m/alias (.*)\s(.*)\s/) {
-    $alias = "$1";
-    $modname = "$2";
-  }
-  return ($alias, $modname);
-}
-
-# Reduce PCI id by removing trailing data (subvendor, etc) from PCI IDs.
-# Returns the reduced PCI id if "pci" start's the string, otherwise returns
-# the original string.
-#
-sub reduce_pciid {
-  my $string = shift;
-  if ($string=~ m/^(pci:v[0-9A-F]{8}d[0-9A-F]{8})/) {
-    $string= "$1";
-  }
-  return $string;
-}
-
-# Looks for a module (*.ko) in modules.dep and returns
-# the full path to it if it exists; returns an empty string otherwise
-#
-sub search_for_module_in_moddep {
-  my $modName = shift;
-  my $libModPath = shift;
-
-  if(open(MODDEP, "$libModPath/modules.dep")) {
-    my $modPath='';
-    while(<MODDEP>) {
-      my $line = "$_";
-      if($line =~ m/(.*$modName):.*/) {
-        $modPath = get_full_module_path("$1", "$libModPath");
-        last;
-      }
-    }
-    close(MODDEP);
-    return $modPath;
-  } else {
-    error("Unable to open kernel module dependency file\n.");
-  }
-}
-
-# Returns a list of VMware kernel modules that were
-# found on the system that were not placed there by the installer
-# by parsing modules.alias.
-#
-sub populate_vmw_modules_via_aliases_file {
-  my $libModPath = shift;
-
-  if(open(MODALIAS, "$libModPath/modules.alias")) {
-    my @kernelModulesCopy = @cKernelModules;
-    my ($alias, $actualMod, $modName, $modPath);
-    while(<MODALIAS>) {
-      ($alias, $actualMod) = extract_alias_and_modname("$_");
-      $alias = reduce_pciid($alias);
-
-      $modName = $cKernelModuleAliases{"$alias"};
-      if (defined $modName) {
-        # then a module alias matched one of our modules
-
-        $modPath = search_for_module_in_moddep("$actualMod.ko", $libModPath);
-        # remove $modName from @kernelModulesCopy
-        @kernelModulesCopy = grep { $_ ne $modName } @kernelModulesCopy;
-
-        check_if_vmw_installed_module($modName, $modPath);
-      }
-    }
-
-    # search for any of the remaining modules for which
-    # we did not find a module alias. Have to do this
-    # second because it uses kernelModulesCopy, which is changed above
-    foreach my $mod (@kernelModulesCopy) {
-      $modPath = search_for_module_in_moddep("$mod.ko", $libModPath);
-      if (not $modPath eq '') {
-        check_if_vmw_installed_module($mod, $modPath);
-      }
-    }
-    close(MODALIAS);
-  } else {
-    error("Unable to open modules.alias file\n.");
-  }
-}
-
-# Returns a list of VMWare kernel modules that were
-# found on the system that were not placed there by the installer
-# by parsing modules.dep, modinfo-ing the module, and parsing
-# the output of modinfo.
-#
-sub populate_vmw_modules_via_modinfo {
-  my $libModPath = shift;
-
-  if (open(MODULESDEP, "$libModPath/modules.dep")) {
-    my $modPath = '';
-    while (<MODULESDEP>) {
-      if (/^(.*\.k?o):.*$/) {
-        #
-        # Then the module may not be there.  In Ubuntu 9.04, modules.dep
-        # no longer has a full path for the modules.  Therefore we must
-        # try out both a full path and one relative to the modules
-        # directory of the currently running kernel.
-        #
-
-        $modPath = get_full_module_path("$1","$libModPath");
-
-        if (defined $modPath) {
-          check_if_vmware_module($modPath);
-        }
-      }
-    }
-    close(MODULESDEP);
-  } else {
-    error("Unable to open kernel module dependency file\n.");
-  }
-}
-
-# check_for_vmw_mods_in_kernel
-#
-# Checks /sys/module for our kernel modules.  This only works on the
-# running kernel.
-#
-sub check_for_vmw_mods_in_kernel {
-   my $k;
-   my $v;
-
-   return unless (getKernRel() eq $gSystem{'uts_release'});
-
-   while (($k, $v) = each %cUpstrKernelModNames) {
-      my $path = join('/', '/sys/module', $k);
-      if (-e $path) {
-         $gVmwareRunningModules{$v} = $k;
-      }
-   }
-}
-
-
-# Returns a list of VMware kernel modules that were
-# found on the system that were not placed there by the installer.
-# Also checks the running kernel for modules that were built in when
-# the kernel was compiled.
-sub populate_vmware_modules {
-  my $libModPath = join('/','/lib/modules', getKernRel());
-
-  # can't continue without the modules.dep file
-  system(shell_string($gHelper{'depmod'}) . ' -a');
-  if (not -e "$libModPath/modules.dep") {
-    error("Unable to find kernel module dependency file\n.");
-  }
-
-  if (-e "$libModPath/modules.alias") {
-    populate_vmw_modules_via_aliases_file($libModPath);
-  } else {
-    populate_vmw_modules_via_modinfo($libModPath);
-  }
-
-  check_for_vmw_mods_in_kernel();
-}
-
 
 # Call restorecon on the supplied file if selinux is enabled
 sub restorecon {
   my $file = shift;
 
    if (is_selinux_enabled()) {
-     system("/sbin/restorecon " . $file);
+     # we suppress warnings from restorecon. bug #1008386:
+     system("/sbin/restorecon 2>/dev/null " . $file);
      # Return a 1, restorecon was called.
      return 1;
    }
@@ -1518,10 +1219,14 @@ sub block_restore {
   my $tmp_dir = make_tmp_dir('vmware-block-restore');
   my $tmp_file = $tmp_dir . '/tmp_file';
   my $rv;
+  my @sb;
+
+  @sb = stat($src_file);
 
   $rv = block_remove($src_file, $tmp_file, $begin_marker, $end_marker);
   if ($rv >= 0) {
     system(shell_string($gHelper{'mv'}) . ' ' . $tmp_file . ' ' . $src_file);
+    safe_chmod($sb[2], $src_file);
   }
   remove_tmp_dir($tmp_dir);
 
@@ -1531,22 +1236,6 @@ sub block_restore {
   return $rv;
 }
 
-# match the output of 'uname -s' to the product. These are compared without
-# case sensitivity.
-sub DoesOSMatchProduct {
-
- my %osProductHash = (
-    'tools-for-linux'   => 'linux',
-    'tools-for-solaris' => 'sunos',
-    'tools-for-freebsd' => 'freebsd'
- );
-
- my $OS = `uname -s`;
- chomp($OS);
-
- return ($osProductHash{vmware_product()} =~ m/$OS/i) ? 1 : 0;
-
-}
 
 # Remove leading and trailing whitespaces
 sub remove_whitespaces {
@@ -1614,59 +1303,6 @@ sub check_is_running {
   return $rv eq 0;
 }
 
-# OS-independent method of loading a kernel module by module name
-# Returns true (non-zero) if the operation succeeded, false otherwise.
-sub kmod_load_by_name {
-    my $modname = shift; # IN: Module name
-    my $doSilent = shift; # IN: Flag to indicate whether loading should be done silently
-
-    my $silencer = '';
-    if (defined($doSilent) && $doSilent) {
-	$silencer = ' >/dev/null 2>&1';
-    }
-
-    if (defined($gHelper{'modprobe'})) { # Linux
-	return !system(shell_string($gHelper{'modprobe'}) . ' ' . shell_string($modname)
-		       . $silencer);
-    } elsif (defined($gHelper{'kldload'})) { # FreeBSD
-	return !system(shell_string($gHelper{'kldload'}) . ' ' . shell_string($modname)
-		       . $silencer);
-    } elsif (defined($gHelper{'modload'})) { # Solaris
-	return !system(shell_string($gHelper{'modload'}) . ' ' . shell_string($modname)
-		       . $silencer);
-    }
-
-    return 0; # Failure
-}
-
-# OS-independent method of loading a kernel module by object path
-# Returns true (non-zero) if the operation succeeded, false otherwise.
-sub kmod_load_by_path {
-    my $modpath = shift; # IN: Path to module object file
-    my $doSilent = shift; # IN: Flag to indicate whether loading should be done silently
-    my $doForce = shift; # IN: Flag to indicate whether loading should be forced
-    my $probe = shift; # IN: 1 if to probe only, 0 if to actually load
-
-    my $silencer = '';
-    if (defined($doSilent) && $doSilent) {
-	$silencer = ' >/dev/null 2>&1';
-    }
-
-    if (defined($gHelper{'insmod'})) { # Linux
-	return !system(shell_string($gHelper{'insmod'}) . ($probe ? ' -p ' : ' ')
-		       . ((defined($doForce) && $doForce) ? ' -f ' : ' ')
-		       . shell_string($modpath)
-		       . $silencer);
-    } elsif (defined($gHelper{'kldload'})) { # FreeBSD
-	return !system(shell_string($gHelper{'kldload'}) . ' ' . shell_string($modpath)
-		       . $silencer);
-    } elsif (defined($gHelper{'modload'})) { # Solaris
-	return !system(shell_string($gHelper{'modload'}) . ' ' . shell_string($modpath)
-		       . $silencer);
-    }
-
-    return 0; # Failure
-}
 
 # OS-independent method of unloading a kernel module by name
 # Returns true (non-zero) if the operation succeeded, false otherwise.
@@ -1706,225 +1342,6 @@ sub kmod_unload {
     return 0; # Failure
 }
 
-#
-# check to see if the certificate files exist (and
-# that they appear to be a valid certificate).
-#
-sub certificateExists {
-  my $certLoc = shift;
-  my $openssl_exe = shift;
-  my $certPrefix = shift;
-  my $ld_lib_path = $ENV{'LD_LIBRARY_PATH'};
-  my $libdir = db_get_answer('LIBDIR') . '/lib';
-  $ld_lib_path .= ';' . $libdir . '/libssl.so.0.9.8;' . $libdir . '/libcrypto.so.0.9.8';
-
-  my $ld_lib_string = "LD_LIBRARY_PATH='" . $ld_lib_path . "'";
-  return ((-e "$certLoc/$certPrefix.crt") &&
-          (-e "$certLoc/$certPrefix.key") &&
-          !(system($ld_lib_string . " " . shell_string("$openssl_exe") . ' x509 -in '
-                   . shell_string("$certLoc") . "/$certPrefix.crt " .
-                   ' -noout -subject > /dev/null 2>&1')));
-}
-
-# Helper function to create SSL certificates
-sub createSSLCertificates {
-  my ($openssl_exe, $vmware_version, $certLoc, $certPrefix, $unitName) = @_;
-  my $certUniqIdent = "(564d7761726520496e632e)";
-  my $certCnf;
-  my $curTime = time();
-  my $hostname = direct_command(shell_string($gHelper{"hostname"}));
-
-  my $cTmpDirPrefix = "vmware-ssl-config";
-  my $tmpdir;
-
-  if (certificateExists($certLoc, $openssl_exe, $certPrefix)) {
-    print wrap("Using Existing SSL Certificate.\n", 0);
-    return;
-  }
-
-  # Create the directory
-  if (! -e $certLoc) {
-    create_dir($certLoc, $cFlagDirectoryMark);
-  }
-
-  $tmpdir = make_tmp_dir($cTmpDirPrefix);
-  $certCnf = "$tmpdir/certificate.cnf";
-  if (not open(CONF, '>' . $certCnf)) {
-    error("Unable to open $certCnf to create SSL certificate.\n")
-  }
-  print CONF <<EOF;
-  # Conf file that we will use to generate SSL certificates.
-RANDFILE                = $tmpdir/seed.rnd
-[ req ]
-default_bits		= 1024
-default_keyfile 	= $certPrefix.key
-distinguished_name	= req_distinguished_name
-
-#Don't encrypt the key
-encrypt_key             = no
-prompt                  = no
-
-string_mask = nombstr
-
-[ req_distinguished_name ]
-countryName= US
-stateOrProvinceName     = California
-localityName            = Palo Alto
-0.organizationName      = VMware, Inc.
-organizationalUnitName  = $unitName
-commonName              = $hostname
-unstructuredName        = ($curTime),$certUniqIdent
-emailAddress            = ssl-certificates\@vmware.com
-EOF
-  close(CONF);
-
-  my $ld_lib_path = $ENV{'LD_LIBRARY_PATH'};
-  my $libdir = db_get_answer('LIBDIR') . '/lib';
-  $ld_lib_path .= ';' . $libdir . '/libssl.so.0.9.8;' . $libdir . '/libcrypto.so.0.9.8';
-  my $ld_lib_string = "LD_LIBRARY_PATH='" . $ld_lib_path . "'";
-
-  system($ld_lib_string . " " . shell_string("$openssl_exe") . ' req -new -x509 -keyout '
-         . shell_string("$certLoc") . '/' . shell_string("$certPrefix")
-         . '.key -out ' . shell_string("$certLoc") . '/'
-         . shell_string("$certPrefix") . '.crt -config '
-         . shell_string("$certCnf") . ' -days 5000 > /dev/null 2>&1');
-  db_add_file("$certLoc/$certPrefix.key", $cFlagTimestamp);
-  db_add_file("$certLoc/$certPrefix.crt", $cFlagTimestamp);
-
-  remove_tmp_dir($tmpdir);
-  # Make key readable only by root (important)
-  safe_chmod(0400, "$certLoc" . '/' . "$certPrefix" . '.key');
-
-  # Let anyone read the certificate
-  safe_chmod(0444, "$certLoc" . '/' . "$certPrefix" . '.crt');
-}
-
-# Install a pair of S/K startup scripts for a given runlevel
-sub link_runlevel {
-   my $level = shift;
-   my $service = shift;
-   my $S_level = shift;
-   my $K_level = shift;
-
-   #
-   # Create the S symlink
-   #
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc' . $level . '.d/S'
-                   . $S_level . $service);
-
-   #
-   # Create the K symlink
-   #
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc' . $level . '.d/K'
-                   . $K_level . $service);
-}
-
-# Create the links for VMware's services taking the service name and the
-# requested levels
-sub link_services {
-   my @fields;
-   my $service = shift;
-   my $S_level = shift;
-   my $K_level = shift;
-
-   # Try using insserv if it is available.
-   my $init_style = db_get_answer_if_exists('INIT_STYLE');
-
-   if ($gHelper{'insserv'} ne '') {
-     if (0 == system(shell_string($gHelper{'insserv'}) . ' '
-                     . shell_string(db_get_answer('INITSCRIPTSDIR')
-                                    . '/' . $service) . ' >/dev/null 2>&1')) {
-       return;
-     }
-   }
-   if ("$init_style" eq 'lsb') {
-     # Then we have gotten here, but gone past the insserv section, indicating
-     # that insserv cannot be found.  Warn the user...
-     print wrap("WARNING: The installer initially used the " .
-                "insserv application to setup the vmware-tools service.  " .
-                "That application did not run successfully.  " .
-                "Please re-install the insserv application or check your settings.  " .
-                "This script will now attempt to manually setup the " .
-                "vmware-tools service.\n\n", 0);
-   }
-
-   # Now try using chkconfig if available.
-   # Note: RedHat's chkconfig reads LSB INIT INFO if present.
-   if ($gHelper{'chkconfig'} ne '') {
-     if (0 == system(shell_string($gHelper{'chkconfig'}) . ' '
-                     . $service . ' reset')) {
-       return;
-     }
-   }
-   if ("$init_style" eq 'chkconfig') {
-     # Then we have gotten here, but gone past the chkconfig section, indicating
-     # that chkconfig cannot be found.  Warn the user..
-     print wrap("WARNING: The installer initially used the " .
-                "chkconfig application to setup the vmware-tools service.  " .
-                "That application did not run successfully.  " .
-                "Please re-install the chkconfig application or check your settings.  " .
-                "This script will now attempt to manually setup the " .
-                "vmware-tools service.\n\n", 0);
-   }
-
-   # Now try using update-rc.d if available.
-   # This is Debian or Ubuntu
-   if ($gHelper{'update-rc.d'} ne ' ') {
-     if ($service eq 'vmware-tools-thinprint') {
-       if (0 == system(shell_string($gHelper{'update-rc.d'}) . " " . $service
-                       . " start " . $S_level . " 2 3 4 5 ."
-                       . " stop " . $K_level . " 0 1 6 .")) {
-         return;
-       }
-     } else {
-       if (0 == system(shell_string($gHelper{'update-rc.d'}) . " " . $service
-                       . " start " . $S_level . " S ."
-                       . " start " . $K_level . " 0 6 .")) {
-         return;
-       }
-     }
-   }
-   if ("$init_style" eq 'update-rc.d') {
-     # Then we have gotten here, but gone past the update-rc.d section, indicating
-     # that update-rc.d cannot be found.  Warn the user..
-     print wrap("WARNING: The installer initially used the " .
-                "'udpate-rc.d' to setup the vmware-tools service.  " .
-                "That command cannot be found.  " .
-                "Please re-install the 'sysv-rc' package.  " .
-                "This script will now attempt to manually setup the " .
-                "vmware-tools service.", 0);
-   }
-
-   # Set up vmware to stop at run levels 0 and 6
-   # if this puzzles you, see Debian bug #351975, then read /etc/init.d/rc :
-   if ((distribution_info() eq "debian") and (not $service eq 'vmware-tools-thinprint')) {
-     # Set up vmware to start at run level S
-     install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                     db_get_answer('INITDIR') . '/rcS.d/S' . $S_level . $service);
-   }
-   else {
-     # Set up vmware to start/stop at run levels 2, 3 and 5
-     link_runlevel(2, $service, $S_level, $K_level);
-     link_runlevel(3, $service, $S_level, $K_level);
-     link_runlevel(5, $service, $S_level, $K_level);
-   }
-
-   # Set up vmware to stop at run levels 0 and 6
-   my $K_prefix = "K";
-   if ((distribution_info() eq "debian") and (not $service eq 'vmware-tools-thinprint')) {
-     $K_prefix = "S";
-   }
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc0' . '.d/' . $K_prefix
-                   . $K_level . $service);
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc6' . '.d/' . $K_prefix
-                   . $K_level . $service);
-}
-
-
 # Emulate a simplified ls program for directories
 sub internal_ls {
   my $dir = shift;
@@ -1957,28 +1374,6 @@ sub internal_dirname {
   }
 
   return substr($path, 0, $pos);
-}
-
-sub internal_dirname_vcli {
-  my $path = shift;
-  my $pos;
-
-  $path = dir_remove_trailing_slashes($path);
-
-  $pos = rindex($path, '/');
-  if ($pos == -1) {
-    # No slash
-    return '.';
-  }
-
-  my @arr1 = split(/\//, $path);
-
-  # if "/bin" is top directory return parent directory as base directory
-  if ( $arr1[scalar(@arr1) -1] eq "bin" ) {
-    return substr($path, 0, $pos);
-  }
-
-  return $path;
 }
 
 #
@@ -2047,7 +1442,8 @@ sub check_mountpoint_for_tools {
    my $foundit = 0;
 
    if (vmware_product() eq 'tools-for-solaris') {
-      if ($mountpoint =~ /vmwaretools$/) {
+      if ($mountpoint =~ /vmwaretools$/ ||
+          $mountpoint =~ /\/media\/VMware Tools$/) {
          $foundit = 1;
       }
    } elsif (opendir CDROMDIR, $mountpoint) {
@@ -2119,10 +1515,11 @@ sub eject_tools_install_cd_if_mounted {
       # If this fails, don't bother trying to unmount, or error.
       if (open(MNTTAB, '</etc/mnttab')) {
          while (<MNTTAB>) {
-            ($device, $rest) = split;
+            ($device, $rest) = split("\t", $_);
             # I don't think there are actually ever comments in /etc/mnttab.
             next if $device =~ /^#/;
-            if ($device =~ /vmwaretools$/) {
+            if ($device =~ /vmwaretools$/ ||
+                $rest =~ /\/media\/VMware Tools$/) {
                $mountpoint = $rest;
                $mountpoint =~ s/(.*)\s+hsfs.*/$1/;
                push(@candidate_mounts, "${device}::::${mountpoint}");
@@ -2225,78 +1622,6 @@ sub dot_version_compare {
 }
 
 
-# Checks for versioning information in both the system module
-# and the shipped module.  If it finds information in the sytem
-# module, it compares it against the version information of the
-# shipped module and will use whatever module is newer.
-# Returns 1 if it uses the shipped module (and 0 otherwise).
-sub install_x_module {
-  my $shippedMod = shift;
-  my $systemMod = shift;
-  my $modinfo = internal_which('modinfo');
-  my $shippedModVer = '';
-  my $systemModVer = '';
-  my $installShippedModule = 0;
-  my $line;
-
-  if (not -r $shippedMod) {
-    error("Could not read $shippedMod\n");
-  }
-
-  if ("$modinfo" ne '' and -r "$systemMod") {
-    open (SHIPPED_MOD_VER, "$modinfo $shippedMod |");
-    open (SYSTEM_MOD_VER, "$modinfo $systemMod |");
-
-    foreach $line (<SHIPPED_MOD_VER>) {
-      if ($line =~ /version: +([0-9\.]+)/) {
-        $shippedModVer = "$1";
-        last;
-      }
-    }
-    foreach $line (<SYSTEM_MOD_VER>) {
-      if ($line =~ /version: +([0-9\.]+)/) {
-        $systemModVer = "$1";
-        last;
-      }
-    }
-
-    close (SHIPPED_MOD_VER);
-    close (SYSTEM_MOD_VER);
-
-    chomp ($shippedModVer);
-    chomp ($systemModVer);
-
-    if ("$systemModVer" eq '' or
-	dot_version_compare ("$shippedModVer", "$systemModVer") > 0) {
-      # Then the shipped module is newer than sytem module.
-      $installShippedModule = 1;
-    }
-  } else {
-    # If it has no version, assume the one we ship is newer.
-    $installShippedModule = 1;
-  }
-
-  if ($gOption{'clobber-xorg-modules'} or $installShippedModule) {
-    install_x_module_no_checks($shippedMod, $systemMod);
-    return 1;
-  }
-  return 0;
-}
-
-sub install_x_module_no_checks {
-   my $shippedMod = shift;
-   my $systemMod = shift;
-   my %patch;
-   undef %patch;
-
-   # Ensure we have a unique backup suffix for this file.
-   # Also strip off anything sh wouldn't like.  Bug 502544
-   my $bkupExt = internal_basename($systemMod);
-   $bkupExt =~ s/^(\w+).*$/$1/;
-   backup_file_to_restore($systemMod, $bkupExt);
-   install_file ("$shippedMod", "$systemMod", \%patch, 1);
-}
-
 # Returns the tuple ($halScript, $halName) if the system
 # has scripts to control HAL.
 #
@@ -2359,223 +1684,6 @@ sub restart_hal {
 }
 
 
-sub prelink_fix {
-  my $source = "/etc/vmware-tools/vmware-tools-prelink.conf";
-  my $dest = '/etc/prelink.conf.d/vmware-tools-prelink.conf';
-  my $prelink_file = '/etc/prelink.conf';
-  my $libdir = db_get_answer_if_exists('LIBDIR');
-  my %patch;
-
-  if (defined($libdir)) {
-    %patch = ('@@LIBDIR@@' => $libdir);
-  } else {
-    error ("LIBDIR must be defined before prelink_fix is called.\n");
-  }
-
-  if (-d internal_dirname($dest)) {
-    install_file($source, $dest, \%patch, 1);
-  } elsif (-f $prelink_file) {
-    # Readin our prelink file, do the appropreiate substitutions, and
-    # block insert it into the prelink.conf file.
-
-    my $key;
-    my $value;
-    my $line;
-    my $to_append = '';
-
-    if (not open(FH, $source)) {
-      error("Could not open $source\n");
-    }
-
-    foreach $line (<FH>) {
-      chomp ($line);
-      while (($key, $value) = each %patch) {
-	$line =~ s/$key/$value/g;
-      }
-      $to_append .= $line . "\n";
-    }
-
-    close FH;
-
-    if (block_insert($prelink_file, '^ *-b', $cMarkerBegin,
-		     $to_append, $cMarkerEnd) == 1) {
-      db_add_answer('PRELINK_CONFED', $prelink_file);
-    }
-  }
-}
-
-
-sub prelink_restore {
-  my $prelink_file = db_get_answer_if_exists('PRELINK_CONFED');
-
-  if (defined $prelink_file) {
-    block_restore($prelink_file, $cMarkerBegin, $cMarkerEnd);
-  }
-}
-
-# Determines if the system at hand needs to have timer
-# based audio support disabled in pulse.  Make this call
-# based on the version of pulseaudio installed on the system.
-#
-sub pulseNeedsTimerBasedAudioDisabled {
-   my $pulseaudioBin = internal_which("pulseaudio");
-   my $cmd = "$pulseaudioBin --version";
-   my $verStr = '0';
-
-   if (-x $pulseaudioBin) {
-      open(OUTPUT, "$cmd |");
-      foreach my $line (<OUTPUT>) {
-	 chomp $line;
-	 if ($line =~ /pulseaudio *([0-9\.]+)/) {
-	     $verStr = $1;
-	     last
-	 }
-      }
-      if (dot_version_compare($verStr, "0.9.19") ge 0) {
-	 # Then pulseaudio's version is >= 0.9.19
-	 return 1;
-      }
-   }
-
-   return 0
-}
-
-# Disables timer based audio scheduling in the default config
-# file for PulseAudio
-#
-sub pulseDisableTimerBasedAudio {
-   my $cfgFile = '/etc/pulse/default.pa';
-   my $regex = qr/^ *load-module +module-(udev|hal)-detect$/;
-   my $tmpDir = make_tmp_dir('vmware-pulse');
-   my $tmpFile = $tmpDir . '/tmp_file';
-   my $fileModified = 0;
-
-   if (not open(ORGPCF, "<$cfgFile") or
-       not open(NEWPCF, ">$tmpFile")) {
-      return 0;
-   }
-
-   foreach my $line (<ORGPCF>) {
-      chomp $line;
-      if ($line =~ $regex and $line !~ /tsched/) {
-	 # add the flag if its not already there.
-	 print NEWPCF "$line tsched=0\n";
-	 $fileModified = 1;
-      } else {
-	 # just print the line.
-	 print NEWPCF "$line\n";
-      }
-   }
-
-   close ORGPCF;
-   close NEWPCF;
-
-   if ($fileModified) {
-      backup_file_to_restore($cfgFile, "orig");
-      system(join(' ', $gHelper{'cp'}, $tmpFile, $cfgFile));
-      restorecon($cfgFile);
-      db_add_answer('PULSE_AUDIO_CONFED', $cfgFile);
-   }
-
-  remove_tmp_dir($tmpDir);
-}
-
-
-##
-# Checks to see if any of the package names in a given list
-# are currently installed by RPM on the system.
-# @param - A list of RPM packages to check for.
-# @returns - A list of the installed RPM packages that this
-#            function checked for and found (if any).
-#
-sub checkRPMForPackages {
-   my @pkgList = @_;
-   my @instPkgs;
-   my $bin = internal_which('rpm');
-   my $cmd = join(' ', $bin, '-qa --queryformat \'%{NAME}\n\'');
-
-   if (-x $bin) {
-      open(OUTPUT, "$cmd |");
-      foreach my $instPkgName (<OUTPUT>) {
-	 chomp $instPkgName;
-	 foreach my $pkgName (@pkgList) {
-	    if ($pkgName eq $instPkgName) {
-	       push @instPkgs, $instPkgName;
-	    }
-	 }
-      }
-      close(OUTPUT);
-   }
-   return @instPkgs
-}
-
-##
-# Checks to see if any of the package names in a given list
-# are currently installed by dpkg on the system.
-# @param - A list of deb packages to check for.
-# @returns - A list of the installed deb packages that this
-#            function checked for and found (if any).
-#
-sub checkDPKGForPackages {
-   my @pkgList = @_;
-   my @instPkgs;
-   my $bin = internal_which('dpkg-query');
-   my $cmd = join(' ', $bin, '--show --showformat=\'${Package}\n\'');
-
-   if (-x $bin) {
-      open(OUTPUT, "$cmd |");
-      foreach my $instPkgName (<OUTPUT>) {
-	 chomp $instPkgName;
-	 foreach my $pkgName (@pkgList) {
-	    if ($pkgName eq $instPkgName) {
-	       push @instPkgs, $instPkgName;
-	    }
-	 }
-      }
-      close(OUTPUT);
-   }
-   return @instPkgs
-}
-
-
-##
-# Attempts to remove the given list of RPM packages
-# @param - List of rpm packages to remove
-# @returns - -1 if there was an internal error, otherwise
-#            the return value of RPM
-#
-sub removeRPMPackages {
-   my @pkgList = @_;
-   my $bin = internal_which('rpm');
-   my @cmd = (("$bin", '-e'), @pkgList);
-
-   if (-x $bin) {
-      return system(@cmd);
-   } else {
-      return -1;
-   }
-}
-
-
-##
-# Attempts to remove the given list of DEB packages
-# @param - List of deb packages to remove
-# @returns - -1 if there was an internal error, otherwise
-#            the return value of dpkg
-#
-sub removeDEBPackages {
-   my @pkgList = @_;
-   my $bin = internal_which('dpkg');
-   my @cmd = (("$bin", '-r'), @pkgList);
-
-   if (-x $bin) {
-      return system(@cmd);
-   } else {
-      return -1;
-   }
-}
-
-
 ##
 # locate_upstart_jobinfo
 #
@@ -2589,11 +1697,13 @@ sub removeDEBPackages {
 sub locate_upstart_jobinfo() {
    my $initctl = internal_which('initctl');
    my $retval;
-   # Ubuntu 9.10 uses upstart, but cups is not an upstart job. We cannot
-   # start thinprint in an upstart job when we want to make sure that tp
-   # has to start after cups.
-   if ( glob(db_get_answer('INITDIR') . '/rc2.d/' . 'S??cups*' )) {
-      return ();
+
+   if ($have_thinprint eq 'yes') {
+      # we cannot use upstart unless cups also uses upstart, otherwise we
+      # cannot make sure that tp starts after cups.
+      if ( glob(db_get_answer('INITDIR') . '/rc2.d/' . 'S??cups*' ) and (not -e '/etc/init/cups.conf') ) {
+         return ();
+      }
    }
    # Don't bother checking directories unless initctl is available and
    # indicates that Upstart is active.
@@ -2733,94 +1843,6 @@ sub vmware_services_table()
 
 
 ##
-# does_solaris_package_exist
-#
-# Executes a system call to check if the given package (passed in as
-# a parameter) exists.
-#
-# @param[in] $packageName
-#
-# @returns 1 (true) if package exists, 0 (false) otherwise
-#
-
-sub does_solaris_package_exist {
-   my $packageName = shift;
-
-   system("pkginfo $packageName > /dev/null 2>&1");
-   return $? == 0 ? 1 : 0;
-}
-
-##
-# is_esx_virt_env
-#
-# Returns true if the VM is runing in an ESX virtual environment,
-# false otherwise.
-# @returns - 1 (true) if in ESX, 0 (false) otherwise
-#
-sub is_esx_virt_env {
-   my $ans = 0;
-   my $sbinDir = db_get_answer('SBINDIR');
-   my $checkvm = join('/', $sbinDir, 'vmware-checkvm');
-
-   if (-x $checkvm) {
-      my $output = `$checkvm -p 2>&1`;
-      $ans = 1 if ($output =~ m/ESX Server/);
-   }
-
-   return $ans;
-}
-
-##
-# disable_module
-#
-# Sets the appropriate flags to disable the module.
-# @returns - Nothing useful.
-#
-sub disable_module {
-   my $mod = shift;
-
-   set_manifest_component("$mod", 'FALSE');
-   db_add_answer(uc("$mod") . '_CONFED', 'no');
-
-   return;
-}
-
-
-##
-# getKernRel
-#
-# Returns the release of the kernel in question.  Defaults to the
-# running kernel unless the user has set the --kernel-version option.
-#
-sub getKernRel {
-   if ($gOption{'kernel_version'} ne '') {
-      return $gOption{'kernel_version'};
-   } else {
-      return $gSystem{'uts_release'};
-   }
-}
-
-
-##
-# getModDBKey
-#
-# Creates and returns the DB key for a module based on a little
-# system information
-#
-sub getModDBKey {
-   my $modName = shift;
-   my $tag = shift;
-   my $kernel = getKernRel();
-
-   # Remove non alpha-numeric characters
-   $kernel =~ s/[\.\-\+]//g;
-   my $key = join('_', uc($modName), $kernel, $tag);
-
-   return $key;
-}
-
-
-##
 # removeDuplicateEntries
 #
 # Removes duplicate entries from a given string and delimeter
@@ -2848,31 +1870,6 @@ sub removeDuplicateEntries {
    }
 
    return $newStr;
-}
-
-
-##
-# addEntDBList
-#
-# Adds an entry to a list within the DB.  This function also removes
-# duplicate entries from the list.
-#
-sub addEntDBList {
-   my $dbKey = shift;
-   my $ent = shift;
-
-   if (not defined $dbKey or $dbKey eq '') {
-      error("Bad dbKey value in addEntDBList.\n");
-   }
-
-   if ($ent =~ m/,/) {
-      error("New list entry can not contain commas.\n");
-   }
-
-   my $list = db_get_answer_if_exists($dbKey);
-   my $newList = $list ? join(',', $list, $ent) : $ent;
-   $newList = removeDuplicateEntries($newList, ',');
-   db_add_answer($dbKey, $newList);
 }
 
 
@@ -2976,6 +1973,22 @@ sub addTextToKVEntryInFile {
    return $modified;
 }
 
+# work around "panic: end_shift" (bug #1027773) for old ( <= 5.008) perl versions
+sub safely_matches {
+  my $line = shift;
+  my $regex = shift;
+  my $b;
+  my @result;
+
+  if ($] <= 5.008) {
+    use bytes;
+    $b = ($line =~ $regex);
+    return ($b, $1, $2, $3);
+  } else {
+    $b = ($line =~ $regex);
+    return ($b, $1, $2, $3);
+  }
+}
 
 ##
 # removeTextInKVEntryInFile
@@ -3014,14 +2027,16 @@ sub removeTextInKVEntryInFile {
    }
 
    foreach my $line (<INFILE>) {
-      if ($line =~ $regex and not $modified) {
-         # We have a match.  $1 and $2 have to be deifined; $3 is optional
-         if (not defined $1 or not defined $2) {
+      my @res;
+      @res = safely_matches($line, $regex);
+      if ($res[0] and not $modified) {
+         # We have a match.  $res[1] and $res[2] have to be defined; $res[3] is optional
+         if (not defined $res[1] or not defined $res[2]) {
             error("removeTextInKVEntryInFile:  Bad regex.\n");
          }
-         $firstPart = $1;
-         $origValues = $2;
-         $lastPart = ((defined $3) ? $3 : '');
+         $firstPart = $res[1];
+         $origValues = $res[2];
+         $lastPart = ((defined $res[3]) ? $res[3] : '');
          chomp $firstPart;
          chomp $origValues;
          chomp $lastPart;
@@ -3072,10 +2087,7 @@ if (vmware_product() eq 'server') {
 }
 my $cServices = '/etc/services';
 
-my $cNetmapConf = '/etc/vmware/netmap.conf';
-
 my $cConfiguratorFileName = 'vmware-config.pl';
-my $cNICAlias = 'vmnics';
 
 if (vmware_product() eq 'tools-for-linux' ||
     vmware_product() eq 'tools-for-freebsd' ||
@@ -3142,8 +2154,6 @@ my $gMinVmnet = '0';
 # Although 256 are supported, #255 is reserved
 # Note: Max length of interface name is 8
 my $gMaxVmnet = '254';
-# Constant defines as the number of vmnets to be pre-created
-my $gNumVmnet = 10;
 my $gFirstModuleBuild = 1;
 my $gCanCompileModules = 0;
 my $gDefaultAuthdPort = 902;
@@ -3172,6 +2182,9 @@ my @gSuspectedFontLocations = ('/usr/share/fonts',
    '/usr/lib/X11/fonts', '/usr/lib64/X11/fonts');
 my $useApploader = (vmware_product() eq 'tools-for-linux');
 
+my %gInstallStatus;
+
+my $open_vm_compat = 0;
 
 # Load the installer database
 sub db_load {
@@ -3312,20 +2325,6 @@ sub db_file_ts {
   return $gDBFile{$file};
 }
 
-# Remove the timestamp data for a file.
-sub db_remove_ts {
-  my $file = shift;
-  db_remove_file($file);
-  db_add_file($file, 0);
-}
-
-# Reset the timestamp data for a file.
-sub db_update_ts {
-  my $file = shift;
-  db_remove_file($file);
-  db_add_file($file, 1);
-}
-
 # Add a directory to the tar installer database
 sub db_add_dir {
   my $dir = shift;
@@ -3390,11 +2389,6 @@ sub db_save {
 # Global variables
 my %gAnswerSize;
 my %gCheckAnswerFct;
-
-# Tell if the user is the super user
-sub is_root {
-  return $> == 0;
-}
 
 # Contrary to a popular belief, 'which' is not always a shell builtin command.
 # So we cannot trust it to determine the location of other binaries.
@@ -3490,29 +2484,6 @@ sub DoesBinaryExist_Prompt {
     db_add_answer($prefix . $bin, $answer);
   }
   return $answer;
-}
-
-# chmod() that reports errors
-sub safe_chmod {
-  my $mode = shift;
-  my $file = shift;
-
-  if (chmod($mode, $file) != 1) {
-    error('Unable to change the access rights of the file ' . $file . '.'
-          . "\n\n");
-  }
-}
-
-# chown() that reports errors.
-sub safe_chown {
-  my $uid = shift;
-  my $gid = shift;
-  my $file = shift;
-
-  if (chown($uid, $gid, $file) != 1) {
-    error('Unable to change the owner of the file ' . $file . '.'
-          . "\n\n");
-  }
 }
 
 # Install a file permission
@@ -4045,7 +3016,7 @@ sub uninstall_prefix {
 sub vmware_version {
   my $buildNr;
 
-  $buildNr = '9.2.3 build-1031360';
+  $buildNr = '9.9.3 build-2759765';
   return remove_whitespaces($buildNr);
 }
 
@@ -4126,7 +3097,6 @@ sub initialize_globals {
   $gOption{'create_shortcuts'} = 1;
   $gOption{'modules_only'} = 0;
   $gOption{'kernel_version'} = '';
-  $gOption{'install-vmwgfx'} = 0;
 }
 
 # Set up the location of external helpers
@@ -4171,7 +3141,7 @@ sub initialize_external_helpers {
                     'modunload', 'add_drv', 'rem_drv', 'update_drv',
                     'rm', 'isainfo', 'ifconfig', 'cat', 'mv', 'sed',
                     'cut','pkginfo');
-  } elsif ((vmware_product() eq 'wgs') || (vmware_product() eq 'server')) {
+  } elsif (vmware_product() eq 'server') {
     @programList = ('cp', 'uname', 'grep', 'ldd', 'mknod', 'depmod', 'insmod',
                     'lsmod', 'modprobe', 'rmmod', 'ifconfig', 'rm', 'tar',
                     'killall', 'perl', 'mv', 'touch', 'hostname', 'pidof');
@@ -4830,24 +3800,6 @@ sub check_port_not_registered {
   return 1;
 }
 
-# Fill the cache with port assignments from /etc/services
-# that aren't already filled by earlier calls to get_tcp_listeners()
-# and get_proc_tcp_entries().  Ignore vmware* entries.
-sub get_services_ports {
-  if (not open(CONF, $cServices)) {
-    return -1;
-  }
-
-  while (<CONF>) {
-    if (/(.*)\b(\d+)\/(tcp)\b/i) {
-      if ((!defined($gPortCache{$2})) && ($1 !~ /^vmware/i)) {
-        $gPortCache{$2} = 2;
-      }
-    }
-  }
-  close(CONF);
-
-}
 
 # Use /proc/net/tcp as a list of ports in use and fillout the
 # port cache with those entries.
@@ -5011,7 +3963,13 @@ sub distribution_info {
 }
 
 sub vmware_check_vm_app_name {
-  return db_get_answer('SBINDIR') . '/vmware-checkvm';
+  if (vmware_product() eq 'tools-for-solaris') {
+    my $sbindir = db_get_answer('SBINDIR');
+    return $sbindir . '/vmware-checkvm';
+  } else {
+    my $libdir = db_get_answer('LIBDIR');
+    return $libdir . '/sbin/vmware-checkvm';
+  }
 }
 
 sub vmware_vmx_app_name {
@@ -5058,23 +4016,27 @@ sub setup32or64Symlinks {
   $liblibdir .= getFreeBSDLibSuffix();
   $libsbindir .= getFreeBSDSbinSuffix();
 
-  install_symlink($libsbindir . '/vmware-checkvm',
-                  $sbindir . '/vmware-checkvm');
-
-  install_symlink($libsbindir . '/vmware-rpctool',
-                  $sbindir . '/vmware-rpctool');
-
   if ($useApploader) {
-      install_hardlink($libbindir . '/appLoader',
-                       $libsbindir . '/vmtoolsd');
-      install_symlink($libsbindir . '/vmtoolsd',
-                      $sbindir . "/vmtoolsd");
-  } elsif (vmware_product() eq 'tools-for-freebsd') {
-      install_symlink($libsbindir . '/vmtoolsd-wrapper',
-                      $sbindir . '/vmtoolsd');
-  } else {
-      install_symlink($libsbindir . '/vmware-guestd-wrapper',
-                      $sbindir . '/vmware-guestd');
+    install_hardlink($libbindir . '/appLoader',
+                     $libsbindir . '/vmtoolsd');
+  }
+  if ($open_vm_compat == 0) {
+    install_symlink($libsbindir . '/vmware-checkvm',
+                    $sbindir . '/vmware-checkvm');
+
+    install_symlink($libsbindir . '/vmware-rpctool',
+                    $sbindir . '/vmware-rpctool');
+
+    if ($useApploader) {
+        install_symlink($libsbindir . '/vmtoolsd',
+                        $sbindir . "/vmtoolsd");
+    } elsif (vmware_product() eq 'tools-for-freebsd') {
+        install_symlink($libsbindir . '/vmtoolsd-wrapper',
+                        $sbindir . '/vmtoolsd');
+    } else {
+        install_symlink($libsbindir . '/vmware-guestd-wrapper',
+                        $sbindir . '/vmware-guestd');
+    }
   }
 
   #
@@ -5083,12 +4045,16 @@ sub setup32or64Symlinks {
   #
   if ($useApploader) {
     install_symlink($libbindir . '/appLoader',
-		    $bindir . '/vmware-toolbox-cmd');
-    install_symlink($libbindir . '/appLoader',
 		    $libsbindir . '/vmware-modconfig-console');
-  } else {
-    install_symlink($libbindir . '/vmware-toolbox-cmd-wrapper',
-		    $bindir . '/vmware-toolbox-cmd');
+  }
+  if ($open_vm_compat == 0) {
+    if ($useApploader) {
+      install_symlink($libbindir . '/appLoader',
+                      $bindir . '/vmware-toolbox-cmd');
+    } else {
+      install_symlink($libbindir . '/vmware-toolbox-cmd-wrapper',
+                      $bindir . '/vmware-toolbox-cmd');
+    }
   }
 
   # On FreeBSD, Linux and Solaris we use a wrapper script for vmware-user.
@@ -5097,20 +4063,17 @@ sub setup32or64Symlinks {
   # script is marked setuid.
 
   if (vmware_product() eq 'tools-for-linux') {
-     install_symlink($libbindir . '/vmware-user-wrapper',
-                     $bindir . '/vmware-user-wrapper');
-     install_symlink($libbindir . '/vmware-user-suid-wrapper',
-                     $bindir . '/vmware-user');
-     install_symlink($libbindir . '/vmware-gksu',
-                     $bindir . '/vmware-gksu');
+    if ($open_vm_compat == 0) {
+      install_symlink($libbindir . '/vmware-user-suid-wrapper',
+                      $bindir . '/vmware-user');
 
-     set_manifest_component('vmwareuser', 'TRUE');
-
+      set_manifest_component('vmwareuser', 'TRUE');
+    }
   } elsif (vmware_product() eq 'tools-for-freebsd') {
-     install_symlink($libbindir . '/vmware-user-wrapper',
-                     $bindir . '/vmware-user-wrapper');
-     install_symlink($libbindir . '/vmware-user-suid-wrapper',
-                     $bindir . '/vmware-user');
+    install_symlink($libbindir . '/vmware-user-wrapper',
+                    $bindir . '/vmware-user-wrapper');
+    install_symlink($libbindir . '/vmware-user-suid-wrapper',
+                    $bindir . '/vmware-user');
   }
 
   # Generic spots for the wrapper to access so it won't need to know lib32-6, etc.
@@ -5122,28 +4085,31 @@ sub setup32or64Symlinks {
   install_symlink($libdir . "/plugins", $gRegistryDir . "/plugins");
 
 # Install a pam.d vmtoolsd file on all but Solaris.
-  if (vmware_product() ne 'tools-for-solaris') {
+  if (vmware_product() ne 'tools-for-solaris' && ($open_vm_compat == 0)) {
      install_symlink($pamdfile, '/etc/pam.d/vmtoolsd');
   }
 
   if (vmware_product() eq 'tools-for-linux') {
      install_symlink($libbindir . '/appLoader',
                      $bindir . '/vmware-hgfsclient');
-     install_symlink($libbindir . '/vmware-xferlogs',
-                     $bindir . '/vmware-xferlogs');
-     install_symlink($libbindir . '/appLoader',
-                     $sbindir . '/vmware-vmblock-fuse');
+
      # Hardcoded because mount(8) expects mounting apps to be /sbin/mount.fs
      # Install the hgfsmounter app to /sbin/mount.vmhgfs to solve SELinux issues.
      # This is all handled in the tar installer auto-magically now so don't do
      # the symlink here any more.  But we still set the manifest_component here.
      # See bug 527827.
-
-     set_manifest_component('vmtoolsd', 'TRUE');
      set_manifest_component('hgfsclient', 'TRUE');
      set_manifest_component('hgfsmounter', 'TRUE');
-     set_manifest_component('checkvm', 'TRUE');
-     set_manifest_component('toolbox-cmd', 'TRUE');
+
+     if($open_vm_compat == 0) {
+       install_symlink($libbindir . '/vmware-xferlogs',
+                       $bindir . '/vmware-xferlogs');
+       install_symlink($libbindir . '/appLoader',
+                       $sbindir . '/vmware-vmblock-fuse');
+       set_manifest_component('vmtoolsd', 'TRUE');
+       set_manifest_component('checkvm', 'TRUE');
+       set_manifest_component('toolbox-cmd', 'TRUE');
+    }
   }
 
   if (vmware_product() eq 'tools-for-freebsd') {
@@ -5163,13 +4129,27 @@ sub setup32or64Symlinks {
       set_manifest_component('vmblockmounter', 'TRUE');
    }
 
+   if ($open_vm_compat == 0) {
    #
    # vmware-xdg-* scripts are packaged under ${libdir}/bin32 only.  Explicitly
    # symlink those to $bindir.
    #
-   my $xdgSrc = sprintf("$libdir/bin32%s/vmware-xdg-detect-de",
-                        getFreeBSDBinSuffix());
-   install_symlink($xdgSrc, "$bindir/vmware-xdg-detect-de");
+     my $xdgSrc = sprintf("$libdir/bin32%s/vmware-xdg-detect-de",
+                          getFreeBSDBinSuffix());
+     install_symlink($xdgSrc, "$bindir/vmware-xdg-detect-de");
+   }
+
+   # vgauth
+   if ($have_vgauth eq 'yes') {
+      my $vgauthdir = internal_dirname($libdir) . '/vmware-vgauth';
+
+      if($useApploader) {
+         install_symlink($libbindir . '/appLoader', $vgauthdir . '/VGAuthService');
+         install_symlink($libbindir . '/appLoader', $vgauthdir . '/vmware-vgauth-cmd');
+         install_symlink($libbindir . '/appLoader', $vgauthdir . '/vmware-alias-import');
+      }
+   }
+
 }
 
 # Solaris can boot into either its 32-bit or 64-bit kernel and invokes the
@@ -5198,39 +4178,6 @@ sub install_solaris_symlink {
       system(shell_string($gHelper{'cp'}) . ' /usr/lib/isaexec ' . $isaexec);
       db_add_file($isaexec, 0);
       install_hardlink($isaexec, $linkdir . '/' . $linkname);
-   }
-}
-
-# Solaris can boot into either its 32-bit or 64-bit kernel and invokes the
-# appropriate binary through use of its isaexec(3C) program.  Ideally we use
-# symlinks for our wrapper scripts but some wrapper scripts need to be altered
-# based on the system (ie Solaris 10 vs 11), hence we need to modify the wrapper
-# and install it.
-sub install_solaris_custom_wrapper {
-   my $srcdir = shift;
-   my $srcname = shift;
-   my $destdir = shift;
-   my $destname = shift;
-   my $patchRef = shift;
-
-   # Create i86 and amd64 directories if necessary
-   create_dir($destdir . '/i86', $cFlagDirectoryMark);
-   create_dir($destdir . '/amd64', $cFlagDirectoryMark);
-
-   install_file($srcdir . '/i86/' . $srcname,
-                $destdir . '/i86/' . $destname,
-                $patchRef, 0);
-   install_file($srcdir . '/amd64/' . $srcname,
-                $destdir . '/amd64/' . $destname,
-                $patchRef, 0);
-
-   # Try to install a hard link to /usr/lib/isaexec.  If that doesn't work, we
-   # copy isaexec to $linkdir and create a hard link to that one.
-   if (install_hardlink('/usr/lib/isaexec', $destdir . '/' . $destname) eq 'no') {
-      my $isaexec = $destdir . '/isaexec';
-      system(shell_string($gHelper{'cp'}) . ' /usr/lib/isaexec ' . $isaexec);
-      db_add_file($isaexec, 0);
-      install_hardlink($isaexec, $destdir . '/' . $destname);
    }
 }
 
@@ -5544,6 +4491,37 @@ sub module_error {
         . 'unsup-linux-products" and "http://www.vmware.com/go/'
         . 'unsup-linux-tools".' . "\n\n");
 }
+
+
+# OS-independent method of loading a kernel module by object path
+# Returns true (non-zero) if the operation succeeded, false otherwise.
+sub kmod_load_by_path {
+    my $modpath = shift; # IN: Path to module object file
+    my $doSilent = shift; # IN: Flag to indicate whether loading should be done silently
+    my $doForce = shift; # IN: Flag to indicate whether loading should be forced
+    my $probe = shift; # IN: 1 if to probe only, 0 if to actually load
+
+    my $silencer = '';
+    if (defined($doSilent) && $doSilent) {
+   $silencer = ' >/dev/null 2>&1';
+    }
+
+    if (defined($gHelper{'insmod'})) { # Linux
+   return !system(shell_string($gHelper{'insmod'}) . ($probe ? ' -p ' : ' ')
+             . ((defined($doForce) && $doForce) ? ' -f ' : ' ')
+             . shell_string($modpath)
+             . $silencer);
+    } elsif (defined($gHelper{'kldload'})) { # FreeBSD
+   return !system(shell_string($gHelper{'kldload'}) . ' ' . shell_string($modpath)
+             . $silencer);
+    } elsif (defined($gHelper{'modload'})) { # Solaris
+   return !system(shell_string($gHelper{'modload'}) . ' ' . shell_string($modpath)
+             . $silencer);
+    }
+
+    return 0; # Failure
+}
+
 
 # Install a module if it suitable
 # Return 1 if success, 0 if failure
@@ -6126,6 +5104,30 @@ sub getValidGccPath {
   return $gcc_path;
 }
 
+##
+# getKernRel
+#
+# Returns the release of the kernel in question.  Defaults to the
+# running kernel unless the user has set the --kernel-version option.
+#
+sub getKernRel {
+   if ($gOption{'kernel_version'} ne '') {
+      return $gOption{'kernel_version'};
+   } else {
+      return $gSystem{'uts_release'};
+   }
+}
+
+#
+# returns the release of the kernel in question like getKernRel()
+# but as an integer (useful for comparisons)
+#
+
+sub getKernRelInteger {
+   my ($version, $patchLevel, $subLevel) = split(/\./, getKernRel());
+   ($subLevel) = split(/[^0-9]/, $subLevel);
+   return kernel_version_integer($version, $patchLevel, $subLevel);
+}
 
 #
 # Will either return a valid path to the kernel headers or will return
@@ -6176,15 +5178,25 @@ sub getValidKernelHeadersPath {
 #
 sub compile_module_linux {
   my $moduleName = shift;
-  my $modconfig = shift;
   my $moduleDest = shift;
   my $destName = shift;
-  my $appLoaderArgs = shift;
+  my $libdir = db_get_answer('LIBDIR');
+  my $libsbindir = $libdir . (is64BitUserLand() ? '/sbin64' : '/sbin32');
+  my $modconfig;
+  my $appLoaderArgs;
   my $makePath;
   my $msg;
 
   # Handle the --kernel_version flag
   my $mcKverOpt = "-k " . getKernRel();
+
+  if ($useApploader) {
+    $modconfig = shell_string($libsbindir . '/vmware-modconfig-console');
+    $appLoaderArgs = "-- -l \"$libdir\"";
+  } else {
+    $modconfig = 'VMWARE_USE_SHIPPED_GTK=yes ' .
+      shell_string($libsbindir . '/vmware-modconfig-console-wrapper');
+  }
 
   if ($gFirstModuleBuild == 1) {
     $gFirstModuleBuild = 0;
@@ -6267,6 +5279,7 @@ sub compile_module_linux {
 			   shell_string($gKernelHeaders),
                            $moduleDest,
 			   $destName)) != 0) {
+      set_module_status($moduleName, 'installed');
       return 'yes';
     }
   }
@@ -6274,48 +5287,83 @@ sub compile_module_linux {
   return 'no';
 }
 
+##
+# getModDBKey
+#
+# Creates and returns the DB key for a module based on a little
+# system information
+#
+sub getModDBKey {
+   my $modName = shift;
+   my $tag = shift;
+   my $kernel = getKernRel();
+
+   # Remove non alpha-numeric characters
+   $kernel =~ s/[\.\-\+]//g;
+   my $key = join('_', uc($modName), $kernel, $tag);
+
+   return $key;
+}
+
+sub make_modconfig_command {
+  my $arg = shift;
+  my $libdir = db_get_answer('LIBDIR');
+  my $libsbindir = $libdir . (is64BitUserLand() ? '/sbin64' : '/sbin32');
+  my $modconfig = '';
+  my $appLoaderArgs = '';
+
+  if ($arg ne '') {
+    $arg = ' ' . $arg;
+  }
+
+  if ($useApploader) {
+    $modconfig = shell_string($libsbindir . '/vmware-modconfig-console')
+    . $arg . " -- -l \"$libdir\"";
+  } else {
+    $modconfig = 'VMWARE_USE_SHIPPED_GTK=yes ' .
+      shell_string($libsbindir . '/vmware-modconfig-console-wrapper')
+      . $arg;
+  }
+  return $modconfig;
+}
+
 # Configure a module for Linux using vmware-modconfig-console
 sub configure_module_linux {
   my $name = shift;
   my $gcc_path;
   my $kernel_headers;
-  my $is64BitUserland = is64BitUserLand();
-  my $libdir = db_get_answer('LIBDIR');
-  my $libsbindir = $libdir . ($is64BitUserland ? '/sbin64' : '/sbin32');
-  my $modconfig = '';
-  my $appLoaderArgs = '';
   my $result = 'no';
   my $modDest = get_module_install_dest($name);
   my $destName = get_module_name($name);
-
-  if ($useApploader) {
-    $modconfig = shell_string($libsbindir . '/vmware-modconfig-console');
-    $appLoaderArgs = "-- -l \"$libdir\"";
-  } else {
-    $modconfig = 'VMWARE_USE_SHIPPED_GTK=yes ' .
-      shell_string($libsbindir . '/vmware-modconfig-console-wrapper');
-  }
+  my $libdir = db_get_answer('LIBDIR');
 
   # First check to see if a PBM is available.  If so, try to install it.
   #
   # Note that there is a check earlier on to ensure that prebuilt and compile
   # are mutually exclusive options.
   if ($gOption{'compile'} == 0 and
-      system("$modconfig --pbm-available $name $appLoaderArgs") == 0) {
+      system(make_modconfig_command("--pbm-available $name")) == 0) {
      print wrap("Found a compatible pre-built module for $name.  " .
                 "Installing it...\n\n",0);
 
-     if (system("$modconfig --install-pbm $name $modDest " .
-                "$destName $appLoaderArgs") != 0) {
+     if (system(make_modconfig_command("--install-pbm $name $modDest $destName")) != 0) {
         print wrap("Failed to install the $name pre-built module.\n\n",0);
         $result = 'no';
      } else {
+        set_module_status($name, 'installed');
         $result = 'yes';
      }
   } elsif ($gOption{'prebuilt'} == 0) {
     # Otherwise try to compile it.
-    $result = compile_module_linux($name, $modconfig, $modDest,
-				   $destName, $appLoaderArgs);
+    $result = compile_module_linux($name, $modDest, $destName);
+
+  }
+
+  # modconfig will create this dir, but we want it in the database:
+  # correct would be to add it in modconfig, but modconfig cannot add
+  # directories w/out additional changes.
+  if ( -d $libdir . '/symvers') {
+    db_add_dir($libdir . '/symvers')
   }
 
   # Because our modules can now change names, we need to maintain some
@@ -6435,24 +5483,6 @@ sub solaris_driver_configured {
   return 'no';
 }
 
-sub solaris_module_id {
-   my $module=shift;
-   my $moduleId=undef;
-
-   # tail +2 skips the header line (why is it not +1?)
-   open(MODINFO, 'modinfo | tail +2 |');
-   while (<MODINFO>) {
-     s/^\ +//;
-     my @modinfo = split(/[ ]+/, $_);
-     if ($module eq $modinfo[5]) {
-        $moduleId=$modinfo[0];
-     }
-   }
-   close(MODINFO);
-
-   return $moduleId;
-}
-
 sub solaris_os_version {
   my $solVersion = direct_command(shell_string($gHelper{'uname'}) . ' -r');
   chomp($solVersion);
@@ -6466,15 +5496,33 @@ sub solaris_os_name {
   return  $solName;
 }
 
+sub solaris_release {
+  # typically first line in /etc/release looks like this:
+  #             Solaris 10 10/09 s10x_u8wos_08a X86
+  open(RELEASE, '</etc/release') || return '';
+  <RELEASE> =~ /Solaris\ +\d+\ +(\d+\/\d+)/;
+  close(RELEASE);
+  return $1;
+}
+
+sub solaris_11_or_greater {
+  my ($major, $minor) = solaris_os_version();
+
+  if ($major > 5 || ($major == 5 &&  $minor >= 11)) {
+    return 'yes';
+  }
+
+  return 'no';
+}
+
 sub solaris_10_or_greater {
-  my $answer = 'no';
   my ($major, $minor) = solaris_os_version();
 
   if ($major > 5 || ($major == 5 &&  $minor >= 10)) {
-    $answer = 'yes';
+    return 'yes';
   }
 
-  return $answer;
+  return 'no';
 }
 
 sub solaris_is_opensolaris {
@@ -6495,15 +5543,17 @@ sub configure_module_solaris {
   my $dir = db_get_answer('LIBDIR') . '/modules/binary/';
   my ($major, $minor) = solaris_os_version();
   my $os_name = solaris_os_name();
+  my $release = solaris_release();
   my $osDir;
   my $osFlavorDir;
-  my $currentMinor = 10;   # The most recent version we build the drivers for
+  my $currentMinor = 11;   # The most recent version we build the drivers for
 
   if (solaris_10_or_greater() ne "yes") {
     print "VMware Tools for Solaris is only available for Solaris 10 and later.\n";
     return 'no';
   }
 
+  # set osDir to number no larger than currentMinor:
   if ($minor < $currentMinor) {
     $osDir = $minor;
   } else {
@@ -6522,6 +5572,12 @@ sub configure_module_solaris {
        # On Solaris 11 kernel thread structure changed to we need to
        # use driver compiled for official Solaris 11
        $osDir = $minor;
+    }
+
+    if ($release eq '1/06') {
+       # no vmmemctl for Solaris 10u1
+       db_add_answer('VMMEMCTL_CONFED', 'no');
+       return 'yes';
     }
 
     # Install the corresponding 32-bit driver
@@ -6588,7 +5644,7 @@ sub configure_module_solaris {
     # Remove pcn's hold on "pci1022,2000".
     # Note that it's okay if this fails since the module can't be removed;
     # /etc/driver_aliases will still be updated and the change will take
-    # affect on reboot.
+    # effect on reboot.
     system(shell_string($gHelper{'update_drv'}) . ' -d -i \'"pci1022,2000"\' '
                         . 'pcn >/dev/null 2>&1');
 
@@ -6630,6 +5686,7 @@ sub configure_module_solaris {
 
   if ($module eq 'vmxnet3s') {
     my $result = 'no';
+    my $options = '';
 
     # First copy vmxnet3s.conf to /kernel/drv/
     undef %patch;
@@ -6645,39 +5702,20 @@ sub configure_module_solaris {
     install_file($dir . $osFlavorDir . '_64/vmxnet3s',
                  '/kernel/drv/amd64/vmxnet3s',
                  \%patch, $cFlagTimestamp);
+
+    unless(solaris_11_or_greater() eq 'yes') {
+      # In Solaris 11, the -n option leaves the driver in a bad state, and
+      # devfsadm will not rescue it. See bug #849803.
+      $options = ' -n';
+    }
     # Check if the module is already configured, otherwise run add_drv
     if (solaris_driver_configured('vmxnet3s', 'pci15ad,7b0') eq 'no') {
-      system(shell_string($gHelper{'add_drv'}) . ' -n -m \'* 0600 root sys\''
+      system(shell_string($gHelper{'add_drv'}) . $options . ' -m \'* 0600 root sys\''
              . ' -i \'"pci15ad,7b0"\' vmxnet3s >/dev/null 2>&1');
     }
     $result = 'yes';
 
     db_add_answer('VMXNET3S_CONFED', $result);
-    return $result;
-  }
-
-  if ($module eq 'vmci') {
-    my $result = 'no';
-
-    # Install the corresponding 32-bit driver
-    undef %patch;
-    install_file($dir . $osDir . '/vmci.conf',
-                 '/kernel/drv/vmci.conf', \%patch, $cFlagTimestamp);
-    undef %patch;
-    install_file($dir . $osDir . '/vmci',
-                 '/kernel/drv/vmci', \%patch, $cFlagTimestamp);
-
-    # Also install the 64-bit version
-    undef %patch;
-    install_file($dir . $osDir . '_64/vmci',
-                 '/kernel/drv/amd64/vmci', \%patch, $cFlagTimestamp);
-
-    if (solaris_driver_configured('vmci', '') eq 'no') {
-        system(shell_string($gHelper{'add_drv'}) . ' vmci >/dev/null 2>&1');
-    }
-    $result = 'yes';
-
-    db_add_answer('VMCI_CONFED', $result);
     return $result;
   }
 
@@ -6710,6 +5748,7 @@ sub migrate_network_files {
     }
 }
 
+
 sub configure_module_bsd {
   my $module = shift;
   my %patch;
@@ -6720,7 +5759,9 @@ sub configure_module_bsd {
   my $freeBSDVersion = getFreeBSDVersion();
   my $moduleVersion = '0.0';
 
-  if (dot_version_compare("$freeBSDVersion", '9.0') >= 0) {
+  if (dot_version_compare("$freeBSDVersion", '10.0') >= 0) {
+    $moduleVersion = '10.0';
+  } elsif (dot_version_compare("$freeBSDVersion", '9.0') >= 0) {
     $moduleVersion = '9.0';
   } elsif (dot_version_compare("$freeBSDVersion", '8.1') >= 0) {
     $moduleVersion = '8.1';
@@ -6777,7 +5818,7 @@ sub configure_module_bsd {
     }
     db_add_answer('VMXNET_CONFED', $moduleConfed);
   } elsif ($module eq 'vmxnet3' && ($moduleVersion eq '8.0' || $moduleVersion eq '8.1'
-     || $moduleVersion eq '9.0')) {
+     || $moduleVersion eq '9.0' || $moduleVersion eq '10.0')) {
     undef %patch;
     install_file($dir . $moduleVersion . '-' . $moduleArch . '/vmxnet3.ko',
 		 $BSDModPath . '/vmxnet3.ko',
@@ -6805,11 +5846,17 @@ sub configure_module_bsd {
     $moduleConfed = 'yes';
     db_add_answer('VMHGFS_CONFED', $moduleConfed);
   } elsif ($module eq 'vmblock') {
-    undef %patch;
-    install_file($dir . $moduleVersion . '-' . $moduleArch . '/vmblock.ko',
-		 $BSDModPath . '/vmblock.ko',
-		 \%patch, $cFlagTimestamp);
-    $moduleConfed = 'yes';
+
+    if (dot_version_compare("$freeBSDVersion", '9.1') >= 0) {
+      print wrap("vmblock is not supported for FreeBSD 9.1 and above.\n");
+      $moduleConfed = 'no';
+    } else {
+      undef %patch;
+      install_file($dir . $moduleVersion . '-' . $moduleArch . '/vmblock.ko',
+                   $BSDModPath . '/vmblock.ko',
+                   \%patch, $cFlagTimestamp);
+      $moduleConfed = 'yes';
+    }
     db_add_answer('VMBLOCK_CONFED', $moduleConfed);
   }
   return $moduleConfed;
@@ -7148,6 +6195,7 @@ sub configure_pp {
 # Configuration of the vmmemctl tools device
 sub configure_vmmemctl {
   my $result;
+
   if (vmware_product() eq 'tools-for-freebsd') {
     $result = configure_module_bsd('vmmemctl');
   } elsif (vmware_product() eq 'tools-for-solaris') {
@@ -7177,21 +6225,51 @@ sub configure_vmmemctl {
   }
 }
 
+
+##
+# is_esx_virt_env
+#
+# Returns true if the VM is runing in an ESX virtual environment,
+# false otherwise.
+# @returns - 1 (true) if in ESX, 0 (false) otherwise
+#
+sub is_esx_virt_env {
+   my $ans = 0;
+   my $sbinDir = db_get_answer('SBINDIR');
+   my $checkvm = vmware_check_vm_app_name();
+
+   if (-x $checkvm) {
+      my $output = `$checkvm -p 2>&1`;
+      $ans = 1 if ($output =~ m/ESX Server/);
+   }
+
+   return $ans;
+}
+
+
+##
+# disable_module
+#
+# Sets the appropriate flags to disable the module.
+# @returns - Nothing useful.
+#
+sub disable_module {
+   my $mod = shift;
+
+   set_manifest_component("$mod", 'FALSE');
+   db_add_answer(uc("$mod") . '_CONFED', 'no');
+
+   return;
+}
+
+
 # Configuration of the vmhgfs tools device
 sub configure_vmhgfs {
-  # vmhgfs is supported only since 2.4.0 Linux kernels, Solaris 10, and FreeBSD 6.0
-  if (   (   vmware_product() eq 'tools-for-linux'
-	     && $gSystem{'uts_release'} =~ /^(\d+)\.(\d+)/
-	     && $1 * 1000 + $2 >= 2004)
-	 || (   vmware_product() eq 'tools-for-solaris'
-		&& solaris_10_or_greater())
+  # vmhgfs is supported only since 2.4.0 Linux kernels and Solaris 10 and up
+  if ((vmware_product() eq 'tools-for-linux'
+       && $gSystem{'version_integer'} >= kernel_version_integer(2, 4, 0))
+      || (vmware_product() eq 'tools-for-solaris' && solaris_10_or_greater())
      ) {
-    # Add a version check here for FreeBSD
-    # The check is also NOT in at the moment, as the FreeBSD
-    # driver is not yet ready for prime time, and not being built.
-    # this is the line that will need to be uncommented, as well as
-    # a version check added when it is ready to be added.
-    # CODE -> || (   vmware_product() eq 'tools-for-freebsd') && <BSD Version Check Here>) {
 
     # By default we don't want HGFS installed in guests runnning on ESX virtual environments
     # since its useless there.  However we want HGFS to be installed by default on VMs
@@ -7201,13 +6279,6 @@ sub configure_vmhgfs {
     my $hgfsQ = 'The VMware Host-Guest Filesystem allows for shared folders between the ' .
                 'host OS and the guest OS in a Fusion or Workstation virtual environment.  ' .
                 'Do you wish to enable this feature?';
-
-    # Moved the FreeBSD question up here so we don't ask an equivilent question twice.
-    # Still experimental on FreeBSD.
-    if (vmware_product() eq 'tools-for-freebsd') {
-        $hgfsQ = '[EXPERIMENTAL] ' . $hgfsQ;
-        $defAns = 'no';
-    }
 
     if (get_persistent_answer($hgfsQ, 'ENABLE_HGFS', 'yesno', $defAns) eq 'no') {
        # Then disable HGFS.
@@ -7219,17 +6290,13 @@ sub configure_vmhgfs {
     my $dispInstallMsg = 1;
     if (vmware_product() eq 'tools-for-linux') {
       if (mod_pre_install_check('vmhgfs') eq 'yes') {
-         # vmhgfs now depends on vmci.  Check to ensure it's configured.
-         if (defined(db_get_answer_if_exists('VMCI_CONFED')) &&
-             db_get_answer('VMCI_CONFED') ne 'yes') {
-            return 1;
-         }
          if (create_dir('/mnt/hgfs', $cFlagDirectoryMark | $cFlagFailureOK)
              != $cCreateDirFailure) {
             $result = configure_module('vmhgfs');
          } else {
             $result = 'no';
-            my $msg = "Could not create the '/mnt/hgfs' directory.\n";
+            my $msg = "Could not create the '/mnt/hgfs' directory.  Please make sure " .
+		"it is writeable and/or not currently in use.\n";
             print wrap($msg, 0);
          }
 
@@ -7249,15 +6316,6 @@ sub configure_vmhgfs {
       } else {
         $result = 'no';
         my $msg = "Could not create the '/hgfs' directory.\n";
-        print wrap($msg, 0);
-      }
-    } elsif (vmware_product() eq 'tools-for-freebsd') {
-      if (create_dir('/mnt/hgfs', $cFlagDirectoryMark | $cFlagFailureOK)
-          != $cCreateDirFailure) {
-	$result = configure_module_bsd('vmhgfs');
-      } else {
-        $result = 'no';
-        my $msg = "Could not create the '/mnt/hgfs' directory.\n";
         print wrap($msg, 0);
       }
     }
@@ -7308,8 +6366,7 @@ sub configure_vmxnet3 {
 sub configure_vmci {
   my $result = 'no';
 
-  if (!(isDesktopProduct() || isServerProduct() ||
-      vmware_product() eq 'tools-for-linux' )) {
+  if (!(isDesktopProduct() || vmware_product() eq 'tools-for-linux' )) {
     return undef;
   }
 
@@ -7340,7 +6397,9 @@ sub configure_vsock {
      # we no longer need to load the vmci modules as it is handled automatically
      # by modconfig.
      if (vmware_product() ne 'tools-for-linux') {
-       if (defined(db_get_answer_if_exists('VMCI_CONFED')) &&
+       if ( ($gInstallStatus{'vmci'} ne 'other') &&
+            ($gInstallStatus{'vmci'} ne 'builtin') &&
+           defined(db_get_answer_if_exists('VMCI_CONFED')) &&
            db_get_answer('VMCI_CONFED') ne 'yes') {
 	  return 1;
        }
@@ -7391,44 +6450,17 @@ sub configure_pvscsi {
    module_post_configure('pvscsi', $result);
 }
 
-# Configuration related to vmwgfx
-sub configure_vmwgfx {
-  my $udev_file = db_get_answer('LIBDIR') . '/configurator/udev/00-vmwgfx.rules';
-  my $result = 'no';
-
-  $result = mod_pre_install_check('vmwgfx');
-  if ($result eq 'yes') {
-     $result = configure_module('vmwgfx');
-     if ($result eq 'yes') {
-	 installUdevRule($udev_file);
-         system(db_get_answer('INITSCRIPTSDIR') .  '/udev restart > /dev/null 2>&1');
-         # vmwgfx is loaded by /etc/modules. If it is loaded by the initrd, it
-         # conflicts with the initrd splash code. If it is loaded by
-         # /etc/init.d/vmware-tools it conflicts with X starting to early on some
-         # systems (Ubuntu starts X in rcS). By using /etc/modules, vmwgfx is loaded
-         # after the initrd splash and before rcS.
-         if (not block_match('/etc/modules', 'vmwgfx')) {
-        block_append('/etc/modules',
-                $cMarkerBegin,
-                'vmwgfx force_stealth=1' . "\n",
-                $cMarkerEnd);
-         }
-         configure_compiz_wrapper_whitelist();
-     } else {
-         query('Unable to compile the vmwgfx module. '
-	       . 'If you wish to have the vmwgfx feature,'
-	       . $cModulesBuildEnv
-	       . "\n", ' Press Enter key to continue ', 0);
-     }
-  }
-  module_post_configure('vmwgfx', $result);
-}
 
 sub configure_vmsync {
    my $result = 'no';
 
+   # vmsync is available on on kernels greater than or equal to 2.6.6 and
+   # unnecessary from 2.6.29 and later thanks to FIFREEZE/FITHAW IOCTLs
+   # (we will keep it for up thru 2.6.31 to be safe/consistent with some
+   # of the upstreamed drivers)
    if (mod_pre_install_check('vmsync') eq 'yes' and
-       $gSystem{'version_integer'} >= kernel_version_integer(2, 6, 6) ) {
+       $gSystem{'version_integer'} >= kernel_version_integer(2, 6, 6) and
+       $gSystem{'version_integer'} < kernel_version_integer(2, 6, 32)) {
       if (get_persistent_answer(
                      'The VMware FileSystem Sync Driver '
                    . '(vmsync) allows external third-party backup software '
@@ -7452,57 +6484,6 @@ sub configure_vmsync {
    module_post_configure('vmsync', $result);
 }
 
-
-#
-# In $infile, look for a line defining $var and append the contents of $content to
-# the list, making sure not to add duplicates. If no match on $var is found, then
-# "$var = $content" is added to the end of $infile.
-#
-# This is probably best explained with an example:
-# $outfile = '/etc/foo.conf'
-# $var = 'drivers'
-# $content = 'vmwgfx foo vmxnet'
-#
-# Calling the function with the above parameters will find a line like:
-#   drivers = 'foo bar baz'
-# and transform it into:
-#   drivers = 'foo bar baz vmwgfx vmxnet'
-#
-sub add_to_list_variable {
-   my $infile = shift;
-   my $outfile = shift;
-   my $var = shift;
-   my $content = shift;
-   my $regexpat = '^\s*' . $var . '\s*=\s*\"(.+)\"\s*$';
-   my $added_content = 0;
-   if (open(IN, $infile) && open(OUT, ">$outfile")) {
-      while (<IN>) {
-         # Don't match commented $var lines.
-         if (/$regexpat/) {
-            $var = "$var=\"$1";  # we add the terminating quote later
-            # $content is the space-separated list of strings.
-            # Check each string against the existing list in the file
-            # before adding it, so as to avoid duplicates.
-            foreach my $string (split(' ', $content)) {
-               next if ($var =~ m/\b$string\b/);
-               $var .= " $string";
-            }
-            $var .= "\"";                # terminating quote
-            print OUT $var, "\n";
-            $added_content = 1;
-         } else {
-            print OUT $_;
-         }
-      }
-      if (!$added_content) {
-         # If there were no drivers, add them now
-         $var = "$var=\"$content\"";
-         print OUT $var, "\n";
-      }
-      close OUT;
-      close IN;
-   }
-}
 
 #
 # Configure dracut, Fedora (12+)'s and RHEL 6(+?)'s initrd creation
@@ -7584,26 +6565,6 @@ sub configure_initrd_suse {
 }
 
 
-
-#
-# On some distributions, /usr/bin/compiz is a shell script and had a whitelist
-# of drivers. In that case, add vmwgfx to the list.
-#
-sub configure_compiz_wrapper_whitelist {
-    my $compizfile = '/usr/bin/compiz';
-    my $magicnumber;
-    if (-e $compizfile && open(IN, $compizfile)) {
-	binmode(IN);
-	read(IN, $magicnumber, 2, 0);
-    }
-    if ($magicnumber eq '#!') {
-	backup_file_to_restore($compizfile, 'COMPIZ_WRAPPER');
-	add_to_list_variable($compizfile . $cBackupExtension, $compizfile, 'WHITELIST',
-			     'vmwgfx');
-	safe_chmod(0755, $compizfile);
-    }
-}
-
 #
 # Post configuration steps common to every module
 #
@@ -7616,8 +6577,37 @@ sub module_post_configure {
   }
 
   db_add_answer(uc("$mod") . '_CONFED', $result);
-  module_ramdisk_check("$mod");
+
+  if (vmware_product() eq 'tools-for-linux') {
+     module_ramdisk_check("$mod");
+  }
 }
+
+
+##
+# addEntDBList
+#
+# Adds an entry to a list within the DB.  This function also removes
+# duplicate entries from the list.
+#
+sub addEntDBList {
+   my $dbKey = shift;
+   my $ent = shift;
+
+   if (not defined $dbKey or $dbKey eq '') {
+      error("Bad dbKey value in addEntDBList.\n");
+   }
+
+   if ($ent =~ m/,/) {
+      error("New list entry cannot contain commas.\n");
+   }
+
+   my $list = db_get_answer_if_exists($dbKey);
+   my $newList = $list ? join(',', $list, $ent) : $ent;
+   $newList = removeDuplicateEntries($newList, ',');
+   db_add_answer($dbKey, $newList);
+}
+
 
 #
 # Update or replace the kernel's boot ramfs so that certain vmware drivers
@@ -7666,9 +6656,9 @@ sub configure_kernel_initrd {
     chop($content);
     my $image_file = "/boot/initramfs-" . $kernRel . ".img";
     $syscmd = join(' ', $binary, '--force', '--add-drivers', "\"$content\"",
-                   $image_file, '>/dev/null 2>&1');
+                   $image_file, $kernRel,'>/dev/null 2>&1');
     db_add_answer('RESTORE_RAMDISK_CMD', join(' ', $binary, '--force',
-                                          '/boot/initramfs-KREL.img'));
+                                          '/boot/initramfs-KREL.img', 'KREL'));
     addEntDBList('RESTORE_RAMDISK_KERNELS', $kernRel);
   } elsif (internal_which('mkinitrd') ne '') {
     $binary = internal_which('mkinitrd');
@@ -7863,38 +6853,35 @@ sub configure_updatedb {
    return addTextToKVEntryInFile($file, $regex, $delim, $entry);
 }
 
+my %pci_hash = (
+   '10222000' => 'pcnet32',
+   '15ad0720' => 'vmxnet',
+   '15ad07b0' => 'vmxnet3',
+   '15ad07c0' => 'pvscsi',
+   '12741371' => 'es1371'
+);
 
-# Enumerate devices we are interested on. Returns array of 3 elements:
-# 1. number of vmxnet adapters
-# 2. number of pcnet32 adapters
-# 3. number of es1371 adapters
-# We do not attempt to find ISA vlance or sb.
 sub get_devices_list {
-  my ($vmxnet, $pcnet32, $es1371) = (0, 0, 0);
-  my $line;
+   my $line;
+   my $k;
+   my %dev_counts = ();
 
-  # Per bug #41349 the lspci version provided by Mandrake has unwanted
-  # interaction with the sound device. The alternate lspcidrake tool
-  # works fine but it unnecessarily complicates the configuration script.
-  # Using /proc/bus/pci/devices instead of the output of lspci/lspcidrake
-  # is consistent on all supported distributions.
-  if (open PCI, '</proc/bus/pci/devices') {
-    while (defined($line = <PCI>)) {
+   foreach $k (keys %pci_hash) {
+      $dev_counts{$pci_hash{$k}} = 0;
+   }
+
+   open (PCI, '</proc/bus/pci/devices') or return undef;
+   while (defined($line = <PCI>)) {
       $line = lc($line);
       if ($line =~ /^[0-9a-f]*\t([0-9a-f]*)\t/) {
-        my $dev = $1;
-        if ($dev eq '10222000') {
-          $pcnet32++;
-        } elsif ($dev eq '15ad0720') {
-          $vmxnet++;
-        } elsif ($dev eq '12741371') {
-          $es1371++;
-        }
+         my $name = $pci_hash{$1};
+         if ($name and defined($dev_counts{$name})) {
+            $dev_counts{$name}++;
+         }
       }
-    }
-    close PCI;
-  }
-  return ($vmxnet, $pcnet32, $es1371);
+   }
+   close PCI;
+   return \%dev_counts;
 }
 
 # Configuration of drivers for PCI devices
@@ -7903,6 +6890,20 @@ sub write_module_config {
   my $result;
 
   if (vmware_product() ne 'tools-for-linux') {
+    return;
+  }
+
+  # PR 848092 -
+  # We special case the vmxnet driver - since we do not support this NIC on
+  # Linux kernels > 3.2, we don't even want to allow the user to clobber.
+  # Just return (with message) in all cases where kernel > 3.2
+  if ($gSystem{'version_integer'} >= kernel_version_integer(3,3,0)) {
+    print wrap("The vmxnet driver is no longer supported on kernels " .
+        "3.3 and greater. Please upgrade to a newer virtual NIC. " .
+        "(e.g., vmxnet3 or e1000e)\n\n", 0);
+
+    db_add_answer('VMXNET_CONFED', 'no');
+
     return;
   }
 
@@ -8122,6 +7123,18 @@ sub path_compare {
   }
 }
 
+# like readlink(), but return the filename
+# when it's not actually a link:
+# if file is a directory, make sure to pass it w/out trailing slash.
+sub linkdest {
+  my $file = shift;
+  my $dest = readlink($file);
+  if(defined $dest) {
+    return $dest;
+  }
+  return $file;
+}
+
 # check_link
 # Checks that a given link is pointing to the given file.
 sub check_link {
@@ -8247,131 +7260,6 @@ sub split_X_version {
   return ($major, $minor, $sub);
 }
 
-# If the vmwgfx_drv.so driver exists, then attempt to install it.
-# If that installation succeeds, then also install vmwgfx_dri.so
-# and libexa.so. Return 1 if installation succeeded, 0 otherwise.
-sub configure_vmware_gfx_driver {
-   my $xorg_modules_dir = shift;
-   my $compat = shift;
-   my $result = 0;
-
-   my $xorg_libdir = db_get_answer('LIBDIR') . "/configurator/XOrg/7.$compat" . ($gIs64BitX ? '_64' : '');
-
-   # Identify where the vmwgfx_drv.so display driver lives
-   my $vmwgfx_drv = $xorg_libdir .  '/vmwgfx_drv.so';
-   my $vmwgfx_dri = $xorg_libdir . '/vmwgfx_dri.so';
-   my $libexa = $xorg_libdir . '/libexa.so';
-
-   if (-e $vmwgfx_drv && -e $vmwgfx_dri && -e $libexa &&
-      (vmware_product() eq 'tools-for-linux') &&
-      ($gOption{'install-vmwgfx'} == 1) &&
-      $gSystem{'version_integer'} >= kernel_version_integer(2, 6, 25) &&
-      (get_persistent_answer(
-        '[EXPERIMENTAL] The VMware Video Driver (vmwgfx) is '
-        . 'a new feature that enables graphical capabilities '
-        . 'such as Kernel Mode Setting (KMS) and RandR 1.2 '
-        . 'in virtual machines. '
-        . 'Please refer to the VMware Knowledge Base for more '
-        . 'details on this capability. Do you wish to enable '
-        . 'this feature?', 'XPRMNTL_VMWGFX',
-        'yesno', 'no') eq 'yes')) {
-
-      configure_vmwgfx();
-      if ((get_module_status("vmwgfx") ne 'not_installed' and
-           get_module_status("vmwgfx") ne 'compiled_in') &&
-         install_x_module($vmwgfx_drv, $xorg_modules_dir . '/drivers/vmwgfx_drv.so')) {
-
-         install_x_module_no_checks($vmwgfx_dri, '/usr/lib' . ($gIs64BitX ? '64' : '') . '/dri/vmwgfx_dri.so');
-         install_x_module_no_checks($libexa, $xorg_modules_dir . '/libexa.so');
-
-         # Find the libkms and libdrm used by the system and replace them.
-         my $libdrm = 'libdrm.so.2.4.0';
-         my $libkms = 'libkms.so.1.0.0';
-         my $is64BitUserLand = is64BitUserLand();
-         my $libdirname = db_get_answer('LIBDIR');
-         my $usrlibdir = '/usr/lib' . ($is64BitUserLand ? '64/' : '/');
-
-         my $dstDrm = findreqlib($vmwgfx_drv, $libdrm);
-         if (!defined($dstDrm)) { $dstDrm = $usrlibdir . $libdrm; }
-
-         my $dstKms = findreqlib($vmwgfx_drv, $libkms);
-         if (!defined($dstKms)) { $dstKms = $usrlibdir . $libkms; }
-
-         my $srcDir = $libdirname . '/lib/drm';
-         my $tmpDir = $libdirname . '/backupdir';
-         my %patch;
-         undef %patch;
-
-         safe_mkdir($tmpDir);
-         if ($dstDrm eq '') { $dstDrm = $usrlibdir . $libdrm; }
-         if ($dstKms eq '') { $dstKms = $usrlibdir . $libkms; }
-         backup_file_to_restore($dstDrm, 'LIBDRM', $tmpDir);
-         install_file($srcDir . '/' . $libdrm, $dstDrm, \%patch, $cFlagTimestamp);
-         backup_file_to_restore($dstKms, 'LIBKMD', $tmpDir);
-         install_file($srcDir . '/' . $libkms, $dstKms, \%patch, $cFlagTimestamp);
-         system('ldconfig &> /dev/null');
-
-         $result = 1;
-      }
-   }
-   return $result;
-}
-
-# findreqlib(objname, libname);
-#
-# Attempt to find the location of the shared library
-# $libname that dynamically-linked object $objname
-# requires.
-#
-# Returns the string path to the library, or undef
-# if no library is found.
-#
-# Consider the following ldd command and its output
-# (this is from openSuSE 11.3 m3):
-#
-# % ldd /usr/lib/vmware-tools/configurator/XOrg/7.6_64/vmwgfx_drv.so
-# ldd: warning: you do not have execution permission for `/usr/lib/vmware-tools/configurator/XOrg/7.6_64/vmwgfx_drv.so'
-# 	linux-vdso.so.1 =>  (0x00007fff9e586000)
-# 	libkms.so.1 => /usr/lib64/libkms.so.1 (0x00007f88cac42000)
-# 	libdrm.so.2 => /usr/lib64/libdrm.so.2 (0x00007f88caa37000)
-# 	libc.so.6 => /lib64/libc.so.6 (0x00007f88ca6d7000)
-# 	/lib64/ld-linux-x86-64.so.2 (0x00007f88cb13d000)
-# 	librt.so.1 => /lib64/librt.so.1 (0x00007f88ca4ce000)
-# 	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f88ca2b0000)
-#
-# For each line, look for $objname, and assume that when and if
-# we find it, it has the form:
-#
-# 	libkms.so.1 => /usr/lib64/libkms.so.1 (0x00007f88cac42000)
-#
-# Split this and take the 3rd substring (at index 2) as the
-# location of the library. Require it to be an absolute path.
-#
-# If any of this fails, return undef
-#
-sub findreqlib {
-   my $objname = shift;
-   my $libname = shift;
-
-   my @fields;
-   my $location = undef;
-   my $lddbin = shell_string($gHelper{'ldd'});
-
-   if (open(LDD, "$lddbin $objname 2>&1 |")) {
-      while (<LDD>) {
-         next if not m/$libname/;
-         @fields = split;
-      }
-      close LDD;
-
-      # Expect the location to be an absolute path.
-      # Anything else will be treated as "not found."
-      if (defined($fields[2]) && $fields[2] =~ m|^/|) {
-         $location = $fields[2];
-      }
-   }
-   return $location;
-}
 
 sub fix_X_link {
   my $x_version = shift;
@@ -8435,6 +7323,81 @@ sub fix_X_link {
   symlink_if_needed($x_server_file, $x_server_link_bin);
   set_uid_X_server($x_server_file);
 }
+
+
+# Checks for versioning information in both the system module
+# and the shipped module.  If it finds information in the sytem
+# module, it compares it against the version information of the
+# shipped module and will use whatever module is newer.
+# Returns 1 if it uses the shipped module (and 0 otherwise).
+sub install_x_module {
+  my $shippedMod = shift;
+  my $systemMod = shift;
+  my $modinfo = internal_which('modinfo');
+  my $shippedModVer = '';
+  my $systemModVer = '';
+  my $installShippedModule = 0;
+  my $line;
+
+  if (not -r $shippedMod) {
+    error("Could not read $shippedMod\n");
+  }
+
+  if ("$modinfo" ne '' and -r "$systemMod") {
+    open (SHIPPED_MOD_VER, "$modinfo $shippedMod |");
+    open (SYSTEM_MOD_VER, "$modinfo $systemMod |");
+
+    foreach $line (<SHIPPED_MOD_VER>) {
+      if ($line =~ /version: +([0-9\.]+)/) {
+        $shippedModVer = "$1";
+        last;
+      }
+    }
+    foreach $line (<SYSTEM_MOD_VER>) {
+      if ($line =~ /version: +([0-9\.]+)/) {
+        $systemModVer = "$1";
+        last;
+      }
+    }
+
+    close (SHIPPED_MOD_VER);
+    close (SYSTEM_MOD_VER);
+
+    chomp ($shippedModVer);
+    chomp ($systemModVer);
+
+    if ("$systemModVer" eq '' or
+   dot_version_compare ("$shippedModVer", "$systemModVer") > 0) {
+      # Then the shipped module is newer than sytem module.
+      $installShippedModule = 1;
+    }
+  } else {
+    # If it has no version, assume the one we ship is newer.
+    $installShippedModule = 1;
+  }
+
+  if ($gOption{'clobber-xorg-modules'} or $installShippedModule) {
+    install_x_module_no_checks($shippedMod, $systemMod);
+    return 1;
+  }
+  return 0;
+}
+
+
+sub install_x_module_no_checks {
+   my $shippedMod = shift;
+   my $systemMod = shift;
+   my %patch;
+   undef %patch;
+
+   # Ensure we have a unique backup suffix for this file.
+   # Also strip off anything sh wouldn't like.  Bug 502544
+   my $bkupExt = internal_basename($systemMod);
+   $bkupExt =~ s/^(\w+).*$/$1/;
+   backup_file_to_restore($systemMod, $bkupExt);
+   install_file ("$shippedMod", "$systemMod", \%patch, 1);
+}
+
 
 sub xorg {
   my $xconfig_path = '/etc/X11';
@@ -8648,7 +7611,7 @@ sub xorg {
               install_x_module($xorgModSrcDir32 . '/vmmouse_drv.so',
                                $xorgModsInputDir32 . '/vmmouse_drv.so');
               # For 2 and above on Solaris, vmware_drv.so is just a shim which
-              # loads vmwlegacy or vmwgfx, so we need to lay those down.
+              # loads vmwlegacy, so we need to lay those down.
               if ($compat >= 2) {
                  install_x_module($xorgModSrcDir32 . '/vmwlegacy_drv.so',
                                   $xorgModsDriverDir32 . '/vmwlegacy_drv.so');
@@ -8665,7 +7628,7 @@ sub xorg {
                  install_x_module($xorgModSrcDir64 . '/vmmouse_drv.so',
                                   $xorgModsInputDir64 .'/vmmouse_drv.so');
                  # For 2 and above on Solaris, vmware_drv.so is just a shim which
-                 # loads vmwlegacy or vmwgfx, so we need to lay those down.
+                 # loads vmwlegacy, so we need to lay those down.
                  if ($compat >= 2) {
                     install_x_module($xorgModSrcDir64 . '/vmwlegacy_drv.so',
                                      $xorgModsDriverDir64 . '/vmwlegacy_drv.so');
@@ -8678,13 +7641,12 @@ sub xorg {
                                $xorg_modules_dir . '/input/vmmouse_drv.so');
 
               # For minor >= 6 on FreeBSD and minor >= 0 on Linux, install vmwlegacy.
-              # vmware_drv.so is just a shim which loads vmwlegacy
-              # or vmwgfx, so we need to lay those down.
+              # vmware_drv.so is just a shim which loads vmwlegacy,
+              # so we need to lay those down.
               if ((vmware_product() eq 'tools-for-freebsd' && $compat >= 6) ||
                   (vmware_product() eq 'tools-for-linux')) {
                  install_x_module($xorgModSrcDir . '/vmwlegacy_drv.so',
                                   $xorg_modules_dir . '/drivers/vmwlegacy_drv.so');
-                 configure_vmware_gfx_driver($xorg_modules_dir, $compat);
               }
            }
         } else {
@@ -9157,7 +8119,7 @@ sub get_screen_mode {
   }
 
   ($width, $height) = split('x', $gSystem{'resolution'});
-  if ($gSystem{'resolution'} eq "0x0"  or $gSystem{'resolution'} eq "0 0") {
+  if ($gSystem{'resolution'} eq "0x0" or $gSystem{'resolution'} eq "0 0") {
     print wrap( "\n" .
                 "Unable to detect guest resolution.\n\n",
                 0);
@@ -9198,7 +8160,7 @@ sub get_screen_mode {
 
   $chosen_resolution = $cGOSResolutionOptions[$choice - 1];
   db_add_answer($cXPreviousResolution, $chosen_resolution);
-  return $chosen_resolution;
+  return $chosen_resolution; # need to enclose resolution in quotes
 }
 
 #
@@ -9795,7 +8757,7 @@ sub try_X_conf {
       return 0;
     }
   } else {
-    error('Can not fork: ' . "$!\n") unless defined $childPid;
+    error('Cannot fork: ' . "$!\n") unless defined $childPid;
     # Child code
     open STDERR, '>/dev/null';
     exec @xargs;
@@ -9935,10 +8897,10 @@ sub configure_X {
     $createNewXConf = 1;
   } elsif (not file_name_exist($xconfig_file) and $changeXConf) {
     if (get_answer("\n\n" . 'The configuration file ' . $xconfig_file
-                   . ' can not be found. Do you want to create a new'
+                   . ' cannot be found. Do you want to create a new'
                    . ' one? (yes/no)', 'yesno', 'yes') eq 'no') {
       print wrap ("\n\n" . 'The configuration file ' . $xconfig_file .
-                  ' can not be found. X configuration skipped.' . "\n\n", 0);
+                  ' cannot be found. X configuration skipped.' . "\n\n", 0);
       return 'no';
     }
     $createNewXConf = 1;
@@ -10157,11 +9119,11 @@ sub configure_thinprint {
 #
   my $srcSO = "$libdir/lib/libtpvmlp.so/libtpvmlp.so";
   foreach (qw(tpvmlpd2 tpvmgp)) {
-     my $tgtF = sprintf("lib%s.so", $_);
-     my $tgtD = sprintf("%s/lib/%s", $libdir, $tgtF);
-     my $tgt = sprintf("%s/%s", $tgtD, $tgtF);
+     my $tgtF = 'lib' . $_ . '.so';
+     my $tgtD = linkdest($libdir . '/lib') . '/' . $tgtF;
+     my $tgt = $tgtD . '/' . $tgtF;
      create_dir($tgtD, $cFlagDirectoryMark);
-     install_hardlink($srcSO, $tgt);
+     install_link(0, $srcSO, $tgt);
   }
 
   my @backends =  ("$cupsDir/tpvmlp", "$cupsDir/tpvmgp");
@@ -10232,12 +9194,14 @@ module tpvmlpcupsd 1.0;
 require {
    type var_lock_t;
    type cupsd_t;
+   type lib_t;
    class dir { getattr write read remove_name add_name search };
-   class file { getattr write read create unlink lock };
+   class file { getattr write read create unlink lock execute execute_no_trans };
 }
 
 allow cupsd_t var_lock_t:dir { getattr write read remove_name add_name search };
 allow cupsd_t var_lock_t:file { getattr write read create unlink lock };
+allow cupsd_t lib_t:file { execute execute_no_trans };
 EOF
         close TEFILE;
 
@@ -10266,6 +9230,16 @@ EOF
   db_add_answer('THINPRINT_CONFED', 'yes');
 }
 
+sub configure_vgauth{
+  my $question;
+
+  $question = 'Do you want to enable Guest Authentication (vgauth)?';
+
+  db_add_answer('ENABLE_VGAUTH',
+                get_persistent_answer($question, 'ENABLE_VGAUTH',
+                                      'yesno', 'yes') );
+
+}
 
 #
 # configure_autostart_xdg --
@@ -10654,82 +9628,6 @@ sub configure_autostart {
 }
 
 
-# Get a network name from the user
-sub get_network_name_answer {
-  my $vHubNr = shift;
-  my $default = shift;
-  get_persistent_answer('Please specify a name for this network.',
-                        'VNET_' . $vHubNr . '_NAME',
-                        'netname', $default);
-}
-
-# Configuration of bridged networking
-sub configure_bridged_net {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  my $answer;
-
-  if ($vHubNr < $gMinVmnet || $vHubNr > $gMaxVmnet) {
-    print wrap('Number of virtual networks exceeded.  Not creating virtual '
-               . 'network.' . "\n\n", 0);
-    return;
-  }
-
-  # If this wasn't a bridged network before, wipe out the old configuration
-  # info as it may confuse us later.
-  if (!is_bridged_network($vHubNr)) {
-    remove_net($vHubNr, $vHostIf);
-  }
-
-  print wrap('Configuring a bridged network for vmnet' . $vHubNr . '.'
-             . "\n\n", 0);
-
-  if (vmware_product() eq 'wgs') {
-     get_network_name_answer($vHubNr, 'Bridged');
-  }
-
-  if (count_all_networks() == 0 && $#gAllEthIf == -1) {
-    # No interface.  We provide a valid default so that everything works.
-    make_bridged_net($vHubNr, $vHostIf, "eth0");
-    return;
-  }
-
-  if ($#gAvailEthIf == 0) {
-    # Only one interface.  Use it.  This gives no choice even when the editor
-    # is being used.
-    make_bridged_net($vHubNr, $vHostIf,  $gAvailEthIf[0]);
-    return;
-  }
-
-  if ($#gAvailEthIf == -1) {
-    # We have other interfaces, but they have all been allocated.
-    if (get_answer('All your ethernet interfaces are already bridged.  Are '
-                   . 'you sure you want to configure a bridged ethernet '
-                   . 'interface for vmnet' . $vHubNr . '? (yes/no)',
-                   'yesno', 'no') eq 'no') {
-      print wrap('Not changing network settings for vmnet' . $vHubNr . '.'
-                 . "\n\n", 0);
-      return;
-    }
-    $answer = get_persistent_answer('Your computer has the following ethernet '
-                                    . 'devices: ' . join(', ', @gAllEthIf)
-                                    . '. Which one do you want to bridge to '
-                                    . 'vmnet' . $vHubNr . '?',
-                                    'VNET_' . $vHubNr . '_INTERFACE',
-                                    'anyethif', 'eth0');
-    make_bridged_net($vHubNr, $vHostIf, $answer);
-    return;
-  }
-
-  my $queryString = 'Your computer has multiple ethernet network interfaces '
-                    . 'available: ' . join(', ', @gAvailEthIf) . '. Which one '
-                    . 'do you want to bridge to vmnet' . $vHubNr . '?';
-  $answer = get_persistent_answer($queryString,
-                                  'VNET_' . $vHubNr . '_INTERFACE',
-                                  'availethif', 'eth0');
-  make_bridged_net($vHubNr, $vHostIf, $answer);
-}
-
 # Creates a bridged network.
 sub make_bridged_net {
   my $vHubNr = shift;
@@ -10750,126 +9648,6 @@ sub make_bridged_net {
   load_ethif_info();
 }
 
-# Probe for an unused private subnet
-# Return value is (status, subnet, netmask).
-#  status is 1 on success (subnet and netmask are set),
-#  status is 0 on failure.
-sub subnet_probe {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  # Ref to an array of used subnets
-  my $usedSubnets = shift;
-  my $i;
-  my @subnets;
-  my $tries;
-  my $maxTries = 100;
-  my $pings;
-  my $maxPings = 10;
-  # XXX We only consider class C subnets for the moment
-  my $netmask = '255.255.255.0';
-  my %used_subnets;
-
-  # Generate the table of private class C subnets
-  @subnets = ();
-  for ($i = 0; $i < 255; $i++) {
-    $subnets[2 * $i    ] = '192.168.' . $i . '.0';
-    $subnets[2 * $i + 1] = '172.16.'  . $i . '.0';
-  }
-
-  # Generate a list of used subnets and clear out the ones that have already
-  # been used
-  foreach $i (@$usedSubnets) {
-    $used_subnets{$i} = 1;
-  }
-  for ($i = 0; $i < $#subnets + 1; $i++) {
-    if ($used_subnets{$subnets[$i]}) {
-      $subnets[$i] = '';
-    }
-  }
-
-  print wrap('Probing for an unused private subnet (this can take some '
-             . 'time)...' . "\n\n", 0);
-  $tries = 0;
-  $pings = 0;
-  srand(time);
-  # Beware, 'last' doesn't seem to work in 'do'-'while' loops
-  for (;;) {
-    my $r;
-    my $subnet;
-    my $status;
-
-    $tries++;
-
-    $r = int(rand($#subnets + 1));
-    if ($subnets[$r] eq '') {
-      # Already tried
-      if ($tries == $maxTries) {
-        print STDERR wrap('We were unable to locate an unused Class C subnet '
-                          . 'in the range of private network numbers.  For '
-                          . 'each subnet that we tried we received a response '
-                          . 'to our ICMP ping packets from a ' . $machine
-                          . ' at the network address intended for assignment '
-                          . 'to this machine.  Because no private subnet '
-                          . 'appears to be unused you will need to explicitly '
-                          . 'specify a network number by hand.' . "\n\n", 0);
-        return (0, undef, undef);
-      }
-      next;
-    }
-    $subnet = $subnets[$r];
-    $subnets[$r] = '';
-
-    # Do a broadcast ping for <subnet>.255 .
-    $status = system(shell_string(db_get_answer('BINDIR') . '/vmware-ping')
-                     . ' -q ' . ' -b '
-                     . shell_string(int_to_quaddot(quaddot_to_int($subnet)
-                                                   + 255))) >> 8;
-
-    if ($status == 1) {
-      # Some OSes are configured to ignore broadcast ping,
-      # so we ping <subnet>.1 .
-      $status = system(shell_string(db_get_answer('BINDIR') . '/vmware-ping')
-                       . ' -q '
-                       . shell_string(int_to_quaddot(quaddot_to_int($subnet)
-                                                   + 1))) >> 8;
-      if ($status == 1) {
-        print wrap('The subnet ' . $subnet . '/' . $netmask . ' appears to be '
-                   . 'unused.' . "\n\n", 0);
-        return (1, $subnet, $netmask);
-      }
-    }
-
-    if ($status == 3) {
-      print STDERR wrap('We were unable to locate an unused Class C subnet in '
-                        . 'the range of private network numbers.  You will '
-                        . 'need to explicitly specify a network number by '
-                        . 'hand.' . "\n\n", 0);
-      return (0, undef, undef);
-    }
-
-    if ($status == 2) {
-      print STDERR wrap('Either your ' . $machine . ' is not connected to an '
-                        . 'IP network, or its network configuration does not '
-                        . 'specify a default IP route.  Consequently, the '
-                        . 'subnet ' . $subnet . '/' . $netmask . ' appears to '
-                        . 'be unused.' . "\n\n", 0);
-      return (1, $subnet, $netmask);
-    }
-
-    $pings++;
-    if (($pings == $maxPings) || ($tries == $maxTries)) {
-      print STDERR wrap('We were unable to locate an unused Class C subnet in '
-                        . 'the range of private network numbers.  For each '
-                        . 'subnet that we tried we received a response to our '
-                        . 'ICMP ping packets from a ' . $machine . ' at the '
-                        . 'network address intended for assignment to this '
-                        . 'machine.  Because no private subnet appears to be '
-                        . 'unused you will need to explicitly specify a '
-                        . 'network number by hand.' . "\n\n", 0);
-      return (0, undef, undef);
-    }
-  }
-}
 
 # Converts an quad-dotted IPv4 address into a integer
 sub quaddot_to_int {
@@ -10978,157 +9756,6 @@ sub write_dhcpd_config {
   safe_chmod(0644, $dhcpd_dir . '/dhcpd.leases~');
 }
 
-# Check the normal dhcp configuration and give advises
-sub dhcpd_consultant {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  my $conf;
-  my $network;
-  my $netmask;
-
-  if (-r '/etc/dhcpd.conf') {
-    $conf = '/etc/dhcpd.conf';
-  } else {
-    return;
-  }
-
-  $netmask = db_get_answer('VNET_' . $vHubNr . '_HOSTONLY_NETMASK');
-  $network = compute_subnet(db_get_answer('VNET_' . $vHubNr
-                                          . '_HOSTONLY_HOSTADDR'), $netmask);
-
-  # The host has a normal dhcpd setup
-  if (direct_command(
-    shell_string($gHelper{'grep'}) . ' '
-    . shell_string('^[ ' . "\t" . ']*subnet[ ' . "\t" . ']*' . $network) . ' '
-    . shell_string($conf)) eq '') {
-    query('This system appears to have a DHCP server configured for normal '
-          . 'use.  Beware that you should teach it how not to interfere with '
-          . vmware_product_name() . '\'s DHCP server.  There are two ways to '
-          . 'do this:' . "\n\n" . '1) Modify the file ' . $conf . ' to add '
-          . 'something like:' . "\n\n" . 'subnet ' . $network . ' netmask '
-          . $netmask . ' {' . "\n" . '    # Note: No range is given, '
-          . 'vmnet-dhcpd will deal with this subnet.' . "\n" . '}' . "\n\n"
-          . '2) Start your DHCP server with an explicit list of network '
-          . 'interfaces to deal with (leaving out ' . $vHostIf . '). e.g.:'
-          . "\n\n" . 'dhcpd eth0' . "\n\n" . 'Consult the dhcpd(8) and '
-          . 'dhcpd.conf(5) manual pages for details.' . "\n\n"
-          . 'Hit enter to continue.', '', 0);
-  }
-}
-
-# Configuration of hostonly networking
-sub configure_hostonly_net {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  my $run_dhcpd = shift;
-  my $hostaddr;
-  my $subnet;
-  my $netmask;
-  my $status;
-
-  if ($vHubNr < $gMinVmnet || $vHubNr > $gMaxVmnet) {
-    print wrap('Number of virtual networks exceeded.  Not creating virtual '
-               . 'network.' . "\n\n", 0);
-    return;
-  }
-
-  # If this wasn't a hostonly network before, wipe out the old configuration
-  # info as it may confuse us later.
-  if (!is_hostonly_network($vHubNr)) {
-    remove_net($vHubNr, $vHostIf);
-  }
-
-  print wrap('Configuring a host-only network for vmnet' . $vHubNr . '.'
-             . "\n\n", 0);
-
-  if (vmware_product() eq 'wgs') {
-     get_network_name_answer($vHubNr, 'HostOnly');
-  }
-
-  my $keep_settings;
-
-  $keep_settings = 'no';
-  $hostaddr = $gDBAnswer{'VNET_' . $vHubNr . '_HOSTONLY_HOSTADDR'};
-  $netmask = $gDBAnswer{'VNET_' . $vHubNr . '_HOSTONLY_NETMASK'};
-
-  if (defined($hostaddr) && defined($netmask)) {
-    $subnet = db_get_answer_if_exists('VNET_' . $vHubNr . '_HOSTONLY_SUBNET');
-    if (not defined($subnet)) {
-       $subnet = compute_subnet($hostaddr, $netmask);
-    }
-    $keep_settings = get_answer('The host-only network is currently '
-                                . 'configured to use the private subnet '
-                                . $subnet . '/' . $netmask . '.  Do you want '
-                                . 'to keep these settings?', 'yesno', 'yes');
-  }
-
-  if ($keep_settings eq 'no') {
-    # Get the new settings
-    for (;;) {
-      my $answer;
-
-      $answer = get_answer('Do you want this program to probe for an unused '
-                           . 'private subnet? (yes/no/help)',
-                           'yesnohelp', 'yes');
-
-      if ($answer eq 'yes') {
-        my @usedSubnets = get_used_subnets();
-        ($status, $subnet, $netmask) = subnet_probe($vHubNr, $vHostIf,
-                                                    \@usedSubnets);
-        if ($status) {
-          last;
-        }
-        # Fallback
-        $answer = 'no';
-      }
-
-      if ($answer eq 'no') {
-	do {
-	  # An empty default answer is dangerous as running
-	  # with --default can cause an infinite loop, however
-	  # --default will never make it here, so we're safe.
-	  $hostaddr = get_answer('What will be the IP address of '
-				 . 'your ' . $machine . ' on the '
-				 . 'private network?',
-				 'ip', '');
-	  $netmask = get_answer('What will be the netmask of your '
-				. 'private network?',
-				'ip', '');
-        } until (is_good_network($hostaddr, $netmask) eq 'yes');
-	$subnet = compute_subnet($hostaddr, $netmask);
-	last;
-      }
-
-      print wrap('Virtual machines configured to use host-only networking are '
-                 . 'placed on a virtual network that is confined to this '
-                 . $machine . '.  Virtual machines on this network can '
-                 . 'communicate with each other and the ' . $os . ', but no '
-                 . 'one else.' . "\n\n" . 'To setup this host-only networking '
-                 . 'you need to select a network number that is normally '
-                 . 'unreachable from the ' . $machine . '.  We can '
-                 . 'automatically select this number for you, or you can '
-                 . 'specify a network number that you want.' . "\n\n" . 'The '
-                 . 'automatic selection process works by testing a series of '
-                 . 'Class C subnet numbers to see if they are reachable from '
-                 . 'the ' . $machine . '.  The first one that is unreachable '
-                 . 'is used.  The subnet numbers are chosen from the private '
-                 . 'network numbers specified by the Internet Engineering '
-                 . 'Task Force (IETF) in RFC 1918 (http://www.isi.edu/in-notes'
-                 . '/rfc1918.txt).' . "\n\n" . 'Remember that the host-only '
-                 . 'network that virtual machines reside on will not be '
-                 . 'accessible outside the host machine.  This means that it '
-                 . 'is OK to use the same number on different systems so long '
-                 . 'as you do not enable communication between these networks.'
-                 . "\n\n", 0);
-    }
-  }
-
-  make_hostonly_net($vHubNr, $vHostIf, $subnet, $netmask, $run_dhcpd);
-
-  if ($run_dhcpd) {
-    dhcpd_consultant($vHubNr, $vHostIf);
-  }
-}
 
 # Creates a hostonly network
 sub make_hostonly_net {
@@ -11159,20 +9786,6 @@ sub make_hostonly_net {
   }
 }
 
-# Get the list of subnets used by all the hostonly networks
-sub get_hostonly_subnets {
-  my $vHubNr;
-  my @subnets = ();
-  for ($vHubNr = $gMinVmnet; $vHubNr <= $gMaxVmnet; $vHubNr++) {
-    if (is_hostonly_network($vHubNr)) {
-      my $hostaddr = db_get_answer('VNET_' . $vHubNr  . '_HOSTONLY_HOSTADDR');
-      my $netmask = db_get_answer('VNET_' . $vHubNr  . '_HOSTONLY_NETMASK');
-      push(@subnets, compute_subnet($hostaddr, $netmask));
-    }
-  }
-  return @subnets;
-}
-
 # Unconfigures Samba from the hostonly network
 sub unmake_samba_net {
   my $vHubNr = shift;
@@ -11200,128 +9813,6 @@ sub get_samba_net {
   return -1;
 }
 
-# Check to see if the Samba question was ever asked and answered.
-# Returns 1 if it has. 0 otherwise.
-sub was_samba_answered {
-  my $vHubNr;
-
-  for ($vHubNr = $gMinVmnet; $vHubNr <= $gMaxVmnet; $vHubNr++) {
-    if (defined($gDBAnswer{'VNET_' . $vHubNr . '_SAMBA'})) {
-      return 1;
-    }
-  }
-  return 0;
-}
-
-# Configuration of NAT networking
-sub configure_nat_net {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  my $hostaddr;
-  my $subnet;
-  my $netmask;
-  my $status;
-
-  if ($vHubNr < $gMinVmnet || $vHubNr > $gMaxVmnet) {
-    print wrap('Number of virtual networks exceeded.  Not creating virtual '
-               . 'network.' . "\n\n", 0);
-    return;
-  }
-
-  # If this wasn't a NAT network before, wipe out the old configuration info
-  # as it may confuse us later.
-  if (!is_nat_network($vHubNr)) {
-    remove_net($vHubNr, $vHostIf);
-  }
-
-  print wrap('Configuring a NAT network for vmnet' . "$vHubNr." . "\n\n", 0);
-
-  if (vmware_product() eq 'wgs') {
-     get_network_name_answer($vHubNr, 'NAT');
-  }
-
-  my $keep_settings;
-
-  $keep_settings = 'no';
-  $hostaddr = $gDBAnswer{'VNET_' . $vHubNr . '_HOSTONLY_HOSTADDR'};
-  $netmask = $gDBAnswer{'VNET_' . $vHubNr . '_HOSTONLY_NETMASK'};
-
-  if (defined($hostaddr) && defined($netmask)) {
-    $subnet = $gDBAnswer{'VNET_' . $vHubNr . '_HOSTONLY_SUBNET'};
-    if (not defined($subnet)) {
-       $subnet = compute_subnet($hostaddr, $netmask);
-    }
-    $keep_settings = get_answer('The NAT network is currently configured to '
-                                . 'use the private subnet ' . $subnet . '/'
-                                . $netmask . '.  Do you want to keep these '
-                                . 'settings?', 'yesno', 'yes');
-  }
-
-  if ($keep_settings eq 'no') {
-    # Get the new settings
-    for (;;) {
-      my $answer;
-
-      $answer = get_answer('Do you want this program to probe for an unused '
-                           . 'private subnet? (yes/no/help)',
-                           'yesnohelp', 'yes');
-
-      if ($answer eq 'yes') {
-        my @usedSubnets = get_used_subnets();
-        ($status, $subnet, $netmask) = subnet_probe($vHubNr, $vHostIf,
-                                                    \@usedSubnets);
-        if ($status) {
-          last;
-        }
-        # Fallback
-        $answer = 'no';
-      }
-
-      if ($answer eq 'no') {
-	do {
-	  # An empty default answer is dangerous as running
-	  # with --default can cause an infinite loop, however
-	  # --default will never make it here, so we're safe.
-	  $hostaddr = get_answer('What will be the IP address of '
-				 . 'your ' . $machine . ' on the '
-				 . 'private network?',
-				 'ip', '');
-	  $netmask = get_answer('What will be the netmask of your '
-				. 'private network?',
-				'ip', '');
-        } until (is_good_network($hostaddr, $netmask) eq 'yes');
-	$subnet = compute_subnet($hostaddr, $netmask);
-	last;
-      }
-
-      print wrap('Virtual machines configured to use NAT networking are '
-                 . 'placed on a virtual network that is confined to this '
-                 . $machine . '.  Virtual machines on this network can '
-                 . 'communicate with the network through the NAT process, '
-                 . 'with each other, and with the ' . $os . '.' . "\n\n"
-                 . 'To setup NAT networking you need to select a network '
-                 . 'number that is normally unreachable from the ' . $machine
-                 . '.  We can automatically select this number for you, or '
-                 . 'you can specify a network number that you want.' . "\n\n"
-                 . 'The automatic selection process works by testing a series '
-                 . 'of Class C subnet numbers to see if they are reachable '
-                 . 'from the ' . $machine . '.  The first one that is '
-                 . 'unreachable is used.  The subnet numbers are chosen from '
-                 . 'the private network numbers specified by the Internet '
-                 . 'Engineering Task Force (IETF) in RFC 1918 (http://www.isi'
-                 . '.edu/in-notes/rfc1918.txt).' . "\n\n" . 'Virtual machines '
-                 . 'residing on the NAT network will appear as the host when '
-                 . 'accessing the network.  These virtual machines on the NAT '
-                 . 'network will not be accessible from outside the host '
-                 . 'machine.  This means that it is OK to use the same number '
-                 . 'on different systems so long as you do not enable IP '
-                 . 'forwarding on the ' . $machine . '.' . "\n\n", 0);
-    }
-  }
-
-  make_nat_net($vHubNr, $vHostIf, $subnet, $netmask);
-  dhcpd_consultant($vHubNr, $vHostIf);
-}
 
 # Creates a NAT network
 sub make_nat_net {
@@ -11410,29 +9901,6 @@ sub make_nat_patch {
   return %patch;
 }
 
-# Get the list of subnets used by all the nat networks
-sub get_nat_subnets {
-  my $vHubNr;
-  my @subnets = ();
-  for ($vHubNr = $gMinVmnet; $vHubNr <= $gMaxVmnet; $vHubNr++) {
-    if (is_nat_network($vHubNr)) {
-      my $subnet = db_get_answer_if_exists('VNET_' . $vHubNr . '_HOSTONLY_SUBNET');
-      if (not defined($subnet)) {
-         my $hostaddr = db_get_answer('VNET_' . $vHubNr . '_HOSTONLY_HOSTADDR');
-         my $netmask = db_get_answer('VNET_' . $vHubNr . '_HOSTONLY_NETMASK');
-         $subnet = compute_subnet($hostaddr, $netmask);
-      }
-      push(@subnets, $subnet);
-    }
-  }
-  return @subnets;
-}
-
-# Get the list of subnets that are already used by virtual networks
-sub get_used_subnets {
-  return (&get_hostonly_subnets(), &get_nat_subnets());
-}
-
 # Return the specific VMware product
 sub vmware_product {
   return 'tools-for-linux';
@@ -11451,17 +9919,6 @@ sub vmware_binary {
 
 sub vmware_tools_cmd_app_name {
   return db_get_answer('BINDIR') . '/vmware-toolbox-cmd';
-}
-
-# Security configuration:  Add certificates for the remote console.
-sub configure_security() {
-  my $version = 'GSX';
-
-  createSSLCertificates(db_get_answer('LIBDIR') . '/bin/openssl',
-                        $version,
-                        $gRegistryDir . '/ssl',
-                        'rui',
-                        'VMware Management Interface');
 }
 
 # Find binaries necessary for the server products (esx/gsx)
@@ -11535,262 +9992,6 @@ sub configure_authd {
   db_add_answer('VMAUTHD_USE_LAUNCHER', 'yes');
 }
 
-# Setup the hostd configuration files
-sub configure_hostd {
-   my %patch;
-
-   # Hostd config file
-   %patch = ();
-   $patch{'##{WORKINGDIR}##'} = $gLogDir . '/';
-   $patch{'##{LOGDIR}##'} = $gLogDir . '/';
-   $patch{'##{CFGDIR}##'} = $gRegistryDir . '/';
-   $patch{'##{LIBDIR}##'} = db_get_answer('LIBDIR') . '/';
-   $patch{'##{LIBDIR_INSTALLED}##'} = db_get_answer('LIBDIR') . '/';
-   $patch{'##{BUILD_CFGDIR}##'} = $gRegistryDir . '/hostd/';
-   $patch{'##{PLUGINDIR}##'} = db_get_answer('LIBDIR') . '/hostd/';
-   $patch{'##{USE_DYNAMIC_PLUGIN_LOADING}##'} = 'false';
-   $patch{'##{SHLIB_PREFIX}##'} = 'lib';
-   $patch{'##{SHLIB_SUFFIX}##'} = '.so';
-   $patch{'##{ENABLE_AUTH}##'} = 'true';
-   $patch{'##{USE_PARTITIONSVC}##'} = 'false';
-   $patch{'##{USE_NFCSVC}##'} = 'true';
-   $patch{'##{USE_BLKLISTSVC}##'} = 'false';
-   $patch{'##{USE_CIMSVC}##'} = 'false';
-   $patch{'##{USE_SNMPSVC}##'} = 'false';
-   $patch{'##{USE_HTTPNFCSVC}##'} = 'true';
-   $patch{'##{USE_OVFMGRSVC}##'} = 'true';
-   $patch{'##{USE_DIRECTORYSVC}##'} = 'false';
-   $patch{'##{USE_DYNSVC}##'} = 'false';
-   $patch{'##{MOCKUP}##'} = 'mockup-linux.vha';
-   $patch{'##{HOSTDMODE}##'} = 'server';
-   $patch{'##{USE_VDISKSVC}##'} = 'false';
-   $patch{'##{USE_HOSTSVC_MOCKUP}##'} = 'false';
-   $patch{'##{USE_STATSSVC_MOCKUP}##'} = 'false';
-   $patch{'##{PIPE_PREFIX}##'} = '/var/run/vmware/';
-   $patch{'##{LOGLEVEL}##'} = 'verbose';
-   $patch{'##{USE_SECURESOAP}##'} = 'false';
-   $patch{'##{USE_DYNAMO}##'} = 'false';
-
-
-   # XXX Using mockups for now. Change these once they've been implemented.
-   $patch{'##{USE_LICENSESVC_MOCKUP}##'} = 'true';
-
-   install_template_file($gRegistryDir . '/hostd/config-template.xml', \%patch, 1);
-
-   #Hostd proxy file:
-   my $httpAnswer;
-   my $httpsAnswer;
-   ($httpAnswer, $httpsAnswer) = query_user_for_proxy_ports();
-   if (!defined($httpAnswer)) {
-      my $msg = "Unable to find a set of ports needed by the proxy file.\n";
-      print wrap($msg, 0);
-      return 0;
-   }
-   $patch{'##{HTTP_PORT}##'} = $httpAnswer;
-   $patch{'##{HTTPS_PORT}##'} = $httpsAnswer;
-   install_template_file($gRegistryDir . '/hostd/proxy-template.xml', \%patch, 0);
-
-   # Update the port value for the WebAccess.properties file.
-   my $file;
-   my $jslib;
-   my $property_file;
-   my $app_dir = "modules/com.vmware.webaccess.app_1.0.0";
-   my $ui_dir = db_get_answer('LIBDIR') . '/webAccess/tomcat/@@TOMCAT_DIST@@/webapps/ui';
-   foreach $file (internal_ls($ui_dir)) {
-      if ($file =~ /jslib-1./) {
-         $jslib = $file;
-         # Update any jslib directory.  The action will only happen for files
-         # not already updated (patched) and leave previously configured files
-         # alone.
-         my $path = $ui_dir . "/" .  $jslib . "/" . $app_dir;
-         my $template_file  = $path . "/WebAccess-template.properties";
-         if (!-f $template_file) {
-            next;
-         } # Regenerate the property file from the template.
-         install_template_file($template_file, \%patch, 0);
-         $property_file  = $path . "/WebAccess.properties";
-      }
-   }
-
-   # the jslib directory name contains the build number of the wbc built into
-   # the server package.  And it is not necessarily the same as the build
-   # number of this server package.
-   if (!defined($jslib)) {
-      my $msg =  "There is no jslib component directory in " . $ui_dir . "."
-                 . "  The component directory should have the"
-                 . " form:  jslib-1.xxxxx.\n";
-      print(wrap($msg), 0);
-      return 0;
-   }
-
-   if (!defined($property_file) || ! -f $property_file) {
-      error("There is no " . $property_file . "!  This file is necessary for "
-          . "the operation of the webAccess service.\n");
-   }
-
-   %patch = ();
-   my $admin = 'root';
-   my $currentAdmin = '';
-   my $auth_file = $gRegistryDir . '/hostd/authorization.xml';
-   if (file_name_exist($auth_file)) {
-      open(ADMIN, $auth_file) or error "Could not open $auth_file.\n";
-      while (<ADMIN>) {
-         # $currentAdmin only changes if a user is listed.  Not for an empty user name.
-         if (/ACEDataUser>(\w+)</) {
-            $currentAdmin = $1;
-            # Set and later check to see if the user set $admin to something else.
-            $admin = $currentAdmin;
-            last;
-         }
-      }
-      close(ADMIN);
-   }
-
-   my $msg = "  The current administrative user for " . vmware_product_name() . "  "
-           . "is '" . $currentAdmin . "'.  Would you like to specify a different "
-           . "administrator?";
-   if (get_answer($msg, 'yesno', 'no') eq 'yes') {
-      $msg = "  Please specify the user whom you wish to be the " . vmware_product_name()
-           . " administrator\n";
-      $admin = get_answer($msg, 'usergrp', $currentAdmin);
-   }
-   print wrap("  Using " . $admin . " as the " . vmware_product_name()
-            . " administrator.\n\n", 0);
-
-   %patch = ('ACEDataUser>\w*<' => "ACEDataUser>$admin<");
-   if (file_name_exist($auth_file) && $admin ne $currentAdmin) {
-      # This value lives in a config file that we would normally not touch directly
-      # instead makeing the mod via a template file.  But in this case the user has
-      # made an explicit change, that must be placed in the config file directly.
-      my $tmp_dir = make_tmp_dir('vmware-auth');
-      my $tmp_file = $tmp_dir . '/tmp_auth';
-      internal_sed($auth_file, $tmp_file, 0, \%patch);
-      system(shell_string($gHelper{'mv'}) . ' ' . $tmp_file . ' ' . $auth_file);
-      remove_tmp_dir($tmp_dir);
-   }
-
-   # authorization.xml is updated by the daemon after the file is installed..
-   install_template_file($gRegistryDir . '/hostd/authorization-template.xml', \%patch, 1);
-
-   # VM inventory file modifiable during use.
-   install_template_file($gRegistryDir . '/hostd/vmInventory-template.xml', \%patch, 1);
-
-   # Client information file modifiable during use.
-   $patch{'@@AUTHD_PORT@@'} = db_get_answer('AUTHDPORT');
-   $patch{'@@HTTPS_PORT@@'} = $httpsAnswer;
-
-   my $docroot = db_get_answer('LIBDIR') . "/hostd/docroot";
-   install_template_file($docroot . '/client/clients-template.xml', \%patch, 1);
-
-   return 1;
-}
-
-sub install_template_file {
-   my $template_file = shift;
-   my $patchRef  = shift;
-   my $preserve = shift;
-   my $flags = $cFlagTimestamp | $cFlagConfig;
-   my $dest_path = $template_file;
-
-   $dest_path =~ s/-template//;
-   my $dest_file = internal_basename($dest_path);
-   my $dest_dir = internal_dirname($dest_path);
-
-   if (file_name_exist($dest_path) && ($preserve & 1)) {
-      my $msg = "You have a pre-existing " . $dest_file . ".  The new version will "
-                . "be created as " . $dest_dir . "/NEW_" . $dest_file . ".  Please check "
-                . "the new file for any new values that you may need to migrate to "
-                . "your current " . $dest_file . ".\n\n";
-
-      print wrap($msg, 0);
-      $dest_path = $dest_dir . "/NEW_" . $dest_file;
-   }
-
-   install_file($template_file, $dest_path, \%$patchRef, $flags);
-}
-
-sub query_user_for_proxy_ports {
-  my $httpProxy;
-  my $httpsProxy;
-
-  # If this is not the first time config has run, then use the port
-  # values already chosen.  Count the ports as found if and only if
-  # they're both specified and available or at least user approved.
-  # If this is the first time, then there won't be any proxy port
-  # values to get.
-  if (defined(db_get_answer_if_exists('HTTP_PROXY_PORT')) &&
-      defined(db_get_answer_if_exists('HTTPS_PROXY_PORT'))) {
-    $httpProxy = db_get_answer('HTTP_PROXY_PORT');
-    $httpsProxy = db_get_answer('HTTPS_PROXY_PORT');
-    my $answer = get_persistent_answer("Do you want to use the current proxy port "
-                                       . "values?", 'USE_CURRENT_PORTS', 'yesno', 'yes');
-    if ($answer eq 'yes') {
-      return ($httpProxy, $httpsProxy);
-    }
-  }
-
-  # Update the port cache.  It has happened that services active when entries
-  # were first retrieved are now no longer active.
-  get_proc_tcp_entries();
-
-  # Before we ask the user if he wants the default proxy ports, make sure
-  # they are available.  Even if one of the pair is in use, treat the whole
-  # pair as in use and go to the next set of proxy ports.
-  while ($#gDefaultHttpProxy != -1) {
-     $httpProxy = shift(@gDefaultHttpProxy);
-     $httpsProxy = shift(@gDefaultHttpSProxy);
-    if (!check_if_port_active($httpProxy) &&
-        !check_if_port_active($httpsProxy)) {
-      last;
-    }
-  }
-
-  my $httpPort  = get_persistent_answer('Please specify a port for ' .
-                                        'standard http connections to use',
-                                        'HTTP_PROXY_PORT', 'inetport',
-                                        $httpProxy);
-
-  my $httpsPort = get_persistent_answer('Please specify a port for ' .
-                                        'secure http (https) connections to use',
-                                        'HTTPS_PROXY_PORT', 'inetport',
-                                        $httpsProxy);
-  return ($httpPort, $httpsPort);
-}
-
-sub configure_webAccess {
-  my $libdir = db_get_answer("LIBDIR");
-  my $webAccess_root = "$libdir/webAccess";
-  my $tomcat = $webAccess_root . '/tomcat/@@TOMCAT_DIST@@';
-  my $work_dir = $tomcat . '/work';
-  my $prop_src_root = $tomcat . '/webapps/ui/WEB-INF/classes';
-  my $prop_dst_root = "/etc/vmware/webAccess";
-  my $webAccessLogDir = $gLogDir . '/webAccess';
-
-  # make links to the config files
-  create_dir($prop_dst_root, $cFlagDirectoryMark);
-  install_symlink($prop_src_root . "/log4j.properties",
-                                  $prop_dst_root . "/log4j.properties");
-  install_symlink($prop_src_root . "/proxy.properties",
-                                  $prop_dst_root . "/proxy.properties");
-  install_symlink($prop_src_root . "/login.properties",
-                                  $prop_dst_root . "/login.properties");
-
-  # tomcat-users.xml needs to be unconditionally removed.  Since the tomcat
-  # service touches the installed version of tomcat-users.xml, the file needs
-  # to be removed from the db, along with its timestamp, and re-added without
-  # a timestamp.
-  my $webAccessRoot = db_get_answer('LIBDIR') . "/webAccess";
-  db_remove_ts($tomcat . '/conf/tomcat-users.xml');
-
-  if (-e $work_dir) {
-    remove_tmp_dir($work_dir);
-  }
-
-
-  create_dir($webAccessLogDir . '/work', 0x0);
-  install_symlink($webAccessLogDir, $tomcat . '/logs');
-  install_symlink($webAccessLogDir . '/work', $work_dir);
-}
 
 #  Move the /etc/vmware/pam.d information to its real home in /etc/pam.d
 sub configure_wgs_pam_d {
@@ -11803,84 +10004,6 @@ sub configure_wgs_pam_d {
   }
 }
 
-# both configuration.
-sub show_net_config {
-  my $bridge_flag = shift;
-  my $hostonly_flag = shift;
-  my $nat_flag = shift;
-
-  # Don't show anything
-  if (!$hostonly_flag && !$bridge_flag && !$nat_flag) {
-    return;
-  }
-
-  # Print a message describing what we are showing
-  my $nettype = 'virtual';
-  if (!$bridge_flag && !$nat_flag && $hostonly_flag) {
-    $nettype = 'host-only';
-  } elsif (!$hostonly_flag && !$nat_flag && $bridge_flag) {
-    $nettype = 'bridged';
-  } elsif (!$bridge_flag && !$hostonly_flag && $nat_flag) {
-    $nettype = 'NAT';
-  }
-  print wrap('The following ' . $nettype . ' networks have been defined:'
-             . "\n\n", 0);
-
-  # Number of networks configured
-  my $count = 0;
-
-  local(*WFD);
-  if (not open(WFD, '| ' . $gHelper{'more'})) {
-    error("Could not print networking configuration.\n");
-  }
-
-  my $i;
-  for ($i = $gMinVmnet; $i <= $gMaxVmnet; $i++) {
-    if ($bridge_flag && is_bridged_network($i)) {
-    my $bridge = $gDBAnswer{'VNET_' . $i . '_INTERFACE'};
-      print WFD wrap(". vmnet" . $i . ' is bridged to ' . $bridge . "\n", 0);
-      $count++;
-    } elsif ($hostonly_flag && is_hostonly_network($i)) {
-      my $hostonly_addr = $gDBAnswer{'VNET_' . $i . '_HOSTONLY_HOSTADDR'};
-      my $hostonly_mask = $gDBAnswer{'VNET_' . $i . '_HOSTONLY_NETMASK'};
-      my $hostonly_subnet = $gDBAnswer{'VNET_' . $i . '_HOSTONLY_SUBNET'};
-      if (not defined($hostonly_subnet)) {
-         $hostonly_subnet = compute_subnet($hostonly_addr, $hostonly_mask);
-      }
-      my $sambaInfo = '';
-      if (is_samba_running($i)) {
-        $sambaInfo = '  This network had a Samba server running to allow '
-                     . 'virtual machines to share the ' . $os . '\'s '
-                     . 'filesystem. This is now obsolete. Please use the '
-                     . 'VMware shared folders feature.';
-      }
-
-      print WFD wrap(". vmnet" . $i . ' is a host-only network on private '
-                     . 'subnet ' . $hostonly_subnet . '.'
-                     . $sambaInfo . "\n", 0);
-      $count++;
-    } elsif ($nat_flag && is_nat_network($i)) {
-      my $hostonly_addr = $gDBAnswer{'VNET_' . $i . '_HOSTONLY_HOSTADDR'};
-      my $hostonly_mask = $gDBAnswer{'VNET_' . $i . '_HOSTONLY_NETMASK'};
-      my $hostonly_subnet = $gDBAnswer{'VNET_' . $i . '_HOSTONLY_SUBNET'};
-      if (not defined($hostonly_subnet)) {
-         $hostonly_subnet = compute_subnet($hostonly_addr, $hostonly_mask);
-      }
-      print WFD wrap(". vmnet" . $i . ' is a NAT network on private subnet '
-                     . $hostonly_subnet . '.'
-                     . "\n", 0);
-      $count++;
-    }
-  }
-
-  if ($count == 0) {
-    print WFD wrap(". No virtual networks configured.\n", 0);
-  }
-
-  print WFD wrap("\n", 0);
-
-  close(WFD);
-}
 
 # Unconfigures the now obsolete Samba networking
 sub unconfigure_samba {
@@ -11928,77 +10051,6 @@ sub fix_vmlist_permissions {
   close(F);
 }
 
-# Check the system requirements to install this product
-sub check_wgs_memory {
-  my $availableRAMInMB;
-  my $minRAMinMB = 256;
-
-  $availableRAMInMB = memory_get_total_ram();
-  if (not defined($availableRAMInMB)) {
-    if (get_persistent_answer('Unable to determine the total amount of memory '
-                              . 'on this system.  You need at least '
-                              . $minRAMinMB . ' MB.  Do you really want to '
-                              . 'continue?',
-                              'PASS_RAM_CHECK', 'yesno', 'no') eq 'no') {
-      exit(0);
-    }
-  } elsif ($availableRAMInMB < $minRAMinMB) {
-    if (get_persistent_answer('There are only ' . $availableRAMInMB . ' MB '
-                              . 'of memory on this system.  You need at least '
-                              . $minRAMinMB . ' MB.  Do you really want to '
-                              . 'continue?',
-                              'PASS_RAM_CHECK', 'yesno', 'no') eq 'no') {
-      exit(0);
-    }
-  }
-}
-
-
-# Retrieve the amount of RAM (in MB)
-# Return undef if unable to determine
-sub memory_get_total_ram {
-  my $line;
-  my $availableRAMInMB = undef;
-
-  if (not open(MEMINFO, '</proc/meminfo')) {
-    error('Unable to read the "/proc/meminfo" file.' . "\n\n");
-  }
-  while (defined($line = <MEMINFO>)) {
-    chomp($line);
-
-    if ($line =~ /^Mem:\s*(\d+)/) {
-      $availableRAMInMB = $1 / (1024 * 1024);
-      last;
-    }
-    if ($line =~ /^MemTotal:\s*(\d+)\s*kB/) {
-      $availableRAMInMB = $1 / 1024;
-      last;
-    }
-  }
-  if (defined($availableRAMInMB)) {
-    #
-    # Round up total memory to the nearest multiple of 8 or 32 MB, since the
-    # "total" amount of memory reported by Linux is the total physical memory
-    # minus the amount used by the kernel
-    #
-
-    if ($availableRAMInMB < 128) {
-      $availableRAMInMB = CEILDIV($availableRAMInMB, 8) * 8;
-    } else {
-      $availableRAMInMB = CEILDIV($availableRAMInMB, 32) * 32;
-    }
-  }
-  close(MEMINFO);
-
-  return $availableRAMInMB;
-}
-
-sub CEILDIV {
-  my $left = shift;
-  my $right = shift;
-
-  return int(($left + $right - 1) / $right);
-}
 
 sub check_fuse_available {
   my $libModPath = join('/','/lib/modules', getKernRel());
@@ -12055,7 +10107,7 @@ sub configure_vmblock {
      $result = configure_module_bsd('vmblock');
   } else {
      # Use the Fuse version of vmblock exclusively for kernel versions >= 2.6.32.
-     # I picked this version because its the RHEL 6 release and when we started
+     # I picked this version because it's the RHEL 6 release and when we started
      # upstreaming our various other kernel modules.
      if ($gSystem{'version_integer'} >= kernel_version_integer(2, 6, 32)) {
         if (check_fuse_available() eq 'yes') {
@@ -12134,271 +10186,6 @@ sub build_vmnet {
   }
 }
 
-# Configuration related to networking
-sub configure_net {
-  my $i;
-
-  # Fix for bug 15842.  Always regenerate the network settings because an
-  # upgrade leaves us in an inconsistent state.  The database will have
-  # the network settings, but the necessary configuration files such as
-  # dhcpd.conf will not exist until we run make_all_net().
-  make_all_net();
-
-  if (defined($gDBAnswer{'NETWORKING'}) && count_all_networks() > 0) {
-    print wrap('You have already setup networking.' . "\n\n", 0);
-    if (get_persistent_answer('Would you like to skip networking setup and '
-                              . 'keep your old settings as they are? (yes/no)',
-                              'NETWORKING_SKIP_SETUP', 'yesno', 'yes')
-                              eq 'yes') {
-      return;
-    }
-  }
-
-  for (;;) {
-    my $answer;
-    my $helpString;
-    my $prompt = 'Do you want networking for your virtual machines? '
-               . '(yes/no/help)';
-    $helpString = 'Networking will allow your virtual machines to use a '
-                  . 'virtual network. There are primarily two types of '
-                  . 'networking available: bridged and host-only.  A '
-                  . 'bridged network is a virtual network that is '
-                  . 'connected to an existing ethernet device.  With a '
-                  . 'bridged network, your virtual machines will be able '
-                  . 'to communicate with other machines on the network to '
-                  . 'which the ethernet card is attached.  A host-only '
-                  . 'network is a private network between your virtual '
-                  . 'machines and ' . $os . '.  Virtual machines connected '
-                  . 'to a host-only network may only communicate directly '
-                  . 'with other virtual machines or the ' . $os
-                  . '.  A virtual machine may be '
-                  . 'configured with more than one bridged or host-only '
-                  . 'network.' . "\n\n" . 'If you want your virtual '
-                  . 'machines to be connected to a network, say "yes" '
-                  . 'here.' . "\n\n";
-
-    $answer = get_persistent_answer($prompt, 'NETWORKING', 'yesnohelp',
-                                    'yes');
-    if (($answer eq 'no') || ($answer eq 'yes')) {
-      last;
-    }
-
-    print wrap($helpString, 0);
-  }
-
-  if (db_get_answer('NETWORKING') eq 'no') {
-    # Turning off networking turns off hostonly.
-    remove_all_networks(1, 1, 1);
-    return;
-  }
-
-  for ($i = 0; $i < $gNumVmnet; $i++) {
-    configure_dev('/dev/vmnet' . $i, 119, $i, 1);
-  }
-
-  # If there is a previous network configuration, prompt the user to
-  # see if the user would like to modify the existing configuration.
-  # If the user chooses to modify the settings, give the choice of
-  # either the wizard or the editor.
-  #
-  # If there is no previous network configuration, use the wizard.
-  if (count_all_networks() > 0) {
-    for (;;) {
-      my $answer;
-      $answer = get_persistent_answer('Would you prefer to modify your '
-                                      . 'existing networking configuration '
-                                      . 'using the wizard or the editor? '
-                                      . '(wizard/editor/help)',
-                                      'NETWORKING_EDITOR', 'editorwizardhelp',
-                                      'wizard');
-      if (($answer eq 'editor') || ($answer eq 'wizard')) {
-        last;
-      }
-
-      print wrap('The wizard will present a series of questions that will '
-                 . 'help you quickly add new virtual networks.  However, you '
-                 . 'cannot remove networks or edit existing networks with the '
-                 . 'wizard.  To remove or edit existing networks, you should '
-                 . 'use the editor.' . "\n\n", 0);
-    }
-
-    # It doesn't make sense to launch the editor if we're not doing
-    # an interactive installation.
-    if (db_get_answer('NETWORKING_EDITOR') eq 'editor' &&
-	$gOption{'default'} != 1) {
-      configure_net_editor();
-      return;
-    }
-  }
-  configure_net_wizard();
-}
-
-# Network configuration wizard
-sub configure_net_wizard() {
-  my $answer;
-
-  # Bridged Networking
-  if (db_get_answer('NETWORKING') eq 'yes' && count_bridged_networks() == 0) {
-    # Make a default one unless it exists already
-    configure_bridged_net($gDefBridged, 'vmnet' . $gDefBridged);
-  }
-
-  show_net_config(1, 0, 0);
-  while ($#gAvailEthIf > -1) {
-    if (get_answer('Do you wish to configure another bridged network? '
-                   . '(yes/no)', 'yesno', 'no') eq 'no') {
-      last;
-    }
-    my $free = get_free_network();
-    configure_bridged_net($free, 'vmnet' . $free);
-    show_net_config(1, 0, 0);
-  }
-  if ($#gAvailEthIf == -1) {
-    print wrap ('All your ethernet interfaces are already bridged.'
-		. "\n\n", 0);
-  }
-
-  # NAT networking
-  $answer = get_answer('Do you want to be able to use NAT networking '
-                       . 'in your virtual machines? (yes/no)', 'yesno', 'yes');
-
-  if ($answer eq 'yes' && count_nat_networks() == 0) {
-    configure_nat_net($gDefNat, 'vmnet' . $gDefNat);
-  } elsif ($answer  eq 'no') {
-    remove_all_networks(0, 0, 1);
-  }
-
-  if ($answer eq 'yes') {
-    while (1) {
-      show_net_config(0, 0, 1);
-      if (get_answer('Do you wish to configure another NAT network? '
-                     . '(yes/no)', 'yesno', 'no') eq 'no') {
-        last;
-      }
-      my $free = get_free_network();
-      configure_nat_net($free, 'vmnet' . $free);
-    }
-  }
-
-  # Host only networking
-  $answer = get_answer('Do you want to be able to use host-only networking '
-                       . 'in your virtual machines?', 'yesno', $answer);
-
-  if ($answer eq 'yes' && count_hostonly_networks() == 0) {
-    configure_hostonly_net($gDefHostOnly, 'vmnet' . $gDefHostOnly, 1);
-  } elsif ($answer  eq 'no') {
-    remove_all_networks(0, 1, 0);
-  }
-
-  if ($answer eq 'yes') {
-    while (1) {
-      show_net_config(0, 1, 0);
-      if (get_answer('Do you wish to configure another host-only network? '
-                     . '(yes/no)', 'yesno', 'no') eq 'no') {
-        last;
-      }
-      my $free = get_free_network();
-      configure_hostonly_net($free, 'vmnet' . $free, 1);
-    }
-  }
-  if (vmware_product() eq 'wgs') {
-     write_netmap_conf();
-  }
-}
-
-# Network configuration editor
-sub configure_net_editor() {
-  my $answer = 'yes';
-  my $first_time = 1;
-  while ($answer ne 'no') {
-    show_net_config(1, 1, 1);
-
-    if (!$first_time) {
-      $answer =
-        get_persistent_answer('Do you wish to make additional changes to the '
-                              . 'current virtual networks settings? (yes/no)',
-                              'NETWORK_EDITOR_CHANGE', 'yesno', 'no');
-    } else {
-      $answer =
-        get_persistent_answer('Do you wish to make any changes to the current '
-                              . 'virtual networks settings? (yes/no)',
-                              'NETWORK_EDITOR_CHANGE', 'yesno', 'no');
-      $first_time = 0;
-    }
-    if ($answer eq 'no') {
-      last;
-    }
-
-    # An empty default answer. We don't run the editor in --default, so
-    # this is safe.
-    my $vHubNr = get_answer('Which virtual network do you wish to configure? '
-                            . '(' . $gMinVmnet . '-' . $gMaxVmnet . ')',
-                            'vmnet', '');
-
-    if ($vHubNr == $gDefBridged) {
-      if (get_answer('The network vmnet' . $vHubNr . ' has been reserved for '
-                     . 'a bridged network.  You may change it, but it is '
-                     . 'highly recommended that you use it as a bridged '
-                     . 'network.  Are you sure you want to modify it? '
-                     . '(yes/no)', 'yesno', 'no') eq 'no') {
-        next;
-      }
-    }
-
-    if ($vHubNr == $gDefHostOnly) {
-      if (get_answer('The network vmnet' . $vHubNr . ' has been reserved for '
-                     . 'a host-only network.  You may change it, but it is '
-                     . 'highly recommended that you use it as a host-only '
-                     . 'network.  Are you sure you want to modify it? '
-                     . '(yes/no)', 'yesno', 'no') eq 'no') {
-        next;
-      }
-    }
-
-    if ($vHubNr == $gDefNat) {
-      if (get_answer('The network vmnet' . $vHubNr . ' has been reserved for '
-                     . 'a NAT network.  You may change it, but it is highly '
-                     . 'recommended that you use it as a NAT network.  Are '
-                     . 'you sure you want to modify it? (yes/no)',
-                     'yesno', 'no') eq 'no') {
-        next;
-      }
-    }
-
-    my $nettype = 'none';
-    if (is_bridged_network($vHubNr)) {
-      $nettype = 'bridged';
-    } elsif (is_hostonly_network($vHubNr)) {
-      $nettype = 'hostonly';
-    } elsif (is_nat_network($vHubNr)) {
-      $nettype = 'nat';
-    }
-    $answer = get_answer('What type of virtual network do you wish to set '
-                         . 'vmnet' . $vHubNr . '? (bridged,hostonly,nat,none)',
-                         'nettype', $nettype);
-
-    if ($answer eq 'bridged') {
-      # Special case: if we are changing a bridge network to another
-      # bridge network, we need to make the interface that it used to
-      # be defined as the correct one again.
-      if (is_bridged_network($vHubNr)) {
-        add_ethif_info(db_get_answer('VNET_' . $vHubNr . '_INTERFACE'));
-      }
-      configure_bridged_net($vHubNr, 'vmnet' . $vHubNr);
-      # Reload available ethernet info in case user does make a change
-      load_ethif_info();
-    } elsif ($answer eq 'hostonly') {
-      configure_hostonly_net($vHubNr, 'vmnet' . $vHubNr, 1);
-    } elsif ($answer eq 'nat') {
-      configure_nat_net($vHubNr, 'vmnet' . $vHubNr);
-    } elsif ($answer eq 'none') {
-      remove_net($vHubNr, 'vmnet' . $vHubNr);
-    }
-  }
-  if (vmware_product() eq 'wgs') {
-     write_netmap_conf();
-  }
-}
 
 # Configure networking automatically with no input from the user, keeping the
 # existing settings.
@@ -12426,74 +10213,6 @@ sub make_all_net() {
       make_nat_net($vHubNr, 'vmnet' . $vHubNr, $subnet, $netmask);
     }
   }
-  if (vmware_product() eq 'wgs') {
-     write_netmap_conf();
-  }
-}
-
-# Counts the number of bridged networks
-sub count_bridged_networks {
-  return count_networks(1, 0, 0, 0);
-}
-
-# Counts the number of hostonly networks
-sub count_hostonly_networks {
-  return count_networks(0, 1, 0, 0);
-}
-
-# Counts the number of hostonly networks running samba
-sub count_samba_networks {
-  return count_networks(0, 1, 0, 1);
-}
-
-# Counts the number of hostonly networks running NAT
-sub count_nat_networks {
-  return count_networks(0, 0, 1, 0);
-}
-
-# Counts the number of configured virtual networks
-sub count_all_networks {
-  return count_networks(1, 1, 1, 0);
-}
-
-# Counts the number of virtual networks that have been setup.
-# bridged: Set to indicate a desire to count the number of bridged networks
-# hostonly: Set to indicate a desire to count the number of hostonly networks
-# nat: Set to indicate a desire to count the number of nat networks
-# samba: Set to indicate a desire to count the number of hostonly networks
-#        running Samba.
-sub count_networks {
-  my $bridged = shift;
-  my $hostonly = shift;
-  my $nat = shift;
-  my $samba = shift;
-
-  my $i;
-  my $count = 0;
-  for ($i = $gMinVmnet; $i <= $gMaxVmnet; $i++) {
-    if (is_bridged_network($i) && $bridged) {
-      $count++;
-    } elsif (is_hostonly_network($i) && $hostonly) {
-      if ($samba && is_samba_running($i)) {
-        $count++;
-      } elsif (!$samba) {
-        $count++;
-      }
-    } elsif (is_nat_network($i) && $nat) {
-      $count++;
-    }
-  }
-
-  return $count;
-}
-
-# Indicates if a virtual network has been defined on this virtual net
-sub is_network {
-  my $vHubNr = shift;
-
-  return    is_bridged_network($vHubNr)
-         || is_hostonly_network($vHubNr)
-         || is_nat_network($vHubNr);
 }
 
 # Indicates if a bridged virtual network is defined for a particular vnet
@@ -12528,49 +10247,6 @@ sub is_nat_network {
          && defined($nat_network) && $nat_network eq 'yes';
 }
 
-# Indicates if the given network collides with an existing network
-# (and if the user is amenable to this)
-sub is_good_network {
-  my $new_hostaddr = shift;
-  my $new_netmask = shift;
-  my $new_subnet = compute_subnet($new_hostaddr, $new_netmask);
-  my $new_broadcast = compute_broadcast($new_hostaddr, $new_netmask);
-  my $vHubNr;
-
-  # Get all networks
-  # We can't use get_used_subnets because we want the broadcast address
-  # for each subnet as well.
-  my @networks = ();
-  for ($vHubNr = $gMinVmnet; $vHubNr <= $gMaxVmnet; $vHubNr++) {
-    my $hostaddr =
-      db_get_answer_if_exists('VNET_' . $vHubNr . '_HOSTONLY_HOSTADDR');
-    my $netmask =
-      db_get_answer_if_exists('VNET_' . $vHubNr . '_HOSTONLY_NETMASK');
-    if (not $hostaddr or not $netmask) {
-      next;
-    }
-    my $subnet = compute_subnet($hostaddr, $netmask);
-    my $broadcast = compute_broadcast($hostaddr, $netmask);
-
-    # Check for collisions
-    # Each network is defined by a range from subnet (low-end) to
-    # broadcast (high-end). Collisions occur when the two ranges overlap.
-    if (quaddot_to_int($new_subnet) <= quaddot_to_int($broadcast) &&
-        quaddot_to_int($new_broadcast) >= quaddot_to_int($subnet)) {
-      push(@networks, 'vmnet' . $vHubNr);
-    }
-  }
-
-  if (scalar(@networks) != 0) {
-    return get_answer(sprintf('The new private network has collided with '
-			      . 'existing private %s %s. Are you sure you '
-			      . 'wish to add it?', scalar(@networks) == 1 ?
-			      'network' : 'networks', join(', ', @networks)),
-		      'yesno', 'no');
-  }
-  return 'yes';
-}
-
 # Indicates if samba is running on a virtual network
 sub is_samba_running {
   my $vHubNr = shift;
@@ -12579,137 +10255,6 @@ sub is_samba_running {
 
   return    $hostonly
          && defined($samba) && $samba eq 'yes';
-}
-
-# Gets a free virtual network number.  Gets the lowest number available.
-# Returns -1 on failure.
-sub get_free_network {
-  my $i;
-  for ($i = $gMinVmnet; $i <= $gMaxVmnet; $i++) {
-    if (grep($i == $_, @gReservedVmnet)) {
-      next;
-    }
-    if (!is_network($i)) {
-      return $i;
-    }
-  }
-
-  return -1;
-}
-
-# Removes a bridged network
-sub remove_bridged_network {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-
-  if ($vHubNr < $gMinVmnet || $vHubNr > $gMaxVmnet) {
-    return;
-  }
-
-  print wrap('Removing a bridged network for vmnet' . $vHubNr . '.' . "\n\n",
-             0);
-  db_remove_answer('VNET_' . $vHubNr . '_INTERFACE');
-  if (vmware_product() eq 'wgs') {
-     db_remove_answer('VNET_' . $vHubNr . '_NAME');
-  }
-  if ($vHubNr >= $gNumVmnet) {
-    uninstall_file('/dev/' . $vHostIf);
-  }
-
-  # Reload the list of available ethernet adapters
-  load_ethif_info();
-}
-
-# Removes a hostonly network
-sub remove_hostonly_network {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  my $vmnet_dir = $gRegistryDir . '/' . $vHostIf;
-
-  if ($vHubNr < $gMinVmnet || $vHubNr > $gMaxVmnet) {
-    return;
-  }
-
-  print wrap('Removing a host-only network for vmnet' . $vHubNr . '.' .
-             "\n\n", 0);
-  # Remove the samba settings
-  unmake_samba_net($vHubNr, $vHostIf);
-
-  db_remove_answer('VNET_' . $vHubNr . '_HOSTONLY_HOSTADDR');
-  db_remove_answer('VNET_' . $vHubNr . '_HOSTONLY_NETMASK');
-  db_remove_answer('VNET_' . $vHubNr . '_HOSTONLY_SUBNET');
-  db_remove_answer('VNET_' . $vHubNr . '_DHCP');
-  if (vmware_product() eq 'wgs') {
-     db_remove_answer('VNET_' . $vHubNr . '_NAME');
-  }
-  uninstall_prefix($vmnet_dir);
-
-  if ($vHubNr >= $gNumVmnet) {
-    uninstall_file('/dev/' . $vHostIf);
-  }
-}
-
-# Removes a NAT network
-sub remove_nat_network {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  my $vmnet_dir = $gRegistryDir . '/' . $vHostIf;
-
-  if ($vHubNr < $gMinVmnet || $vHubNr > $gMaxVmnet) {
-    return;
-  }
-
-  print wrap('Removing a NAT network for vmnet' . $vHubNr . '.' . "\n\n", 0);
-
-  db_remove_answer('VNET_' . $vHubNr . '_NAT');
-  db_remove_answer('VNET_' . $vHubNr . '_HOSTONLY_HOSTADDR');
-  db_remove_answer('VNET_' . $vHubNr . '_HOSTONLY_NETMASK');
-  db_remove_answer('VNET_' . $vHubNr . '_HOSTONLY_SUBNET');
-  db_remove_answer('VNET_' . $vHubNr . '_DHCP');
-  if (vmware_product() eq 'wgs') {
-     db_remove_answer('VNET_' . $vHubNr . '_NAME');
-  }
-  uninstall_prefix($vmnet_dir);
-
-  if ($vHubNr >= $gNumVmnet) {
-    uninstall_file('/dev/' . $vHostIf);
-  }
-}
-
-# Removes a network
-sub remove_net {
-  my $vHubNr = shift;
-  my $vHostIf = shift;
-  if (is_bridged_network($vHubNr)) {
-    remove_bridged_network($vHubNr, $vHostIf);
-  } elsif (is_hostonly_network($vHubNr)) {
-    remove_hostonly_network($vHubNr, $vHostIf);
-  } elsif (is_nat_network($vHubNr)) {
-    remove_nat_network($vHubNr, $vHostIf);
-  }
-}
-
-# Removes all networks on the system subject to the following
-# types
-sub remove_all_networks {
-  my $bridged = shift;
-  my $hostonly = shift;
-  my $nat = shift;
-  my $i;
-
-  for ($i = $gMinVmnet; $i <= $gMaxVmnet; $i++) {
-    if (is_network($i)) {
-      if ($bridged && is_bridged_network($i)) {
-        remove_bridged_network($i, 'vmnet' . $i);
-      }
-      if ($hostonly && is_hostonly_network($i)) {
-        remove_hostonly_network($i, 'vmnet' . $i);
-      }
-      if ($nat && is_nat_network($i)) {
-        remove_nat_network($i, 'vmnet' . $i);
-      }
-    }
-  }
 }
 
 # Loads ethernet interface info into global variable
@@ -12745,56 +10290,6 @@ sub load_ethif_info() {
       push(@gAvailEthIf, $eth);
     }
   }
-}
-
-# Adds an ethernet interface to the working list of ethernet interfaces
-sub add_ethif_info {
-  my $eth = shift;
-  push(@gAvailEthIf, $eth);
-}
-
-# Write out the netmap.conf file
-sub write_netmap_conf {
-  if (not open(CONF, '>' . $cNetmapConf)) {
-     print STDERR wrap("Unable to update the network configuration file.\n", 0);
-     return;
-  }
-
-  print CONF "# This file is automatically generated.\n";
-  print CONF "# Hand-editing this file is not recommended.\n";
-  print CONF "\n";
-
-  my %nameMap = ();
-  my $i = 0;
-  my $vHubNr;
-  for ($vHubNr = $gMinVmnet; $vHubNr <= $gMaxVmnet; $vHubNr++) {
-     my $dbKey = 'VNET_' . $vHubNr . '_NAME';
-     my $name = db_get_answer_if_exists($dbKey);
-     if (defined($name)) {
-        my $device = 'vmnet' . $vHubNr;
-
-        # Check for duplicate names
-        if (defined($nameMap{$name})) {
-           my $id = 1;
-           my $newName;
-           do {
-              $id++;
-              $newName = $name . ' (' . $id . ')';
-           } while (defined($nameMap{$newName}));
-           print STDERR wrap('Network name "' . $name . '" for ' . $device .
-                             ' is already in use by ' . $nameMap{$name} .
-                             ' -- renaming to "' . $newName . '"' . "\n", 0);
-           db_add_answer($dbKey, $newName);
-           $name = $newName;
-        }
-        $nameMap{$name} = $device;
-        print CONF 'network' . $i . '.name = "' . $name . '"' . "\n";
-        print CONF 'network' . $i . '.device = "' . $device . '"' . "\n";
-        $i++;
-     }
-  }
-
-  close(CONF);
 }
 
 # Create the links for VMware's services on a Solaris system
@@ -12871,29 +10366,15 @@ sub write_vmware_config {
   # here as an extra variable and vmware_version() wil return
   # its usual values.  Also, this allows other makefiles to
   # remain untouched.
-  if ((vmware_product() eq 'ws') || (vmware_product() eq 'wgs')) {
+  if (vmware_product() eq 'ws') {
     $config->set('product.version', '@@VERSIONNUMBER_FOR_VIX@@');
   } else {
-    $config->set('product.version', '9.2.3');
+    $config->set('product.version', '9.9.3');
   }
-  $config->set('product.buildNumber', '1031360');
+  $config->set('product.buildNumber', '2759765');
 
-  if ((vmware_product() eq 'wgs') || (vmware_product() eq 'server')) {
+  if (vmware_product() eq 'server') {
       $config->set('authd.client.port', db_get_answer('AUTHDPORT'));
-  }
-  if (vmware_product() eq 'wgs') {
-    # XXX This part of the wizard needs some refinement:
-    #     -- Let users specify the datastore name
-    #     -- Provide a means of preserving existing datastores
-    #     -- Come up with a better default name than "standard"
-    my $answer;
-    $answer = get_persistent_answer('In which directory do you want to keep your '
-				    . 'virtual machine files?', 'VMDIR', 'dirpath',
-				    '/var/lib/vmware/Virtual Machines');
-    create_dir($answer, $cFlagDirectoryMark);
-    $config->set('vmdir', $answer);
-    safe_chmod(01777, $answer);
-    write_datastore_config('standard', $answer);
   }
   my $vHubNr;
   for ($vHubNr = $gMinVmnet; $vHubNr <= $gMaxVmnet; $vHubNr++) {
@@ -12913,12 +10394,12 @@ sub write_vmware_config {
   # hostonly network.
   $config->remove('smbpasswd.fullpath');
 
-  if ((vmware_product() eq 'wgs') || (vmware_product() eq 'server')) {
-    $config->set('authd.proxy.vim', 'vmware-hostd:hostd-vmdb');
+  if (vmware_product() eq 'server') {
     $config->set('authd.proxy.nfc', 'vmware-hostd:ha-nfc');
-    $config->set('authd.soapServer', 'TRUE');
   }
 
+  $config->remove('authd.proxy.vim');
+  $config->remove('authd.soapServer');
   $config->remove('serverd.fullpath');
   $config->remove('serverd.init.fullpath');
 
@@ -12943,15 +10424,6 @@ sub write_vmware_config {
   system(shell_string($gHelper{'cp'}) . " " . $name . " " . $backupName);
 }
 
-# Write the VMware datastore configuration file
-sub write_datastore_config {
-  my %patch = ();
-  $patch{'##{DS_NAME}##'} = shift;
-  $patch{'##{DS_PATH}##'} = shift;
-
-  my $start_file = $gRegistryDir . '/hostd/datastores-template.xml';
-  install_template_file($start_file, \%patch, 1);
-}
 
 # This is used for a VMware dictionary-compatible configuration file.
 # Newer tools use glib-style ini files which appLoader doesn't grok
@@ -12975,39 +10447,6 @@ sub write_new_tools_config() {
   safe_chmod(0644, $name);
 }
 
-# Write the VMware tools configuration file
-sub write_tools_config {
-  my $name;
-  my $backupName;
-
-  $name = $gRegistryDir . '/tools.conf';
-  $backupName = $gStateDir . '/tools.conf';
-
-  my $config = new VMware::Config;
-  # First read in old config backed up from last uninstallation.
-  if (file_name_exist($backupName)) {
-    if (!$config->readin($backupName)) {
-      error('Unable to read configuration file "' . $backupName . '".' . "\n\n");
-    }
-    db_remove_file($backupName);
-  }
-
-  $config->set('helpdir', db_get_answer('LIBDIR') . "/hlp");
-  $config->set('libdir', db_get_answer('LIBDIR'));
-  my $mountPoint = db_get_answer_if_exists('HGFS_MOUNT_POINT');
-  if ($mountPoint) {
-      $config->set('mount-point', $mountPoint);
-  }
-
-  if (!$config->writeout($name)) {
-    error('Unable to write configuration file "' . $name . '".' . "\n\n");
-  }
-  db_add_file($name, $cFlagTimestamp);
-  safe_chmod(0644, $name);
-
-  write_new_tools_config();
-}
-
 # Display the PROMOCODE information
 sub show_PROMOCODE {
   my $promocode;
@@ -13017,48 +10456,6 @@ sub show_PROMOCODE {
     # $gHelper{'more'} is already a shell string
     system($gHelper{'more'} . ' ' . shell_string($promocode));
     print "\n";
-  }
-}
-
-# If needed, allow the sysadmin to unlock a site wide license. This must be
-# called _after_ VMware's config file has been written
-sub check_license {
-  my $want_sn;
-  my $sn;
-
-  if (system(shell_string(vmware_vmx_app_name())
-             . ' --can-run')) {
-    $want_sn = 'yes';
-  } else {
-    for (;;) {
-      $want_sn = get_answer('Do you want to enter a serial number now? '
-                            . '(yes/no/help)', 'yesnohelp', 'no');
-      if (not ($want_sn eq 'help')) {
-        last;
-      }
-
-      print wrap('Answer "yes" if you have received a new serial number. '
-                 . 'Otherwise answer "no", and ' . vmware_product_name()
-                 . ' will continue to run just fine.' . "\n\n", 0);
-    }
-  }
-
-  if ($want_sn eq 'yes') {
-    $sn = '';
-    while ($sn eq '') {
-      $sn = get_answer("Please enter your 20-character serial number.\n\n"
-		       . "Type XXXXX-XXXXX-XXXXX-XXXXX or 'Enter' to cancel: ",
-		       'serialnum', '');
-      if ($sn eq ' ') {
-	print wrap ('You cannot power on any virtual machines until you enter a '
-		    . 'valid serial number. To enter the serial number, run this '
-		    . 'configuration program again. '
-		    . "\n\n", 0);
-      } elsif (system(shell_string(vmware_vmx_app_name()) . ' --new-sn ' . $sn) != 0) {
-	print wrap('The serial number ' . $sn . ' is invalid.' . "\n\n", 0);
-        $sn = '';
-      }
-    }
   }
 }
 
@@ -13076,10 +10473,12 @@ sub check_license {
 #
 sub get_module_status {
   my $mod = shift;
+  my $modstatus = $gInstallStatus{$mod};
 
-  # If it's in this list, we didn't put it there.
-  if (defined $gNonVmwareModules{"$mod"}) {
+  if($modstatus eq 'other') {
      return 'installed_by_other';
+  } elsif ($modstatus eq 'builtin') {
+     return 'compiled_in';
   }
 
   # So its not in the list.  If its configured, then we installed it.  Otherwise
@@ -13089,23 +10488,13 @@ sub get_module_status {
   if (defined $gVmwareInstalledModules{"$mod"}) {
      if (defined db_get_answer_if_exists($modConfKey) and
          db_get_answer($modConfKey) eq 'yes') {
-        if ($gVmwareInstalledModules{"$mod"} =~ m,updates/vmware,) {
+        if ($modstatus eq 'clobbered') {
            return 'clobbered_by_vmware';
-        } else {
+        } elsif ($modstatus eq 'installed') {
            return 'installed_by_vmware';
         }
      } else {
         return 'not_configured';
-     }
-  }
-
-  # Finally check if the module exists in /sys/modules.  If its there but no
-  # module has been detected on the system and the module can't be found in
-  # the output of lsmod, then we assume the module has been compiled in.
-  if (defined $gVmwareRunningModules{"$mod"}) {
-     my $lsmodOut = `lsmod`;
-     if (not ($lsmodOut =~ m/$gVmwareRunningModules{"$mod"}/)) {
-         return 'compiled_in';
      }
   }
 
@@ -13177,6 +10566,12 @@ sub mod_pre_install_check {
   my $modStatus = get_module_status($mod);
   my $clobberKMod = $gOption{'clobberKernelModules'}{"$mod"};
 
+  # we no longer support building these drivers for kernels >= 3.10,
+  # see bug #1035688:
+  my $deprecated_310 =
+     (($mod eq 'vmmemctl' || $mod eq 'pvscsi' || $mod eq 'vmxnet3') &&
+      ($gSystem{'version_integer'} >= kernel_version_integer(3, 10, 0)));
+
   if ($modStatus eq 'compiled_in') {
      # Then we better not even try to install the module
      print wrap("The module $mod has been compiled into the kernel " .
@@ -13186,18 +10581,37 @@ sub mod_pre_install_check {
 
   if ($modStatus eq 'installed_by_other') {
     if (defined $clobberKMod and $clobberKMod eq 'yes') {
-      print wrap("The module $mod has already been installed on this " .
-		 "system by another package but has been marked for " .
-		 "clobbering and will be overridden.\n\n", 0);
-      return 'yes';
+      if ($mod eq 'vmci' || $mod eq 'vsock') {
+        print wrap("The module $mod has already been installed on this " .
+                   "system by another package and clobbering $mod is not " .
+                   "supported.\n\n", 0);
+        return 'no';
+      } else {
+        if ($deprecated_310) {
+          print wrap("The module $mod from this package is not supported for " .
+                     "kernels >= 3.10. You must use the version of the driver " .
+                     "supplied by the kernel.\n\n", 0);
+          return 'no';
+        } else {
+          print wrap("The module $mod has already been installed on this " .
+                     "system by another package but has been marked for " .
+                     "clobbering and will be overridden.\n\n", 0);
+          return 'yes';
+        }
+      }
     } else {
       print wrap("The module $mod has already been installed on this " .
 		 "system by another installer or package " .
-		 "and will not be modified by this installer.  " .
-		 "Use the flag --clobber-kernel-modules=$mod " .
-		 "to override.\n\n", 0);
+		 "and will not be modified by this installer.\n\n", 0);
       return 'no';
     }
+  }
+
+  if ( $deprecated_310 ) {
+    print wrap("The module $mod from this package is not supported for " .
+               "kernels >= 3.10. Please enable this module in your kernel. " .
+               "You may also have to enable HYPERVISOR_GUEST.\n\n", 0);
+    return 'no';
   }
 
   # If we get here, then the module is either not installed or was
@@ -13226,6 +10640,32 @@ sub reinstall_module {
   return;
 }
 
+#
+# Reinstalls vmblock after passing some basic sanity checks.
+#
+sub reinstall_module_vmblock {
+  my $mod = 'vmblock';
+  my $modConfKey = uc("$mod") . '_CONFED';
+  my $result = db_get_answer_if_exists($modConfKey);
+
+  if (defined $result and $result eq 'yes') {
+     # Then the module was installed by us and can be reinstalled by us.
+     # but for vmblock, VMBLOCK_CONFED is set also when using fuse:
+     if (getKernRelInteger() < kernel_version_integer(2, 6, 32)) {
+       configure_module($mod);
+       module_ramdisk_check($mod);
+     } else {
+       print wrap("Skipping $mod because vmware-vmblock-fuse will " .
+                  "be used\n\n\n", 0);
+     }
+  } else {
+    print wrap("Skipping $mod since it was not installed " .
+               "and configured by VMware.\n\n\n", 0);
+  }
+
+  return;
+}
+
 
 #
 # Checks if the given module needs to be added to the ramdisk and
@@ -13233,6 +10673,7 @@ sub reinstall_module {
 #
 sub module_ramdisk_check {
   my $mod = shift;
+
   my $answer = $cRamdiskKernelModules{"$mod"};
   my $modStatus = get_module_status("$mod");
 
@@ -13278,13 +10719,6 @@ Options
                               Build/install modules for the specified kernel
 			      version.  Implies --compile and --modules-only.
 
-      --clobber-kernel-modules=<module1,module2,...>
-	                      Overrides any VMware related modules installed
-                              by other installers or provided by your distro
-                              and installs the modules provided by this
-                              installer.  This is a comma seperated list
-                              of modules.
-
       --clobber-xorg-modules  Skips the Xorg module version comparison tests
                               and installs the VMware shipped Xorg modules.
 
@@ -13299,28 +10733,6 @@ EOF
 
   print STDERR $usage;
   exit 1;
-}
-
-# Return GSX or ESX for server products, Workstation for ws
-sub installed_vmware_version {
-  my $vmware_version;
-  my $vmware_version_string;
-
-  if (not defined($gHelper{"vmware"})) {
-    $gHelper{"vmware"} = DoesBinaryExist_Prompt("vmware");
-    if ($gHelper{"vmware"} eq '') {
-      error('Unable to continue.' . "\n\n");
-    }
-  }
-
-  $vmware_version_string = direct_command(shell_string($gHelper{"vmware"})
-                                          . ' -v 2>&1 < /dev/null');
-  if ($vmware_version_string =~ /.*VMware\s*(\S+)\s*Server.*/) {
-    $vmware_version = $1;
-  } else {
-    $vmware_version = "Workstation";
-  }
-  return $vmware_version;
 }
 
 # switch_to_guest
@@ -13413,7 +10825,7 @@ sub configure_fonts_dot_conf {
    }
 
    my ($font_line, $sys_line);
-   my $font_path = db_get_answer('LIBDIR') . "/libconf/etc/fonts/fonts.conf";
+   my $font_path = linkdest(db_get_answer('LIBDIR') . '/libconf') . '/etc/fonts/fonts.conf';
    my $tmp_file = $tmp_dir . '/fonts.conf';
 
    open(MYFONT, "<" . $font_path)
@@ -13462,6 +10874,12 @@ sub configure_fonts_dot_conf {
    close(OUTFONT);
 
    system(shell_string($gHelper{'cp'}) . " " . $tmp_file . " " . $font_path);
+
+   # re-add file to database so they it will not stay behind on uninstall
+   # see bug #745860
+   db_remove_file($font_path);
+   db_add_file($font_path, $cFlagTimestamp);
+
    remove_tmp_dir($tmp_dir);
 }
 
@@ -13469,11 +10887,9 @@ sub configure_fonts_dot_conf {
 sub configure_auto_kmods {
    my $ans;
    my $msg = <<EOF;
-!!! [EXPERIMENTAL] !!!
 VMware automatic kernel modules enables automatic building and installation of
-VMware kernel modules at boot that are not already present.  By selecting yes,
-you will be enabling this experimental feature.  You can always disable this
-feature by re-running vmware-config-tools.pl.
+VMware kernel modules at boot that are not already present. This feature can be
+enabled/disabled by re-running vmware-config-tools.pl.
 
 Would you like to enable VMware automatic kernel modules?
 EOF
@@ -13483,6 +10899,227 @@ EOF
    db_add_answer('AUTO_KMODS_ENABLED', $ans);
 }
 
+# Install a pair of S/K startup scripts for a given runlevel
+sub link_runlevel {
+   my $level = shift;
+   my $service = shift;
+   my $S_level = shift;
+   my $K_level = shift;
+
+   #
+   # Create the S symlink
+   #
+   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
+                   db_get_answer('INITDIR') . '/rc' . $level . '.d/S'
+                   . $S_level . $service);
+
+   #
+   # Create the K symlink
+   #
+   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
+                   db_get_answer('INITDIR') . '/rc' . $level . '.d/K'
+                   . $K_level . $service);
+}
+
+# Create the links for VMware's services taking the service name and the
+# requested levels
+sub link_services {
+   my @fields;
+   my $service = shift;
+   my $S_level = shift;
+   my $K_level = shift;
+
+   # Try using insserv if it is available.
+   my $init_style = db_get_answer_if_exists('INIT_STYLE');
+
+   if ($gHelper{'insserv'} ne '') {
+     if (0 == system(shell_string($gHelper{'insserv'}) . ' '
+                     . shell_string(db_get_answer('INITSCRIPTSDIR')
+                                    . '/' . $service) . ' >/dev/null 2>&1')) {
+       return;
+     }
+   }
+   if ("$init_style" eq 'lsb') {
+     # Then we have gotten here, but gone past the insserv section, indicating
+     # that insserv cannot be found.  Warn the user...
+     print wrap("WARNING: The installer initially used the " .
+                "insserv application to setup the vmware-tools service.  " .
+                "That application did not run successfully.  " .
+                "Please re-install the insserv application or check your settings.  " .
+                "This script will now attempt to manually setup the " .
+                "vmware-tools service.\n\n", 0);
+   }
+
+   # Now try using chkconfig if available.
+   # Note: RedHat's chkconfig reads LSB INIT INFO if present.
+   if ($gHelper{'chkconfig'} ne '') {
+     if (0 == system(shell_string($gHelper{'chkconfig'}) . ' '
+                     . $service . ' reset')) {
+       return;
+     }
+   }
+   if ("$init_style" eq 'chkconfig') {
+     # Then we have gotten here, but gone past the chkconfig section, indicating
+     # that chkconfig cannot be found.  Warn the user..
+     print wrap("WARNING: The installer initially used the " .
+                "chkconfig application to setup the vmware-tools service.  " .
+                "That application did not run successfully.  " .
+                "Please re-install the chkconfig application or check your settings.  " .
+                "This script will now attempt to manually setup the " .
+                "vmware-tools service.\n\n", 0);
+   }
+
+   # Now try using update-rc.d if available.
+   # This is Debian or Ubuntu
+   if ($gHelper{'update-rc.d'} ne ' ') {
+     if ($service eq 'vmware-tools-thinprint') {
+       if (0 == system(shell_string($gHelper{'update-rc.d'}) . " " . $service
+                       . " start " . $S_level . " 2 3 4 5 ."
+                       . " stop " . $K_level . " 0 1 6 .")) {
+         return;
+       }
+     } else {
+       if (0 == system(shell_string($gHelper{'update-rc.d'}) . " " . $service
+                       . " start " . $S_level . " S ."
+                       . " start " . $K_level . " 0 6 .")) {
+         return;
+       }
+     }
+   }
+   if ("$init_style" eq 'update-rc.d') {
+     # Then we have gotten here, but gone past the update-rc.d section, indicating
+     # that update-rc.d cannot be found.  Warn the user..
+     print wrap("WARNING: The installer initially used the " .
+                "'udpate-rc.d' to setup the vmware-tools service.  " .
+                "That command cannot be found.  " .
+                "Please re-install the 'sysv-rc' package.  " .
+                "This script will now attempt to manually setup the " .
+                "vmware-tools service.", 0);
+   }
+
+   # Set up vmware to stop at run levels 0 and 6
+   # if this puzzles you, see Debian bug #351975, then read /etc/init.d/rc :
+   if ((distribution_info() eq "debian") and (not $service eq 'vmware-tools-thinprint')) {
+     # Set up vmware to start at run level S
+     install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
+                     db_get_answer('INITDIR') . '/rcS.d/S' . $S_level . $service);
+   }
+   else {
+     # Set up vmware to start/stop at run levels 2, 3 and 5
+     link_runlevel(2, $service, $S_level, $K_level);
+     link_runlevel(3, $service, $S_level, $K_level);
+     link_runlevel(5, $service, $S_level, $K_level);
+   }
+
+   # Set up vmware to stop at run levels 0 and 6
+   my $K_prefix = "K";
+   if ((distribution_info() eq "debian") and (not $service eq 'vmware-tools-thinprint')) {
+     $K_prefix = "S";
+   }
+   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
+                   db_get_answer('INITDIR') . '/rc0' . '.d/' . $K_prefix
+                   . $K_level . $service);
+   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
+                   db_get_answer('INITDIR') . '/rc6' . '.d/' . $K_prefix
+                   . $K_level . $service);
+}
+
+
+# Determines if the system at hand needs to have timer
+# based audio support disabled in pulse.  Make this call
+# based on the version of pulseaudio installed on the system.
+#
+sub pulseNeedsTimerBasedAudioDisabled {
+   my $pulseaudioBin = internal_which("pulseaudio");
+   my $cmd = "$pulseaudioBin --version";
+   my $verStr = '0';
+
+   if (-x $pulseaudioBin) {
+      open(OUTPUT, "$cmd |");
+      foreach my $line (<OUTPUT>) {
+    chomp $line;
+    if ($line =~ /pulseaudio *([0-9\.]+)/) {
+        $verStr = $1;
+        last
+    }
+      }
+      if (dot_version_compare($verStr, "0.9.19") ge 0) {
+    # Then pulseaudio's version is >= 0.9.19
+    return 1;
+      }
+   }
+
+   return 0
+}
+
+# Disables timer based audio scheduling in the default config
+# file for PulseAudio
+#
+sub pulseDisableTimerBasedAudio {
+   my $cfgFile = '/etc/pulse/default.pa';
+   my $regex = qr/^ *load-module +module-(udev|hal)-detect$/;
+   my $tmpDir = make_tmp_dir('vmware-pulse');
+   my $tmpFile = $tmpDir . '/tmp_file';
+   my $fileModified = 0;
+
+   if (not open(ORGPCF, "<$cfgFile") or
+       not open(NEWPCF, ">$tmpFile")) {
+      return 0;
+   }
+
+   foreach my $line (<ORGPCF>) {
+      chomp $line;
+      if ($line =~ $regex and $line !~ /tsched/) {
+    # add the flag if its not already there.
+    print NEWPCF "$line tsched=0\n";
+    $fileModified = 1;
+      } else {
+    # just print the line.
+    print NEWPCF "$line\n";
+      }
+   }
+
+   close ORGPCF;
+   close NEWPCF;
+
+   if ($fileModified) {
+      backup_file_to_restore($cfgFile, "orig");
+      system(join(' ', $gHelper{'cp'}, $tmpFile, $cfgFile));
+      restorecon($cfgFile);
+      db_add_answer('PULSE_AUDIO_CONFED', $cfgFile);
+   }
+
+  remove_tmp_dir($tmpDir);
+}
+
+sub configure_tools_initscripts {
+  my $srv_table = vmware_services_table();
+  my $service;
+
+  # FIXME: need different start/stop levels for different services
+  # for example, we want to start thinprint after cups
+  foreach $service (keys %{$srv_table}){
+    if (vmware_product() eq 'tools-for-linux' and not
+        db_get_answer_if_exists('UPSTARTJOB')) {
+      # We want to be before networking (because we load network modules).
+      # Being before syslog would be nice, but syslog sometimes starts
+      # after networking, hence this is not possible.
+      # Note: Ensure that these numbers are in sync with the LSB/chkconfig
+      #       entries at the top of bora/install/tar/pkg_mgr.pl
+      if ($service eq 'thinprint') {
+        link_services($srv_table->{$service}, '57', '43');
+      } else {
+        if (distribution_info() eq "debian") {
+          link_services($srv_table->{$service}, '38', '36');
+        } else {
+          link_services($srv_table->{$service}, '03', '99');
+        }
+      }
+    } elsif (vmware_product() eq 'tools-for-solaris') {
+      link_services_solaris($srv_table->{$service}, '05', '65');
+    }
+  }
+}
 
 # Tools configurator
 sub configure_tools {
@@ -13541,29 +11178,8 @@ sub configure_tools {
   print "\n\n";
 
   if (!$gOption{'modules_only'}) {
-    # FIXME: need differtent start/stop levels for different services
-    # for example, we want to start thinprint after cups
-    foreach $service (keys %{$srv_table}){
-      if (vmware_product() eq 'tools-for-linux' and not
-          db_get_answer_if_exists('UPSTARTJOB')) {
-        # We want to be before networking (because we load network modules).
-        # Being before syslog would be nice, but syslog sometimes starts
-        # after networking, hence this is not possible.
-        # Note: Ensure that these numbers are in sync with the LSB/chkconfig
-        #       entries at the top of bora/install/tar/pkg_mgr.pl
-	if ($service eq 'thinprint') {
-          link_services($srv_table->{$service}, '57', '43');
-	} else {
-          if (distribution_info() eq "debian") {
-            link_services($srv_table->{$service}, '38', '36');
-          } else {
-            link_services($srv_table->{$service}, '03', '99');
-          }
-        }
-      } elsif (vmware_product() eq 'tools-for-solaris') {
-        link_services_solaris($srv_table->{$service}, '05', '65');
-      }
-    }
+    configure_tools_initscripts();
+
     if (vmware_product() eq 'tools-for-freebsd') {
       configure_module_bsd('vmxnet');
       configure_module_bsd('vmxnet3');
@@ -13586,20 +11202,33 @@ sub configure_tools {
     configure_vmmemctl();
     configure_vmhgfs();
     write_module_config();
-    configure_vmblock();
+
+    # open-vm tools has vmware-vmblock-fuse:
+    if (!$open_vm_compat) {
+      configure_vmblock();
+    }
 
     if (vmware_product() eq 'tools-for-linux') {
       configure_auto_kmods();
       configure_ld_dot_so();
-      configure_thinprint();
-      if (pulseNeedsTimerBasedAudioDisabled()) {
-	 pulseDisableTimerBasedAudio();
-	 print "\nDisabling timer-based audio scheduling in pulseaudio.\n\n";
+      if ($have_thinprint eq 'yes') {
+        configure_thinprint();
+      }
+      if (!$open_vm_compat) {
+        if (pulseNeedsTimerBasedAudioDisabled()) {
+	   pulseDisableTimerBasedAudio();
+	   print "\nDisabling timer-based audio scheduling in pulseaudio.\n\n";
+        }
+        if ($have_vgauth) {
+           configure_vgauth();
+        }
       }
     }
 
-    configure_X();
-    configure_autostart();
+    if (!$open_vm_compat) {
+      configure_X();
+      configure_autostart();
+    }
 
     if ( vmware_product() eq 'tools-for-linux') {
        configure_udev_scsi();
@@ -13612,16 +11241,11 @@ sub configure_tools {
     reinstall_module('vmhgfs');
     reinstall_module('vmxnet');
     reinstall_module('vmxnet3');
-    reinstall_module('vmblock');
+    reinstall_module_vmblock();
     reinstall_module('vmci');
     reinstall_module('vsock');
     reinstall_module('pvscsi');
-
-    # configure the experimental drivers
     reinstall_module('vmsync');
-
-    # configure the experimental vmwgfx drivers
-    reinstall_module('vmwgfx');
 
   }
 
@@ -13649,10 +11273,12 @@ sub configure_tools {
 
   uninstall_file($gConfFlag);
 
-  # We don't ship libconf for Solaris, so we don't need to change the
-  # fonts.conf being used.
-  if (vmware_product() ne 'tools-for-solaris') {
-    configure_fonts_dot_conf();
+  if (!$open_vm_compat) {
+    # We don't ship libconf for Solaris, so we don't need to change the
+    # fonts.conf being used.
+    if (vmware_product() ne 'tools-for-solaris') {
+      configure_fonts_dot_conf();
+    }
   }
 
   #
@@ -13688,51 +11314,77 @@ sub configure_tools {
                . 'any mouse or graphics changes take effect.  Remember to run '
                . 'kdmconfig(1M) as root to switch from the Xsun server to the '
                . 'Xorg server.' . "\n\n", 0);
-  } else {
+  } elsif (!$open_vm_compat) {
     print wrap('You must restart your X session before any mouse or graphics changes '
                . 'take effect.' . "\n\n", 0);
   }
-  print wrap('You can now run ' . vmware_product_name() . ' by invoking "'
-	     . vmware_tools_cmd_app_name() . "\" from the command line.\n\n",0);
+  if (!$open_vm_compat) {
+    print wrap('You can now run ' . vmware_product_name() . ' by invoking "'
+          . vmware_tools_cmd_app_name() . "\" from the command line.\n\n",0);
 
-  my $bindir = db_get_answer('BINDIR');
-  if (vmware_product() eq 'tools-for-linux') {
-    print wrap('To enable advanced X features (e.g., guest resolution fit, '
-               . 'drag and drop, and file and text copy/paste), you will need '
-               . 'to do one (or more) of the following:' . "\n"
-               . '1. Manually start ' . $bindir . '/vmware-user' . "\n"
-               . '2. Log out and log back into your desktop session; and,' . "\n"
-               . '3. Restart your X session.' . "\n\n", 0);
+    my $bindir = db_get_answer('BINDIR');
+    if (vmware_product() eq 'tools-for-linux') {
+      print wrap('To enable advanced X features (e.g., guest resolution fit, '
+                 . 'drag and drop, and file and text copy/paste), you will need '
+                 . 'to do one (or more) of the following:' . "\n"
+                 . '1. Manually start ' . $bindir . '/vmware-user' . "\n"
+                 . '2. Log out and log back into your desktop session; and,' . "\n"
+                 . '3. Restart your X session.' . "\n\n", 0);
+    }
   }
 
   if (vmware_product() eq 'tools-for-linux') {
+
+    my $devcounts = get_devices_list();
+
     if (defined(db_get_answer_if_exists('VMXNET_CONFED')) &&
        (db_get_answer('VMXNET_CONFED') eq 'yes')) {
       if (defined(isKernelBlacklisted())) {
-        # Because there are problems rmmod'ing the pcnet32 module on some older
+        # because there are problems rmmod'ing the pcnet32 module on some older
         # kernels the safest way to pick up the vmxnet module is to reboot.
-        # DO NOT RMMOD pcnet32!  Even by hand! You will terminally confuse the
+        # do not rmmod pcnet32!  even by hand! you will terminally confuse the
         # kernel which will panic or hang very unpredictably.
-        print wrap('To make use of the vmxnet driver you will need to '
+        print wrap('to make use of the vmxnet driver you will need to '
                    . 'reboot.' . "\n",0);
       } else {
-        my ($vmxnet_dev, $pcnet32_dev, $es1371_dev) = get_devices_list();
-        if ($vmxnet_dev or $pcnet32_dev) {
-          my $network_path = find_first_exist("/etc/init.d/network",
-                                              "/etc/init.d/networking");
-          print wrap('To use the vmxnet driver, restart networking using the '
-                     . 'following commands: ' . "\n"
-                     . "$network_path stop" . "\n", 0);
-          if ($pcnet32_dev) {
-            print wrap('rmmod pcnet32' . "\n", 0);
+        if ($devcounts->{'vmxnet'} or $devcounts->{'pcnet32'}) {
+          my $step = 1;
+
+          print wrap("to use the vmxnet driver, either reboot or\n");
+          if ($devcounts->{'pcnet32'}) {
+            print wrap("$step. stop networking or stop any interface using the vmxnet or pcnet32 driver\n"); $step++;
+            print wrap("$step. remove the pcnet32 module with 'rmmod pcnet32'\n", 0); $step++;
+          } else {
+            print wrap("$step. stop networking or stop any interface using the vmxnet driver\n"); $step++;
           }
-          print wrap('rmmod vmxnet' . "\n"
-                     . 'modprobe vmxnet' . "\n"
-                     . "$network_path start" . "\n\n", 0);
+          print wrap("$step. remove the vmxnet module with 'rmmod vmxnet'\n"); $step++;
+          print wrap("$step. load the vmxnet module with 'modprobe -v vmxnet'\n"); $step++;
+          print wrap("$step. and restart networking or restart the stopped network interfaces\n\n");
         }
       }
     }
+
+    if (defined(db_get_answer_if_exists('VMXNET3_CONFED')) &&
+       (db_get_answer('VMXNET3_CONFED') eq 'yes')) {
+      if ($devcounts->{'vmxnet3'}) {
+
+        print wrap("to use the vmxnet3 driver, either reboot or\n"
+                 . "1. stop networking  or stop any interface using the vmxnet driver\n"
+                 . "2. remove the vmxnet3 module with 'rmmod vmxnet3'\n"
+                 . "3. load the vmxnet3 module with 'modprobe -v vmxnet3'\n"
+                 . "4. and restart networking or restart the stopped network interfaces\n\n");
+      }
+    }
+
+    if (defined(db_get_answer_if_exists('PVSCSI_CONFED')) &&
+       (db_get_answer('PVSCSI_CONFED') eq 'yes')) {
+      if ($devcounts->{'pvscsi'}) {
+
+        print wrap("to use the pvscsi driver please reboot\n\n");
+      }
+    }
   }
+
   if (vmware_product() eq 'tools-for-freebsd' and
       defined db_get_answer_if_exists('VMXNET_CONFED') and
       db_get_answer('VMXNET_CONFED') eq 'yes') {
@@ -13817,21 +11469,6 @@ sub configure_ld_dot_so {
 }
 
 
-sub update_file {
-   my $plain_file = shift;
-   my $tmpfile = shift;
-   my $flags = shift;
-   my $patch_thru = shift;
-   my @statbuf;
-
-   @statbuf = stat($plain_file);
-
-   db_remove_file($plain_file);
-   internal_sed($plain_file, $tmpfile, 0, $patch_thru);
-   install_file($tmpfile, $plain_file, $patch_thru, $flags);
-   safe_chmod(($statbuf[2] & 07777) | 0555, $plain_file);
-}
-
 # switch_tools_config
 # Called by the services.sh startup script.
 # This allows a switch of configuration depending if the system is
@@ -13894,21 +11531,14 @@ sub configure_eclipse_plugin {
 
 # Returns the console name of the product for use in a .desktop file
 sub getDesktopConsoleName {
-   if (vmware_product() eq "wgs" || vmware_product() eq "vserver") {
-      return vmware_product_name() . " Console";
-   } else {
-      return vmware_product_name();
-   }
+   return vmware_product_name();
 }
 
 # Returns the name of the .desktop file to produce
 sub getDesktopFileName {
    if (vmware_product() eq "ws") {
       return "vmware-workstation.desktop";
-   } elsif (vmware_product() eq "wgs") {
-      return "vmware-gsx.desktop";
    }
-
    return undef;
 }
 
@@ -13916,10 +11546,7 @@ sub getDesktopFileName {
 sub getIconFileName {
    if (vmware_product() eq "ws") {
       return "vmware-workstation.png";
-   } elsif (vmware_product() eq "wgs") {
-      return "vmware-gsx.png";
    }
-
    return undef;
 }
 
@@ -14018,7 +11645,7 @@ sub configureDesktopFiles {
    my $desktopdir;
    my $vmwareBinary;
 
-   if ((!isServerProduct() && !isDesktopProduct()) || !$gOption{'create_shortcuts'}) {
+   if (!isDesktopProduct() || !$gOption{'create_shortcuts'}) {
       return;
    }
 
@@ -14082,15 +11709,6 @@ sub configureDesktopFiles {
                         getIconFileName(), $vmwareBinary,
                         "Run and manage virtual machines",
                         $mimetypes, 1);
-
-      if (isServerProduct()) {
-         createDesktopFile($use_desktop_utils, $mime_support,
-                           "vmware-console-uri-handler.desktop",
-                           getDesktopConsoleName(), getIconFileName(),
-                           $vmwareBinary . " -o %f",
-                           "Run and manage remote virtual machines",
-                           "application/x-vmware-console;", 0);
-      }
    }
 
    if (isDesktopProduct()) {
@@ -14113,7 +11731,7 @@ sub createMimePackageFile {
    my $desticondir;
    my %p;
 
-   if (!isServerProduct() && !isDesktopProduct()) {
+   if (!isDesktopProduct()) {
       return;
    }
 
@@ -14440,15 +12058,21 @@ sub verify_bsd_libcompat {
 # is followed by a dash and numeric version number
 sub bsd_has_package {
   my $pkg = shift;
+  my $arg = '';
 
   my $pkginfo_path = internal_which('pkg_info');
   if ($pkginfo_path eq ''){
-    error("This program could not find a valid path to pkg_info.  " .
-          "Please ensure that the pkg_info binary is installed " .
-          "in the system path.\n\n");
+    # In FreeBSD 10, 'pkg info' is used instead of pkg_info:
+    $pkginfo_path = internal_which('pkg');
+    if ($pkginfo_path eq ''){
+      error("This program could not find a valid path to pkg_info or pkg.  " .
+            "Please ensure that one of the pkg_info or pkg binaries is installed " .
+            "in the system path.\n\n");
+    }
+    $arg = ' info';
   }
 
-  my $pkg_info_output = `$pkginfo_path`;
+  my $pkg_info_output = `$pkginfo_path$arg`;
   return ($pkg_info_output =~ /^$pkg-\d/m);
 }
 
@@ -14482,6 +12106,322 @@ sub verify_bsd_xpkgs {
   }
 }
 
+# check_for_vmw_mods_in_kernel
+#
+# Checks /sys/module for our kernel modules.  This only works on the
+# running kernel.
+#
+sub check_for_vmw_mods_in_kernel {
+   my $k;
+   my $v;
+
+   return unless (getKernRel() eq $gSystem{'uts_release'});
+
+   while (($k, $v) = each %cUpstrKernelModNames) {
+      my $path = join('/', '/sys/module', $k);
+      if (-e $path) {
+         $gVmwareRunningModules{$v} = $k;
+      }
+   }
+}
+
+# Extracts the alias and module name from a line, if it starts with "alias";
+# Returns empty strings otherwise. Designed for use only when parsing
+# modules.alias.
+#
+sub extract_alias_and_modname {
+  my $line = shift;
+  my $alias = "";
+  my $modname = "";
+
+  if($line =~ m/alias (.*)\s(.*)\s/) {
+    $alias = "$1";
+    $modname = "$2";
+  }
+  return ($alias, $modname);
+}
+
+# Returns the full path to the first argument. Returns first argument
+# if it is already a full path, returns the join() of the second and
+# first arguments otherwise.
+#
+sub get_full_module_path {
+  my $module = shift;
+  my $path = shift;
+  chomp($module);
+
+  # get rid of colon and anything following (if it exists)
+  if($module =~ m/(.*):/) {
+    $module = "$1";
+  }
+
+  my $fullPath;
+  # if it starts with a slash, then it's already the full path
+  if ($module =~ m/^\//) {
+    $fullPath = $module;
+  } else {
+    # otherwise, get the path from the parameters and append
+    $fullPath = join('/', $path, $module);
+  }
+
+  if(not -e $fullPath) {
+    print wrap("WARNING: A module identified in modules.dep " .
+      "could not be found. modules.dep may be out of date. " .
+      "We recommend you run 'depmod -a' and then re-run this " .
+      "configurator.\n\n", 0);
+  }
+  return $fullPath;
+}
+
+# Looks for a module (*.ko) in modules.dep and returns
+# the full path to it if it exists; returns an empty string otherwise
+#
+sub search_for_module_in_moddep {
+  my $modName = shift;
+  my $libModPath = shift;
+
+  if(open(MODDEP, "$libModPath/modules.dep")) {
+    my $modPath='';
+    while(<MODDEP>) {
+      my $line = "$_";
+      if (($line =~ m/(.*$modName):.*/) || ($line =~ m/(.*$modName\.xz):.*/)){
+        $modPath = get_full_module_path("$1", "$libModPath");
+        last;
+      }
+    }
+    close(MODDEP);
+    return $modPath;
+  } else {
+    error("Unable to open kernel module dependency file\n.");
+  }
+}
+
+# Reduce PCI id by removing trailing data (subvendor, etc) from PCI IDs.
+# Returns the reduced PCI id if "pci" start's the string, otherwise returns
+# the original string.
+#
+sub reduce_pciid {
+  my $string = shift;
+  if ($string=~ m/^(pci:v[0-9A-F]{8}d[0-9A-F]{8})/) {
+    $string= "$1";
+  }
+  return $string;
+}
+
+# Returns a list of VMware kernel modules that were
+# found on the system that were not placed there by the installer
+# by parsing modules.alias.
+#
+sub populate_vmw_modules_via_aliases_file {
+  my $libModPath = shift;
+
+  if(open(MODALIAS, "$libModPath/modules.alias")) {
+    my @kernelModulesCopy = @cKernelModules;
+    my ($alias, $actualMod, $modName, $modPath);
+    while(<MODALIAS>) {
+      ($alias, $actualMod) = extract_alias_and_modname("$_");
+      $alias = reduce_pciid($alias);
+
+      $modName = $cKernelModuleAliases{"$alias"};
+      if (defined $modName) {
+        # then a module alias matched one of our modules
+
+        $modPath = search_for_module_in_moddep("$actualMod.ko", $libModPath);
+        # remove $modName from @kernelModulesCopy
+        @kernelModulesCopy = grep { $_ ne $modName } @kernelModulesCopy;
+
+        check_if_vmw_installed_module($modName, $modPath);
+      }
+    }
+
+    # search for any of the remaining modules for which
+    # we did not find a module alias. Have to do this
+    # second because it uses kernelModulesCopy, which is changed above
+    foreach my $mod (@kernelModulesCopy) {
+      $modPath = search_for_module_in_moddep("$mod.ko", $libModPath);
+      if (not $modPath eq '') {
+        check_if_vmw_installed_module($mod, $modPath);
+      }
+    }
+    close(MODALIAS);
+  } else {
+    error("Unable to open modules.alias file\n.");
+  }
+}
+
+# Returns a list of VMWare kernel modules that were
+# found on the system that were not placed there by the installer
+# by parsing modules.dep, modinfo-ing the module, and parsing
+# the output of modinfo.
+#
+sub populate_vmw_modules_via_modinfo {
+  my $libModPath = shift;
+
+  if (open(MODULESDEP, "$libModPath/modules.dep")) {
+    my $modPath = '';
+    while (<MODULESDEP>) {
+      if (/^(.*\.k?o):.*$/) {
+        #
+        # Then the module may not be there.  In Ubuntu 9.04, modules.dep
+        # no longer has a full path for the modules.  Therefore we must
+        # try out both a full path and one relative to the modules
+        # directory of the currently running kernel.
+        #
+
+        $modPath = get_full_module_path("$1","$libModPath");
+
+        if (defined $modPath) {
+          check_if_vmware_module($modPath);
+        }
+      }
+    }
+    close(MODULESDEP);
+  } else {
+    error("Unable to open kernel module dependency file\n.");
+  }
+}
+
+
+#
+# Checks to see if the given module shares a name or PCI id with ours.
+# If there's a PCI or name match, send it to check_if_vmw_installed_module
+# to see if it's actually ours.
+#
+# This does the checks in the following order
+# 1.  Check for PCI IDs
+# 2.  Check for VMware module Aliases
+# 3.  Check for module file names (legacy).
+#
+sub check_if_vmware_module {
+  my $modPath = shift;
+  my $modInfoCmd = shell_string($gHelper{'modinfo'})
+                   . " -F alias $modPath 2>/dev/null";
+  my @modInfoOutput = map { chomp; $_ } (`$modInfoCmd`);
+  my $line;
+  my $modName;
+  undef $modName;
+
+  # First check for PCI IDs/Aliases
+  foreach $line (@modInfoOutput) {
+    $line = reduce_pciid($line);
+    $modName = $cKernelModuleAliases{"$line"};
+    if (defined $modName) {
+      check_if_vmw_installed_module($modName, $modPath);
+      return;
+    }
+  }
+
+  # Finally check the module name.
+  if ($modPath =~ m,^.*/(\w+)\.k?o,) {
+    foreach my $mod (@cKernelModules) {
+      if ("$1" eq $mod) {
+        check_if_vmw_installed_module($mod, $modPath);
+        return;
+      }
+    }
+    # If the module has been clobbered, the name is in the alias list.
+    if (defined $cKernelModuleAliases{$1}) {
+        return $cKernelModuleAliases{$1};
+    }
+  }
+}
+
+
+# This function checks to see if the given module (modName)
+# is not in the db file; it adds the result
+# to gVmwareInstalledModules if it is in the db file
+#
+sub check_if_vmw_installed_module {
+  my $modName = shift;
+  my $modPath = shift;
+
+  if (not -e $modPath) {
+    return;
+  }
+
+  if (not db_file_in($modPath)) {
+    # Add $modName module with path $modPath to bad list
+
+    # Check to see if we have already found a module for this.  If
+    # so, there is not much we can do.  Instead just warn the user.
+    if (defined $gNonVmwareModules{$modName}) {
+      print wrap("WARNING: A module identified as $modName has been found " .
+        "at $gNonVmwareModules{$modName} and at $modPath.  " .
+        "Leaving both modules in there could potentially " .
+        "cause a race condition when a device is added.  " .
+        "We recommend you remove one of them, run " .
+        "'depmod -a', and then re-run this configurator.\n\n", 0);
+    }
+
+    $gNonVmwareModules{$modName} = "$modPath";
+  } else {
+    # Its one of our modules.  Lets keep track of where they are as
+    # they might not be in the standard locations
+    $gVmwareInstalledModules{$modName} = "$modPath";
+  }
+}
+
+sub set_module_status {
+  my $mod = shift;
+  my $status = shift;
+
+  $gInstallStatus{$mod} = $status;
+}
+
+sub initialize_module_status {
+  my $modconfig = make_modconfig_command("--install-status");
+
+  if(not open(STATIN, "$modconfig |")) {
+    error("Unable to run $modconfig\n");
+  }
+
+  while(<STATIN>) {
+    /^(.*):\ (.*)$/;
+    $gInstallStatus{$1} = $2;
+  }
+
+  close(STATIN);
+}
+
+# Returns a list of VMware kernel modules that were
+# found on the system that were not placed there by the installer.
+# Also checks the running kernel for modules that were built in when
+# the kernel was compiled.
+sub populate_vmware_modules {
+  my $libModPath = join('/','/lib/modules', getKernRel());
+
+  # can't continue without the modules.dep file
+  system(shell_string($gHelper{'depmod'}) . ' -a');
+  if (not -e "$libModPath/modules.dep") {
+    error("Unable to find kernel module dependency file\n.");
+  }
+
+  if (-e "$libModPath/modules.alias") {
+    populate_vmw_modules_via_aliases_file($libModPath);
+  } else {
+    populate_vmw_modules_via_modinfo($libModPath);
+  }
+
+  check_for_vmw_mods_in_kernel();
+}
+
+##
+# does_solaris_package_exist
+#
+# Executes a system call to check if the given package (passed in as
+# a parameter) exists.
+#
+# @param[in] $packageName
+#
+# @returns 1 (true) if package exists, 0 (false) otherwise
+#
+
+sub does_solaris_package_exist {
+   my $packageName = shift;
+
+   system("pkginfo $packageName > /dev/null 2>&1");
+   return $? == 0 ? 1 : 0;
+}
 
 ##
 # get_resolution
@@ -14509,7 +12449,7 @@ sub get_resolution {
 
   # try to use the guest resolution first
   if ($xrandrPath ne '' and system("$xrandrPath > /dev/null 2>&1") == 0) {
-    my $currentRes = direct_command("$xrandrPath | grep \\*"); # get the line with the resolution
+    my $currentRes = direct_command("$xrandrPath 2>/dev/null | grep \\*"); # get the line with the resolution
 
     # tragically, xrandr returns a different style of string for old xrandr (~RHEl 3.x, etc.)
     # so we need to handle both cases
@@ -14573,8 +12513,6 @@ sub main {
 
       if (lc($arg) =~ /^(-)?(-)?d(efault)?$/) {
          $gOption{'default'} = 1;
-      } elsif (lc($arg) =~ /^--install-vmwgfx$/) {
-         $gOption{'install-vmwgfx'} = 1;
       } elsif (lc($arg) =~ /^(-)?(-)?c(ompile)?$/) {
          $gOption{'compile'} = 1;
       } elsif (lc($arg) =~ /^(-)?(-)?p(rebuilt)?$/) {
@@ -14608,7 +12546,7 @@ sub main {
             error("Cannot build for non-running kernel on non-linux OS.\n");
          }
          if (!$gOption{'kernel_version'} or $gOption{'kernel_version'} eq '') {
-            error("Must specify a paramater for --kernel-version.\n");
+            error("Must specify a parameter for --kernel-version.\n");
          }
          # Argument validation is deferred till after system_info() is called.
       } elsif (lc($arg) =~ /^--overwrite$/) {
@@ -14654,6 +12592,11 @@ sub main {
 	 }
        }
      }
+
+     if((defined db_get_answer_if_exists('OPEN_VM_COMPAT')) && (db_get_answer('OPEN_VM_COMPAT') eq 'yes')) {
+       $open_vm_compat = 1;
+     }
+
    }
 
    # Be sure that this is called before anyone attempts to execute any of the
@@ -14730,6 +12673,7 @@ sub main {
          # Initialize the dictionary which tracks non-vmware modules
          # This only applies to linux currently.
          if (vmware_product() eq 'tools-for-linux') {
+           initialize_module_status();
            populate_vmware_modules();
          }
          symlink_icudt44l();
@@ -14775,6 +12719,10 @@ sub main {
       }
       db_save();
 
+      # make sure changes are flushed to disk before this scripts exits:
+      # (bug #999703)
+      system(internal_which('sync'));
+
       exit 0;
    }
 
@@ -14817,30 +12765,14 @@ sub main {
    }
 
    if (vmware_product() ne 'ws') {
-      # For wgs, don't show the EULA for developers' builds.
-      if (vmware_product() eq 'wgs') {
-        if ('1031360' != 0) {
-          show_EULA();
-        }
-      } else {
-        show_EULA();
-      }
+      show_EULA();
    }
-
-  if (vmware_product() eq 'wgs') {
-    # Check memory requirements for GSX/WGS
-    check_wgs_memory();
-  }
 
   if (vmware_product() ne 'server') {
     configure_mon();
     configure_vmci();
     configure_vsock();
     configure_pp();
-
-    if (vmware_product() eq 'wgs') {
-	configure_net();
-    }
 
     build_vmnet();
   }
@@ -14866,24 +12798,13 @@ sub main {
   create_dir($cConnectSocketDir, $cFlagDirectoryMark);
   safe_chmod(0755, $cConnectSocketDir);
 
-  if ((vmware_product() ne 'wgs') && (vmware_product() ne 'server') &&
+  if ((vmware_product() ne 'server') &&
       defined($gDBAnswer{'NETWORKING'}) && get_samba_net() != -1) {
      unconfigure_samba();
   }
 
-  if ((vmware_product() eq 'wgs') || (vmware_product() eq 'server')) {
+  if (vmware_product() eq 'server') {
      configure_server();
-  }
-
-  if (vmware_product() eq 'wgs') {
-    configure_security();
-    if (configure_hostd()) {
-      configure_webAccess();
-    } else {
-      my $msg = "Hostd is not configured properly.  Once you have corrected"
-                . " the problem, run " . $cConfiguratorFileName . " again.\n";
-      error(wrap($msg, 0));
-    }
   }
 
   if (vmware_product() ne 'server') {
@@ -14902,10 +12823,6 @@ sub main {
   }
   if (vmware_product() ne 'server') {
      write_vmware_config();
-     if (vmware_product() eq 'wgs' ) {
-        # This must come after write_vmware_config()
-	check_license();
-     }
   }
 
   # Look for the Vix tar ball that may be hitching a ride in this installation.
@@ -14914,8 +12831,7 @@ sub main {
   my $product = vmware_product();
   if ((defined(db_get_answer_if_exists('INSTALL_CYCLE')) &&
        db_get_answer('INSTALL_CYCLE')  eq 'yes') &&
-      ($product eq 'ws' || $product eq 'wgs') &&
-      (vmware_binary() ne 'vmplayer')) {
+      ($product eq 'ws') && (vmware_binary() ne 'vmplayer')) {
     # Tell vix install that it is in a nested install.  This flag will be passed
     # on the command line, bridging between the vix db and this one.  So, No
     # need to pollute the local db.
@@ -14938,7 +12854,7 @@ sub main {
     system(shell_string($gHelper{'depmod'}) . ' -a');
   }
 
-  if (isDesktopProduct() || isServerProduct() || isToolsProduct()) {
+  if (isDesktopProduct() || isToolsProduct()) {
     symlink_icudt44l();
   }
 
@@ -14955,7 +12871,7 @@ sub main {
 
   print wrap('The configuration of ' . vmware_longname() . ' for this ' .
              'running kernel completed successfully.' . "\n\n", 0);
-  if ((vmware_product() ne 'wgs') && (vmware_product() ne 'server')) {
+  if (vmware_product() ne 'server') {
     print wrap('You can now run ' . vmware_product_name() . ' by invoking' .
                ' the following command: "' . vmware_tools_cmd_app_name() .
                "\n\n", 0);

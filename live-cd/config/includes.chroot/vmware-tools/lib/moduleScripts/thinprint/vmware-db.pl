@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/fileUtils.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/fileUtils.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # fileUtils.pm
@@ -217,12 +217,12 @@ sub restorecon {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/fileUtils.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/fileUtils.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/logging.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/logging.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # logging.pm
@@ -243,7 +243,8 @@ loadCoreModule("fileUtils");
 #
 # Global
 #
-my $gLogLevel = 3;
+# Set default log level to Warning to reduce log spew
+my $gLogLevel = 2;
 
 
 sub logging_getFilePath {
@@ -261,7 +262,8 @@ sub logging_getFilePath {
 # duh!
 #
 sub logging_init() {
-   logging_openLogFile();
+   # Defer openning log file until we really need to write to a log file, this is to reduce the number of tmp log files created
+   #logging_openLogFile();
    debug("Logging initialized successfully\n");
 }
 
@@ -293,7 +295,9 @@ sub logging_openLogFile {
 
 sub closeLogFile {
    debug("Closing log file.\n");
-   close(LOGGING_FH);
+   if (defined fileno LOGGING_FH) {
+      close(LOGGING_FH);
+   }
 }
 
 
@@ -326,9 +330,12 @@ sub logging_logMessage {
    # Log all messages to the screen if the Logging
    # file handle is invalid.
    # FIXME: maybe don't always want to go to STDERR.
-   if (not defined fileno LOGGING_FH or
-       $printToScreen) {
+   if ($printToScreen) {
       print STDERR "$prefix: $message";
+   }
+
+   if (not defined fileno LOGGING_FH) {
+      logging_openLogFile();
    }
 
    if (defined fileno LOGGING_FH) {
@@ -375,12 +382,12 @@ sub devel {
 #
 loadCoreModule("fileUtils");
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/logging.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/logging.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/osinfo.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/osinfo.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # osinfo.pm
@@ -506,12 +513,12 @@ sub isSElinuxEnabled {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/osinfo.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/osinfo.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/options.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/options.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # options.pm
@@ -656,12 +663,12 @@ sub parseOptionArgs {
    }
 }
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/options.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/options.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/db.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/db.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # db.pm
@@ -992,12 +999,12 @@ sub dbSave {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreModules/db.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreModules/db.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreFunctions//functions.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreFunctions//functions.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # functions.pm
@@ -1184,12 +1191,12 @@ sub ejectToolsInstallCD {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreFunctions//functions.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreFunctions//functions.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreFunctions//linux/functions.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreFunctions//linux/functions.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # functions.pm
@@ -1260,12 +1267,12 @@ sub unmountDevice {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/coreFunctions//linux/functions.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/coreFunctions//linux/functions.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configModules/thinprint//functions.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configModules/thinprint//functions.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # functions.pm
@@ -1345,12 +1352,12 @@ EOF
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configModules/thinprint//functions.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configModules/thinprint//functions.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configFunctions/editingUtils//functions.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configFunctions/editingUtils//functions.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # functions.pm
@@ -1707,12 +1714,12 @@ sub removeTextInKVEntryInFile {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configFunctions/editingUtils//functions.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configFunctions/editingUtils//functions.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/onetime_config.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/onetime_config.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # onetime_config.pm
@@ -1731,12 +1738,12 @@ sub thinprint_onetime_config_main {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/onetime_config.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/onetime_config.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/deconfig.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/deconfig.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # deconfig.pm
@@ -1757,12 +1764,12 @@ sub thinprint_deconfig_main {
 #
 1;
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/deconfig.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/configModules/thinprint//linux/deconfig.pm ###
 
-### BEGIN /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/runtimeModules//vmware-db.pm ###
+### BEGIN /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/runtimeModules//vmware-db.pm ###
 #
 ######################################################
-# Copyright (c) 2010-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2010-2015 VMware, Inc.  All rights reserved.
 ######################################################
 #
 # vmware-db.pm
@@ -1856,7 +1863,7 @@ sub runtime_main {
 }
 
 
-### END /build/mts/release/bora-1031360/bora-vmsoft/install/Linux/configurator/runtimeModules//vmware-db.pm ###
+### END /build/mts/release/bora-2759765/bora-vmsoft/install/Linux/configurator/runtimeModules//vmware-db.pm ###
 
    # Stub out loadModule, loadConfigModule, and loadConfigFunction
    sub loadModule {return 1;}

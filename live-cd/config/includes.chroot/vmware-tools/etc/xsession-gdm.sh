@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2007-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2007-2015 VMware, Inc.  All rights reserved.
 #
 
 # This script is -sourced- by one of GDM's "legacy" session scripts.  (Said

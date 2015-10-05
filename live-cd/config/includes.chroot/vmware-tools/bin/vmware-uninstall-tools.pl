@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # If your copy of perl is not in /usr/bin, please adjust the line above.
 #
-# Copyright (c) 1998-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 1998-2015 VMware, Inc.  All rights reserved.
 #
 # Tar package manager for VMware
 
@@ -16,6 +16,10 @@ use strict;
 
 use strict;
 no warnings 'once'; # Warns about use of Config::Config in config.pl
+
+my $have_thinprint='yes';
+my $have_vgauth='no';
+my $have_grabbitmqproxy='no';
 
 # A list of known open-vmware tools packages
 #
@@ -53,7 +57,7 @@ my %gHelper;
 my @cKernelModules = ('vmblock', 'vmhgfs', 'vmmemctl',
                       'vmxnet', 'vmci', 'vsock',
                       'vmsync', 'pvscsi', 'vmxnet3',
-		      'vmwgfx');
+		      'vmwsvga');
 
 #
 # This list simply defined what modules need to be included
@@ -106,22 +110,27 @@ my %cUpstrKernelModNames = (
 #
 
 my %cProductServiceTable = (
-   'acevm'              => 'acevm',
    'nvdk'               => 'nvdk',
    'player'             => 'vmware',
    'tools-for-freebsd'  => 'vmware-tools.sh',
    'tools-for-linux'    => 'vmware-tools',
    'tools-for-solaris'  => 'vmware-tools',
    'vix-disklib'        => 'vmware-vix-disklib',
-   'wgs'                => 'vmware',
    'ws'                 => 'vmware',
    '@@VCLI_PRODUCT@@'   => '@@VCLI_PRODUCT_PATH_NAME@@',
 );
 
-my %cToolsLinuxServices = (
-   'services' => 'vmware-tools',
-   'thinprint' => 'vmware-tools-thinprint',
-);
+my %cToolsLinuxServices;
+if ($have_thinprint eq 'yes') {
+  %cToolsLinuxServices = (
+     'services' => 'vmware-tools',
+     'thinprint' => 'vmware-tools-thinprint',
+  );
+} else {
+  %cToolsLinuxServices = (
+     'services' => 'vmware-tools',
+  );
+}
 
 my %cToolsSolarisServices = (
    'services' => 'vmware-tools',
@@ -156,14 +165,16 @@ my $cMarkerBegin = "# Beginning of the block added by the VMware software - DO N
 my $cMarkerEnd = "# End of the block added by the VMware software\n";
 my $cDBAppendString = 'APPENDED_FILES';
 
-# Constants
-my $gWebAccessWorkDir = '/var/log/vmware/webAccess/work';
-
 # util.pl Globals
 my %gSystem;
 
 # Needed to access $Config{...}, the Perl system configuration information.
 require Config;
+
+# Tell if the user is the super user
+sub is_root {
+  return $> == 0;
+}
 
 # Use the Perl system configuration information to make a good guess about
 # the bit-itude of our platform.  If we're running on Solaris we don't have
@@ -186,11 +197,6 @@ sub is64BitUserLand {
 # Return whether or not this is a hosted desktop product.
 sub isDesktopProduct {
    return vmware_product() eq "ws" || vmware_product() eq "player";
-}
-
-# Return whether or not this is a hosted server product.
-sub isServerProduct {
-   return vmware_product() eq "wgs";
 }
 
 sub isToolsProduct {
@@ -455,6 +461,17 @@ sub send_rpc {
   }
 }
 
+# chmod() that reports errors
+sub safe_chmod {
+  my $mode = shift;
+  my $file = shift;
+
+  if (chmod($mode, $file) != 1) {
+    error('Unable to change the access rights of the file ' . $file . '.'
+          . "\n\n");
+  }
+}
+
 # Create a temporary directory
 #
 # They are a lot of small utility programs to create temporary files in a
@@ -499,330 +516,14 @@ sub make_tmp_dir {
   return $tmp . '/' . $prefix . $serial;
 }
 
-# Check available space when asking the user for destination directory.
-sub spacechk_answer {
-  my $msg = shift;
-  my $type = shift;
-  my $default = shift;
-  my $srcDir = shift;
-  my $id = shift;
-  my $ifdefault = shift;
-  my $answer;
-  my $space = -1;
-
-  while ($space < 0) {
-
-    if (!defined($id)) {
-      $answer = get_answer($msg, $type, $default);
-    } else {
-      if (!defined($ifdefault)) {
-         $answer = get_persistent_answer($msg, $id, $type, $default);
-      } else {
-         $answer = get_persistent_answer($msg, $id, $type, $default, $ifdefault);
-      }
-    }
-
-    # XXX check $answer for a null value which can happen with the get_answer
-    # in config.pl but not with the get_answer in pkg_mgr.pl.  Moving these
-    # (get_answer, get_persistent_answer) routines into util.pl eventually.
-    if ($answer && ($space = check_disk_space($srcDir, $answer)) < 0) {
-      my $lmsg;
-      $lmsg = 'There is insufficient disk space available in ' . $answer
-              . '.  Please make at least an additional ' . -$space
-              . 'KB available';
-      if ($gOption{'default'} == 1) {
-        error($lmsg . ".\n");
-      }
-      print wrap($lmsg . " or choose another directory.\n", 0);
-    }
-  }
-  return $answer;
-}
-
-
-#
-# Checks to see if the given module shares a name or PCI id with ours.
-# If there's a PCI or name match, send it to check_if_vmw_installed_module
-# to see if it's actually ours.
-#
-# This does the checks in the following order
-# 1.  Check for PCI IDs
-# 2.  Check for VMware module Aliases
-# 3.  Check for module file names (legacy).
-#
-sub check_if_vmware_module {
-  my $modPath = shift;
-  my $modInfoCmd = shell_string($gHelper{'modinfo'})
-                   . " -F alias $modPath 2>/dev/null";
-  my @modInfoOutput = map { chomp; $_ } (`$modInfoCmd`);
-  my $line;
-  my $modName;
-  undef $modName;
-
-  # First check for PCI IDs/Aliases
-  foreach $line (@modInfoOutput) {
-    $line = reduce_pciid($line);
-    $modName = $cKernelModuleAliases{"$line"};
-    if (defined $modName) {
-      check_if_vmw_installed_module($modName, $modPath);
-      return;
-    }
-  }
-
-  # Finally check the module name.
-  if ($modPath =~ m,^.*/(\w+)\.k?o,) {
-    foreach my $mod (@cKernelModules) {
-      if ("$1" eq $mod) {
-        check_if_vmw_installed_module($mod, $modPath);
-        return;
-      }
-    }
-    # If the module has been clobbered, the name is in the alias list.
-    if (defined $cKernelModuleAliases{$1}) {
-        return $cKernelModuleAliases{$1};
-    }
-  }
-}
-
-# This function checks to see if the given module (modName)
-# is not in the db file; it adds the result
-# to gVmwareInstalledModules if it is in the db file
-#
-sub check_if_vmw_installed_module {
-  my $modName = shift;
-  my $modPath = shift;
-
-  if (not -e $modPath) {
-    return;
-  }
-
-  if (not db_file_in($modPath)) {
-    # Add $modName module with path $modPath to bad list
-
-    # Check to see if we have already found a module for this.  If
-    # so, there is not much we can do.  Instead just warn the user.
-    if (defined $gNonVmwareModules{$modName}) {
-      print wrap("WARNING: A module identified as $modName has been found " .
-        "at $gNonVmwareModules{$modName} and at $modPath.  " .
-        "Leaving both modules in there could potentially " .
-        "cause a race condition when a device is added.  " .
-        "We recommend you remove one of them, run " .
-        "'depmod -a', and then re-run this configurator.\n\n", 0);
-    }
-
-    $gNonVmwareModules{$modName} = "$modPath";
-  } else {
-    # Its one of our modules.  Lets keep track of where they are as
-    # they might not be in the standard locations
-    $gVmwareInstalledModules{$modName} = "$modPath";
-  }
-}
-
-# Returns the full path to the first argument. Returns first argument
-# if it is already a full path, returns the join() of the second and
-# first arguments otherwise.
-#
-sub get_full_module_path {
-  my $module = shift;
-  my $path = shift;
-  chomp($module);
-
-  # get rid of colon and anything following (if it exists)
-  if($module =~ m/(.*):/) {
-    $module = "$1";
-  }
-
-  my $fullPath;
-  # if it starts with a slash, then it's already the full path
-  if ($module =~ m/^\//) {
-    $fullPath = $module;
-  } else {
-    # otherwise, get the path from the parameters and append
-    $fullPath = join('/', $path, $module);
-  }
-
-  if(not -e $fullPath) {
-    print wrap("WARNING: A module identified in modules.dep " .
-      "could not be found. modules.dep may be out of date. " .
-      "We recommend you run 'depmod -a' and then re-run this " .
-      "configurator.\n\n", 0);
-  }
-  return $fullPath;
-}
-
-# Extracts the alias and module name from a line, if it starts with "alias";
-# Returns empty strings otherwise. Designed for use only when parsing
-# modules.alias.
-#
-sub extract_alias_and_modname {
-  my $line = shift;
-  my $alias = "";
-  my $modname = "";
-
-  if($line =~ m/alias (.*)\s(.*)\s/) {
-    $alias = "$1";
-    $modname = "$2";
-  }
-  return ($alias, $modname);
-}
-
-# Reduce PCI id by removing trailing data (subvendor, etc) from PCI IDs.
-# Returns the reduced PCI id if "pci" start's the string, otherwise returns
-# the original string.
-#
-sub reduce_pciid {
-  my $string = shift;
-  if ($string=~ m/^(pci:v[0-9A-F]{8}d[0-9A-F]{8})/) {
-    $string= "$1";
-  }
-  return $string;
-}
-
-# Looks for a module (*.ko) in modules.dep and returns
-# the full path to it if it exists; returns an empty string otherwise
-#
-sub search_for_module_in_moddep {
-  my $modName = shift;
-  my $libModPath = shift;
-
-  if(open(MODDEP, "$libModPath/modules.dep")) {
-    my $modPath='';
-    while(<MODDEP>) {
-      my $line = "$_";
-      if($line =~ m/(.*$modName):.*/) {
-        $modPath = get_full_module_path("$1", "$libModPath");
-        last;
-      }
-    }
-    close(MODDEP);
-    return $modPath;
-  } else {
-    error("Unable to open kernel module dependency file\n.");
-  }
-}
-
-# Returns a list of VMware kernel modules that were
-# found on the system that were not placed there by the installer
-# by parsing modules.alias.
-#
-sub populate_vmw_modules_via_aliases_file {
-  my $libModPath = shift;
-
-  if(open(MODALIAS, "$libModPath/modules.alias")) {
-    my @kernelModulesCopy = @cKernelModules;
-    my ($alias, $actualMod, $modName, $modPath);
-    while(<MODALIAS>) {
-      ($alias, $actualMod) = extract_alias_and_modname("$_");
-      $alias = reduce_pciid($alias);
-
-      $modName = $cKernelModuleAliases{"$alias"};
-      if (defined $modName) {
-        # then a module alias matched one of our modules
-
-        $modPath = search_for_module_in_moddep("$actualMod.ko", $libModPath);
-        # remove $modName from @kernelModulesCopy
-        @kernelModulesCopy = grep { $_ ne $modName } @kernelModulesCopy;
-
-        check_if_vmw_installed_module($modName, $modPath);
-      }
-    }
-
-    # search for any of the remaining modules for which
-    # we did not find a module alias. Have to do this
-    # second because it uses kernelModulesCopy, which is changed above
-    foreach my $mod (@kernelModulesCopy) {
-      $modPath = search_for_module_in_moddep("$mod.ko", $libModPath);
-      if (not $modPath eq '') {
-        check_if_vmw_installed_module($mod, $modPath);
-      }
-    }
-    close(MODALIAS);
-  } else {
-    error("Unable to open modules.alias file\n.");
-  }
-}
-
-# Returns a list of VMWare kernel modules that were
-# found on the system that were not placed there by the installer
-# by parsing modules.dep, modinfo-ing the module, and parsing
-# the output of modinfo.
-#
-sub populate_vmw_modules_via_modinfo {
-  my $libModPath = shift;
-
-  if (open(MODULESDEP, "$libModPath/modules.dep")) {
-    my $modPath = '';
-    while (<MODULESDEP>) {
-      if (/^(.*\.k?o):.*$/) {
-        #
-        # Then the module may not be there.  In Ubuntu 9.04, modules.dep
-        # no longer has a full path for the modules.  Therefore we must
-        # try out both a full path and one relative to the modules
-        # directory of the currently running kernel.
-        #
-
-        $modPath = get_full_module_path("$1","$libModPath");
-
-        if (defined $modPath) {
-          check_if_vmware_module($modPath);
-        }
-      }
-    }
-    close(MODULESDEP);
-  } else {
-    error("Unable to open kernel module dependency file\n.");
-  }
-}
-
-# check_for_vmw_mods_in_kernel
-#
-# Checks /sys/module for our kernel modules.  This only works on the
-# running kernel.
-#
-sub check_for_vmw_mods_in_kernel {
-   my $k;
-   my $v;
-
-   return unless (getKernRel() eq $gSystem{'uts_release'});
-
-   while (($k, $v) = each %cUpstrKernelModNames) {
-      my $path = join('/', '/sys/module', $k);
-      if (-e $path) {
-         $gVmwareRunningModules{$v} = $k;
-      }
-   }
-}
-
-
-# Returns a list of VMware kernel modules that were
-# found on the system that were not placed there by the installer.
-# Also checks the running kernel for modules that were built in when
-# the kernel was compiled.
-sub populate_vmware_modules {
-  my $libModPath = join('/','/lib/modules', getKernRel());
-
-  # can't continue without the modules.dep file
-  system(shell_string($gHelper{'depmod'}) . ' -a');
-  if (not -e "$libModPath/modules.dep") {
-    error("Unable to find kernel module dependency file\n.");
-  }
-
-  if (-e "$libModPath/modules.alias") {
-    populate_vmw_modules_via_aliases_file($libModPath);
-  } else {
-    populate_vmw_modules_via_modinfo($libModPath);
-  }
-
-  check_for_vmw_mods_in_kernel();
-}
-
 
 # Call restorecon on the supplied file if selinux is enabled
 sub restorecon {
   my $file = shift;
 
    if (is_selinux_enabled()) {
-     system("/sbin/restorecon " . $file);
+     # we suppress warnings from restorecon. bug #1008386:
+     system("/sbin/restorecon 2>/dev/null " . $file);
      # Return a 1, restorecon was called.
      return 1;
    }
@@ -1023,10 +724,14 @@ sub block_restore {
   my $tmp_dir = make_tmp_dir('vmware-block-restore');
   my $tmp_file = $tmp_dir . '/tmp_file';
   my $rv;
+  my @sb;
+
+  @sb = stat($src_file);
 
   $rv = block_remove($src_file, $tmp_file, $begin_marker, $end_marker);
   if ($rv >= 0) {
     system(shell_string($gHelper{'mv'}) . ' ' . $tmp_file . ' ' . $src_file);
+    safe_chmod($sb[2], $src_file);
   }
   remove_tmp_dir($tmp_dir);
 
@@ -1036,22 +741,6 @@ sub block_restore {
   return $rv;
 }
 
-# match the output of 'uname -s' to the product. These are compared without
-# case sensitivity.
-sub DoesOSMatchProduct {
-
- my %osProductHash = (
-    'tools-for-linux'   => 'linux',
-    'tools-for-solaris' => 'sunos',
-    'tools-for-freebsd' => 'freebsd'
- );
-
- my $OS = `uname -s`;
- chomp($OS);
-
- return ($osProductHash{vmware_product()} =~ m/$OS/i) ? 1 : 0;
-
-}
 
 # Remove leading and trailing whitespaces
 sub remove_whitespaces {
@@ -1119,59 +808,6 @@ sub check_is_running {
   return $rv eq 0;
 }
 
-# OS-independent method of loading a kernel module by module name
-# Returns true (non-zero) if the operation succeeded, false otherwise.
-sub kmod_load_by_name {
-    my $modname = shift; # IN: Module name
-    my $doSilent = shift; # IN: Flag to indicate whether loading should be done silently
-
-    my $silencer = '';
-    if (defined($doSilent) && $doSilent) {
-	$silencer = ' >/dev/null 2>&1';
-    }
-
-    if (defined($gHelper{'modprobe'})) { # Linux
-	return !system(shell_string($gHelper{'modprobe'}) . ' ' . shell_string($modname)
-		       . $silencer);
-    } elsif (defined($gHelper{'kldload'})) { # FreeBSD
-	return !system(shell_string($gHelper{'kldload'}) . ' ' . shell_string($modname)
-		       . $silencer);
-    } elsif (defined($gHelper{'modload'})) { # Solaris
-	return !system(shell_string($gHelper{'modload'}) . ' ' . shell_string($modname)
-		       . $silencer);
-    }
-
-    return 0; # Failure
-}
-
-# OS-independent method of loading a kernel module by object path
-# Returns true (non-zero) if the operation succeeded, false otherwise.
-sub kmod_load_by_path {
-    my $modpath = shift; # IN: Path to module object file
-    my $doSilent = shift; # IN: Flag to indicate whether loading should be done silently
-    my $doForce = shift; # IN: Flag to indicate whether loading should be forced
-    my $probe = shift; # IN: 1 if to probe only, 0 if to actually load
-
-    my $silencer = '';
-    if (defined($doSilent) && $doSilent) {
-	$silencer = ' >/dev/null 2>&1';
-    }
-
-    if (defined($gHelper{'insmod'})) { # Linux
-	return !system(shell_string($gHelper{'insmod'}) . ($probe ? ' -p ' : ' ')
-		       . ((defined($doForce) && $doForce) ? ' -f ' : ' ')
-		       . shell_string($modpath)
-		       . $silencer);
-    } elsif (defined($gHelper{'kldload'})) { # FreeBSD
-	return !system(shell_string($gHelper{'kldload'}) . ' ' . shell_string($modpath)
-		       . $silencer);
-    } elsif (defined($gHelper{'modload'})) { # Solaris
-	return !system(shell_string($gHelper{'modload'}) . ' ' . shell_string($modpath)
-		       . $silencer);
-    }
-
-    return 0; # Failure
-}
 
 # OS-independent method of unloading a kernel module by name
 # Returns true (non-zero) if the operation succeeded, false otherwise.
@@ -1211,225 +847,6 @@ sub kmod_unload {
     return 0; # Failure
 }
 
-#
-# check to see if the certificate files exist (and
-# that they appear to be a valid certificate).
-#
-sub certificateExists {
-  my $certLoc = shift;
-  my $openssl_exe = shift;
-  my $certPrefix = shift;
-  my $ld_lib_path = $ENV{'LD_LIBRARY_PATH'};
-  my $libdir = db_get_answer('LIBDIR') . '/lib';
-  $ld_lib_path .= ';' . $libdir . '/libssl.so.0.9.8;' . $libdir . '/libcrypto.so.0.9.8';
-
-  my $ld_lib_string = "LD_LIBRARY_PATH='" . $ld_lib_path . "'";
-  return ((-e "$certLoc/$certPrefix.crt") &&
-          (-e "$certLoc/$certPrefix.key") &&
-          !(system($ld_lib_string . " " . shell_string("$openssl_exe") . ' x509 -in '
-                   . shell_string("$certLoc") . "/$certPrefix.crt " .
-                   ' -noout -subject > /dev/null 2>&1')));
-}
-
-# Helper function to create SSL certificates
-sub createSSLCertificates {
-  my ($openssl_exe, $vmware_version, $certLoc, $certPrefix, $unitName) = @_;
-  my $certUniqIdent = "(564d7761726520496e632e)";
-  my $certCnf;
-  my $curTime = time();
-  my $hostname = direct_command(shell_string($gHelper{"hostname"}));
-
-  my $cTmpDirPrefix = "vmware-ssl-config";
-  my $tmpdir;
-
-  if (certificateExists($certLoc, $openssl_exe, $certPrefix)) {
-    print wrap("Using Existing SSL Certificate.\n", 0);
-    return;
-  }
-
-  # Create the directory
-  if (! -e $certLoc) {
-    create_dir($certLoc, $cFlagDirectoryMark);
-  }
-
-  $tmpdir = make_tmp_dir($cTmpDirPrefix);
-  $certCnf = "$tmpdir/certificate.cnf";
-  if (not open(CONF, '>' . $certCnf)) {
-    error("Unable to open $certCnf to create SSL certificate.\n")
-  }
-  print CONF <<EOF;
-  # Conf file that we will use to generate SSL certificates.
-RANDFILE                = $tmpdir/seed.rnd
-[ req ]
-default_bits		= 1024
-default_keyfile 	= $certPrefix.key
-distinguished_name	= req_distinguished_name
-
-#Don't encrypt the key
-encrypt_key             = no
-prompt                  = no
-
-string_mask = nombstr
-
-[ req_distinguished_name ]
-countryName= US
-stateOrProvinceName     = California
-localityName            = Palo Alto
-0.organizationName      = VMware, Inc.
-organizationalUnitName  = $unitName
-commonName              = $hostname
-unstructuredName        = ($curTime),$certUniqIdent
-emailAddress            = ssl-certificates\@vmware.com
-EOF
-  close(CONF);
-
-  my $ld_lib_path = $ENV{'LD_LIBRARY_PATH'};
-  my $libdir = db_get_answer('LIBDIR') . '/lib';
-  $ld_lib_path .= ';' . $libdir . '/libssl.so.0.9.8;' . $libdir . '/libcrypto.so.0.9.8';
-  my $ld_lib_string = "LD_LIBRARY_PATH='" . $ld_lib_path . "'";
-
-  system($ld_lib_string . " " . shell_string("$openssl_exe") . ' req -new -x509 -keyout '
-         . shell_string("$certLoc") . '/' . shell_string("$certPrefix")
-         . '.key -out ' . shell_string("$certLoc") . '/'
-         . shell_string("$certPrefix") . '.crt -config '
-         . shell_string("$certCnf") . ' -days 5000 > /dev/null 2>&1');
-  db_add_file("$certLoc/$certPrefix.key", $cFlagTimestamp);
-  db_add_file("$certLoc/$certPrefix.crt", $cFlagTimestamp);
-
-  remove_tmp_dir($tmpdir);
-  # Make key readable only by root (important)
-  safe_chmod(0400, "$certLoc" . '/' . "$certPrefix" . '.key');
-
-  # Let anyone read the certificate
-  safe_chmod(0444, "$certLoc" . '/' . "$certPrefix" . '.crt');
-}
-
-# Install a pair of S/K startup scripts for a given runlevel
-sub link_runlevel {
-   my $level = shift;
-   my $service = shift;
-   my $S_level = shift;
-   my $K_level = shift;
-
-   #
-   # Create the S symlink
-   #
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc' . $level . '.d/S'
-                   . $S_level . $service);
-
-   #
-   # Create the K symlink
-   #
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc' . $level . '.d/K'
-                   . $K_level . $service);
-}
-
-# Create the links for VMware's services taking the service name and the
-# requested levels
-sub link_services {
-   my @fields;
-   my $service = shift;
-   my $S_level = shift;
-   my $K_level = shift;
-
-   # Try using insserv if it is available.
-   my $init_style = db_get_answer_if_exists('INIT_STYLE');
-
-   if ($gHelper{'insserv'} ne '') {
-     if (0 == system(shell_string($gHelper{'insserv'}) . ' '
-                     . shell_string(db_get_answer('INITSCRIPTSDIR')
-                                    . '/' . $service) . ' >/dev/null 2>&1')) {
-       return;
-     }
-   }
-   if ("$init_style" eq 'lsb') {
-     # Then we have gotten here, but gone past the insserv section, indicating
-     # that insserv cannot be found.  Warn the user...
-     print wrap("WARNING: The installer initially used the " .
-                "insserv application to setup the vmware-tools service.  " .
-                "That application did not run successfully.  " .
-                "Please re-install the insserv application or check your settings.  " .
-                "This script will now attempt to manually setup the " .
-                "vmware-tools service.\n\n", 0);
-   }
-
-   # Now try using chkconfig if available.
-   # Note: RedHat's chkconfig reads LSB INIT INFO if present.
-   if ($gHelper{'chkconfig'} ne '') {
-     if (0 == system(shell_string($gHelper{'chkconfig'}) . ' '
-                     . $service . ' reset')) {
-       return;
-     }
-   }
-   if ("$init_style" eq 'chkconfig') {
-     # Then we have gotten here, but gone past the chkconfig section, indicating
-     # that chkconfig cannot be found.  Warn the user..
-     print wrap("WARNING: The installer initially used the " .
-                "chkconfig application to setup the vmware-tools service.  " .
-                "That application did not run successfully.  " .
-                "Please re-install the chkconfig application or check your settings.  " .
-                "This script will now attempt to manually setup the " .
-                "vmware-tools service.\n\n", 0);
-   }
-
-   # Now try using update-rc.d if available.
-   # This is Debian or Ubuntu
-   if ($gHelper{'update-rc.d'} ne ' ') {
-     if ($service eq 'vmware-tools-thinprint') {
-       if (0 == system(shell_string($gHelper{'update-rc.d'}) . " " . $service
-                       . " start " . $S_level . " 2 3 4 5 ."
-                       . " stop " . $K_level . " 0 1 6 .")) {
-         return;
-       }
-     } else {
-       if (0 == system(shell_string($gHelper{'update-rc.d'}) . " " . $service
-                       . " start " . $S_level . " S ."
-                       . " start " . $K_level . " 0 6 .")) {
-         return;
-       }
-     }
-   }
-   if ("$init_style" eq 'update-rc.d') {
-     # Then we have gotten here, but gone past the update-rc.d section, indicating
-     # that update-rc.d cannot be found.  Warn the user..
-     print wrap("WARNING: The installer initially used the " .
-                "'udpate-rc.d' to setup the vmware-tools service.  " .
-                "That command cannot be found.  " .
-                "Please re-install the 'sysv-rc' package.  " .
-                "This script will now attempt to manually setup the " .
-                "vmware-tools service.", 0);
-   }
-
-   # Set up vmware to stop at run levels 0 and 6
-   # if this puzzles you, see Debian bug #351975, then read /etc/init.d/rc :
-   if ((distribution_info() eq "debian") and (not $service eq 'vmware-tools-thinprint')) {
-     # Set up vmware to start at run level S
-     install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                     db_get_answer('INITDIR') . '/rcS.d/S' . $S_level . $service);
-   }
-   else {
-     # Set up vmware to start/stop at run levels 2, 3 and 5
-     link_runlevel(2, $service, $S_level, $K_level);
-     link_runlevel(3, $service, $S_level, $K_level);
-     link_runlevel(5, $service, $S_level, $K_level);
-   }
-
-   # Set up vmware to stop at run levels 0 and 6
-   my $K_prefix = "K";
-   if ((distribution_info() eq "debian") and (not $service eq 'vmware-tools-thinprint')) {
-     $K_prefix = "S";
-   }
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc0' . '.d/' . $K_prefix
-                   . $K_level . $service);
-   install_symlink(db_get_answer('INITSCRIPTSDIR') . '/' . $service,
-                   db_get_answer('INITDIR') . '/rc6' . '.d/' . $K_prefix
-                   . $K_level . $service);
-}
-
-
 # Emulate a simplified ls program for directories
 sub internal_ls {
   my $dir = shift;
@@ -1462,28 +879,6 @@ sub internal_dirname {
   }
 
   return substr($path, 0, $pos);
-}
-
-sub internal_dirname_vcli {
-  my $path = shift;
-  my $pos;
-
-  $path = dir_remove_trailing_slashes($path);
-
-  $pos = rindex($path, '/');
-  if ($pos == -1) {
-    # No slash
-    return '.';
-  }
-
-  my @arr1 = split(/\//, $path);
-
-  # if "/bin" is top directory return parent directory as base directory
-  if ( $arr1[scalar(@arr1) -1] eq "bin" ) {
-    return substr($path, 0, $pos);
-  }
-
-  return $path;
 }
 
 #
@@ -1552,7 +947,8 @@ sub check_mountpoint_for_tools {
    my $foundit = 0;
 
    if (vmware_product() eq 'tools-for-solaris') {
-      if ($mountpoint =~ /vmwaretools$/) {
+      if ($mountpoint =~ /vmwaretools$/ ||
+          $mountpoint =~ /\/media\/VMware Tools$/) {
          $foundit = 1;
       }
    } elsif (opendir CDROMDIR, $mountpoint) {
@@ -1624,10 +1020,11 @@ sub eject_tools_install_cd_if_mounted {
       # If this fails, don't bother trying to unmount, or error.
       if (open(MNTTAB, '</etc/mnttab')) {
          while (<MNTTAB>) {
-            ($device, $rest) = split;
+            ($device, $rest) = split("\t", $_);
             # I don't think there are actually ever comments in /etc/mnttab.
             next if $device =~ /^#/;
-            if ($device =~ /vmwaretools$/) {
+            if ($device =~ /vmwaretools$/ ||
+                $rest =~ /\/media\/VMware Tools$/) {
                $mountpoint = $rest;
                $mountpoint =~ s/(.*)\s+hsfs.*/$1/;
                push(@candidate_mounts, "${device}::::${mountpoint}");
@@ -1730,78 +1127,6 @@ sub dot_version_compare {
 }
 
 
-# Checks for versioning information in both the system module
-# and the shipped module.  If it finds information in the sytem
-# module, it compares it against the version information of the
-# shipped module and will use whatever module is newer.
-# Returns 1 if it uses the shipped module (and 0 otherwise).
-sub install_x_module {
-  my $shippedMod = shift;
-  my $systemMod = shift;
-  my $modinfo = internal_which('modinfo');
-  my $shippedModVer = '';
-  my $systemModVer = '';
-  my $installShippedModule = 0;
-  my $line;
-
-  if (not -r $shippedMod) {
-    error("Could not read $shippedMod\n");
-  }
-
-  if ("$modinfo" ne '' and -r "$systemMod") {
-    open (SHIPPED_MOD_VER, "$modinfo $shippedMod |");
-    open (SYSTEM_MOD_VER, "$modinfo $systemMod |");
-
-    foreach $line (<SHIPPED_MOD_VER>) {
-      if ($line =~ /version: +([0-9\.]+)/) {
-        $shippedModVer = "$1";
-        last;
-      }
-    }
-    foreach $line (<SYSTEM_MOD_VER>) {
-      if ($line =~ /version: +([0-9\.]+)/) {
-        $systemModVer = "$1";
-        last;
-      }
-    }
-
-    close (SHIPPED_MOD_VER);
-    close (SYSTEM_MOD_VER);
-
-    chomp ($shippedModVer);
-    chomp ($systemModVer);
-
-    if ("$systemModVer" eq '' or
-	dot_version_compare ("$shippedModVer", "$systemModVer") > 0) {
-      # Then the shipped module is newer than sytem module.
-      $installShippedModule = 1;
-    }
-  } else {
-    # If it has no version, assume the one we ship is newer.
-    $installShippedModule = 1;
-  }
-
-  if ($gOption{'clobber-xorg-modules'} or $installShippedModule) {
-    install_x_module_no_checks($shippedMod, $systemMod);
-    return 1;
-  }
-  return 0;
-}
-
-sub install_x_module_no_checks {
-   my $shippedMod = shift;
-   my $systemMod = shift;
-   my %patch;
-   undef %patch;
-
-   # Ensure we have a unique backup suffix for this file.
-   # Also strip off anything sh wouldn't like.  Bug 502544
-   my $bkupExt = internal_basename($systemMod);
-   $bkupExt =~ s/^(\w+).*$/$1/;
-   backup_file_to_restore($systemMod, $bkupExt);
-   install_file ("$shippedMod", "$systemMod", \%patch, 1);
-}
-
 # Returns the tuple ($halScript, $halName) if the system
 # has scripts to control HAL.
 #
@@ -1864,223 +1189,6 @@ sub restart_hal {
 }
 
 
-sub prelink_fix {
-  my $source = "/etc/vmware-tools/vmware-tools-prelink.conf";
-  my $dest = '/etc/prelink.conf.d/vmware-tools-prelink.conf';
-  my $prelink_file = '/etc/prelink.conf';
-  my $libdir = db_get_answer_if_exists('LIBDIR');
-  my %patch;
-
-  if (defined($libdir)) {
-    %patch = ('@@LIBDIR@@' => $libdir);
-  } else {
-    error ("LIBDIR must be defined before prelink_fix is called.\n");
-  }
-
-  if (-d internal_dirname($dest)) {
-    install_file($source, $dest, \%patch, 1);
-  } elsif (-f $prelink_file) {
-    # Readin our prelink file, do the appropreiate substitutions, and
-    # block insert it into the prelink.conf file.
-
-    my $key;
-    my $value;
-    my $line;
-    my $to_append = '';
-
-    if (not open(FH, $source)) {
-      error("Could not open $source\n");
-    }
-
-    foreach $line (<FH>) {
-      chomp ($line);
-      while (($key, $value) = each %patch) {
-	$line =~ s/$key/$value/g;
-      }
-      $to_append .= $line . "\n";
-    }
-
-    close FH;
-
-    if (block_insert($prelink_file, '^ *-b', $cMarkerBegin,
-		     $to_append, $cMarkerEnd) == 1) {
-      db_add_answer('PRELINK_CONFED', $prelink_file);
-    }
-  }
-}
-
-
-sub prelink_restore {
-  my $prelink_file = db_get_answer_if_exists('PRELINK_CONFED');
-
-  if (defined $prelink_file) {
-    block_restore($prelink_file, $cMarkerBegin, $cMarkerEnd);
-  }
-}
-
-# Determines if the system at hand needs to have timer
-# based audio support disabled in pulse.  Make this call
-# based on the version of pulseaudio installed on the system.
-#
-sub pulseNeedsTimerBasedAudioDisabled {
-   my $pulseaudioBin = internal_which("pulseaudio");
-   my $cmd = "$pulseaudioBin --version";
-   my $verStr = '0';
-
-   if (-x $pulseaudioBin) {
-      open(OUTPUT, "$cmd |");
-      foreach my $line (<OUTPUT>) {
-	 chomp $line;
-	 if ($line =~ /pulseaudio *([0-9\.]+)/) {
-	     $verStr = $1;
-	     last
-	 }
-      }
-      if (dot_version_compare($verStr, "0.9.19") ge 0) {
-	 # Then pulseaudio's version is >= 0.9.19
-	 return 1;
-      }
-   }
-
-   return 0
-}
-
-# Disables timer based audio scheduling in the default config
-# file for PulseAudio
-#
-sub pulseDisableTimerBasedAudio {
-   my $cfgFile = '/etc/pulse/default.pa';
-   my $regex = qr/^ *load-module +module-(udev|hal)-detect$/;
-   my $tmpDir = make_tmp_dir('vmware-pulse');
-   my $tmpFile = $tmpDir . '/tmp_file';
-   my $fileModified = 0;
-
-   if (not open(ORGPCF, "<$cfgFile") or
-       not open(NEWPCF, ">$tmpFile")) {
-      return 0;
-   }
-
-   foreach my $line (<ORGPCF>) {
-      chomp $line;
-      if ($line =~ $regex and $line !~ /tsched/) {
-	 # add the flag if its not already there.
-	 print NEWPCF "$line tsched=0\n";
-	 $fileModified = 1;
-      } else {
-	 # just print the line.
-	 print NEWPCF "$line\n";
-      }
-   }
-
-   close ORGPCF;
-   close NEWPCF;
-
-   if ($fileModified) {
-      backup_file_to_restore($cfgFile, "orig");
-      system(join(' ', $gHelper{'cp'}, $tmpFile, $cfgFile));
-      restorecon($cfgFile);
-      db_add_answer('PULSE_AUDIO_CONFED', $cfgFile);
-   }
-
-  remove_tmp_dir($tmpDir);
-}
-
-
-##
-# Checks to see if any of the package names in a given list
-# are currently installed by RPM on the system.
-# @param - A list of RPM packages to check for.
-# @returns - A list of the installed RPM packages that this
-#            function checked for and found (if any).
-#
-sub checkRPMForPackages {
-   my @pkgList = @_;
-   my @instPkgs;
-   my $bin = internal_which('rpm');
-   my $cmd = join(' ', $bin, '-qa --queryformat \'%{NAME}\n\'');
-
-   if (-x $bin) {
-      open(OUTPUT, "$cmd |");
-      foreach my $instPkgName (<OUTPUT>) {
-	 chomp $instPkgName;
-	 foreach my $pkgName (@pkgList) {
-	    if ($pkgName eq $instPkgName) {
-	       push @instPkgs, $instPkgName;
-	    }
-	 }
-      }
-      close(OUTPUT);
-   }
-   return @instPkgs
-}
-
-##
-# Checks to see if any of the package names in a given list
-# are currently installed by dpkg on the system.
-# @param - A list of deb packages to check for.
-# @returns - A list of the installed deb packages that this
-#            function checked for and found (if any).
-#
-sub checkDPKGForPackages {
-   my @pkgList = @_;
-   my @instPkgs;
-   my $bin = internal_which('dpkg-query');
-   my $cmd = join(' ', $bin, '--show --showformat=\'${Package}\n\'');
-
-   if (-x $bin) {
-      open(OUTPUT, "$cmd |");
-      foreach my $instPkgName (<OUTPUT>) {
-	 chomp $instPkgName;
-	 foreach my $pkgName (@pkgList) {
-	    if ($pkgName eq $instPkgName) {
-	       push @instPkgs, $instPkgName;
-	    }
-	 }
-      }
-      close(OUTPUT);
-   }
-   return @instPkgs
-}
-
-
-##
-# Attempts to remove the given list of RPM packages
-# @param - List of rpm packages to remove
-# @returns - -1 if there was an internal error, otherwise
-#            the return value of RPM
-#
-sub removeRPMPackages {
-   my @pkgList = @_;
-   my $bin = internal_which('rpm');
-   my @cmd = (("$bin", '-e'), @pkgList);
-
-   if (-x $bin) {
-      return system(@cmd);
-   } else {
-      return -1;
-   }
-}
-
-
-##
-# Attempts to remove the given list of DEB packages
-# @param - List of deb packages to remove
-# @returns - -1 if there was an internal error, otherwise
-#            the return value of dpkg
-#
-sub removeDEBPackages {
-   my @pkgList = @_;
-   my $bin = internal_which('dpkg');
-   my @cmd = (("$bin", '-r'), @pkgList);
-
-   if (-x $bin) {
-      return system(@cmd);
-   } else {
-      return -1;
-   }
-}
-
-
 ##
 # locate_upstart_jobinfo
 #
@@ -2094,11 +1202,13 @@ sub removeDEBPackages {
 sub locate_upstart_jobinfo() {
    my $initctl = internal_which('initctl');
    my $retval;
-   # Ubuntu 9.10 uses upstart, but cups is not an upstart job. We cannot
-   # start thinprint in an upstart job when we want to make sure that tp
-   # has to start after cups.
-   if ( glob(db_get_answer('INITDIR') . '/rc2.d/' . 'S??cups*' )) {
-      return ();
+
+   if ($have_thinprint eq 'yes') {
+      # we cannot use upstart unless cups also uses upstart, otherwise we
+      # cannot make sure that tp starts after cups.
+      if ( glob(db_get_answer('INITDIR') . '/rc2.d/' . 'S??cups*' ) and (not -e '/etc/init/cups.conf') ) {
+         return ();
+      }
    }
    # Don't bother checking directories unless initctl is available and
    # indicates that Upstart is active.
@@ -2238,94 +1348,6 @@ sub vmware_services_table()
 
 
 ##
-# does_solaris_package_exist
-#
-# Executes a system call to check if the given package (passed in as
-# a parameter) exists.
-#
-# @param[in] $packageName
-#
-# @returns 1 (true) if package exists, 0 (false) otherwise
-#
-
-sub does_solaris_package_exist {
-   my $packageName = shift;
-
-   system("pkginfo $packageName > /dev/null 2>&1");
-   return $? == 0 ? 1 : 0;
-}
-
-##
-# is_esx_virt_env
-#
-# Returns true if the VM is runing in an ESX virtual environment,
-# false otherwise.
-# @returns - 1 (true) if in ESX, 0 (false) otherwise
-#
-sub is_esx_virt_env {
-   my $ans = 0;
-   my $sbinDir = db_get_answer('SBINDIR');
-   my $checkvm = join('/', $sbinDir, 'vmware-checkvm');
-
-   if (-x $checkvm) {
-      my $output = `$checkvm -p 2>&1`;
-      $ans = 1 if ($output =~ m/ESX Server/);
-   }
-
-   return $ans;
-}
-
-##
-# disable_module
-#
-# Sets the appropriate flags to disable the module.
-# @returns - Nothing useful.
-#
-sub disable_module {
-   my $mod = shift;
-
-   set_manifest_component("$mod", 'FALSE');
-   db_add_answer(uc("$mod") . '_CONFED', 'no');
-
-   return;
-}
-
-
-##
-# getKernRel
-#
-# Returns the release of the kernel in question.  Defaults to the
-# running kernel unless the user has set the --kernel-version option.
-#
-sub getKernRel {
-   if ($gOption{'kernel_version'} ne '') {
-      return $gOption{'kernel_version'};
-   } else {
-      return $gSystem{'uts_release'};
-   }
-}
-
-
-##
-# getModDBKey
-#
-# Creates and returns the DB key for a module based on a little
-# system information
-#
-sub getModDBKey {
-   my $modName = shift;
-   my $tag = shift;
-   my $kernel = getKernRel();
-
-   # Remove non alpha-numeric characters
-   $kernel =~ s/[\.\-\+]//g;
-   my $key = join('_', uc($modName), $kernel, $tag);
-
-   return $key;
-}
-
-
-##
 # removeDuplicateEntries
 #
 # Removes duplicate entries from a given string and delimeter
@@ -2353,31 +1375,6 @@ sub removeDuplicateEntries {
    }
 
    return $newStr;
-}
-
-
-##
-# addEntDBList
-#
-# Adds an entry to a list within the DB.  This function also removes
-# duplicate entries from the list.
-#
-sub addEntDBList {
-   my $dbKey = shift;
-   my $ent = shift;
-
-   if (not defined $dbKey or $dbKey eq '') {
-      error("Bad dbKey value in addEntDBList.\n");
-   }
-
-   if ($ent =~ m/,/) {
-      error("New list entry can not contain commas.\n");
-   }
-
-   my $list = db_get_answer_if_exists($dbKey);
-   my $newList = $list ? join(',', $list, $ent) : $ent;
-   $newList = removeDuplicateEntries($newList, ',');
-   db_add_answer($dbKey, $newList);
 }
 
 
@@ -2481,6 +1478,22 @@ sub addTextToKVEntryInFile {
    return $modified;
 }
 
+# work around "panic: end_shift" (bug #1027773) for old ( <= 5.008) perl versions
+sub safely_matches {
+  my $line = shift;
+  my $regex = shift;
+  my $b;
+  my @result;
+
+  if ($] <= 5.008) {
+    use bytes;
+    $b = ($line =~ $regex);
+    return ($b, $1, $2, $3);
+  } else {
+    $b = ($line =~ $regex);
+    return ($b, $1, $2, $3);
+  }
+}
 
 ##
 # removeTextInKVEntryInFile
@@ -2519,14 +1532,16 @@ sub removeTextInKVEntryInFile {
    }
 
    foreach my $line (<INFILE>) {
-      if ($line =~ $regex and not $modified) {
-         # We have a match.  $1 and $2 have to be deifined; $3 is optional
-         if (not defined $1 or not defined $2) {
+      my @res;
+      @res = safely_matches($line, $regex);
+      if ($res[0] and not $modified) {
+         # We have a match.  $res[1] and $res[2] have to be defined; $res[3] is optional
+         if (not defined $res[1] or not defined $res[2]) {
             error("removeTextInKVEntryInFile:  Bad regex.\n");
          }
-         $firstPart = $1;
-         $origValues = $2;
-         $lastPart = ((defined $3) ? $3 : '');
+         $firstPart = $res[1];
+         $origValues = $res[2];
+         $lastPart = ((defined $res[3]) ? $res[3] : '');
          chomp $firstPart;
          chomp $origValues;
          chomp $lastPart;
@@ -2577,11 +1592,7 @@ my $cRegistryDir = '/etc/vmware';
 my $cInstallerMainDB = $cRegistryDir . '/locations';
 my $cInstallerObject = $cRegistryDir . '/installer.sh';
 my $cConfFlag = $cRegistryDir . '/not_configured';
-my $gDefaultAuthdPort = 902;
-my $cServices = '/etc/services';
 my $dspMarkerFile = '/usr/lib/vmware-tools/dsp';
-my $cVixMarkerBegin = "# Beginning of the block added by the VMware VIX software\n";
-my $cVixMarkerEnd = "# End of the block added by the VMware VIX software\n";
 # Constant defined as the smallest vmnet that is allowed
 my $gMinVmnet = '0';
 # Linux doesn't allow more than 7 characters in the names of network
@@ -2589,6 +1600,8 @@ my $gMinVmnet = '0';
 # characters.
 # Constant defined as the largest vmnet that is allowed
 my $gMaxVmnet = '99';
+
+my $open_vm_compat = 0;
 
 my $cChkconfigInfo = <<END;
 # Basic support for IRIX style chkconfig
@@ -2607,59 +1620,27 @@ my $cChkconfigInfoThinPrint = <<END;
 # description: Manages the services needed to run VMware software
 END
 
-my $cLSBInitInfo = <<END;
+my $cLSBInitInfoTempl = <<END;
 ### BEGIN INIT INFO
 # Provides: vmware-tools
 # Required-Start: \$local_fs
 # Required-Stop: \$local_fs
 # X-Start-Before: \$network
 # X-Stop-After: \$network
-# Default-Start: 2 3 4 5
-# Default-Stop: 0 1 6
+# Default-Start: __DEFAULT_START__
+# Default-Stop: __DEFAULT_STOP__
 # Short-Description: VMware Tools service
 # Description: Manages the services needed to run VMware Tools
 ### END INIT INFO
 END
 
-# Ubuntu's update-rc.d insists that the values in the header
-# match those in its arguments
-my $cLSBInitInfoDebian = <<END;
-### BEGIN INIT INFO
-# Provides: vmware-tools
-# Required-Start: \$local_fs
-# Required-Stop: \$local_fs
-# X-Start-Before: \$network
-# X-Stop-After: \$network
-# Default-Start: S
-# Default-Stop: 0 6
-# Short-Description: VMware Tools service
-# Description: Manages the services needed to run VMware Tools
-### END INIT INFO
-END
-
-# we should come up with sth smarter for this,
-# but this should do for now:
-my $cLSBInitInfoThinPrint = <<END;
+my $cLSBInitInfoTPTempl= <<END;
 ### BEGIN INIT INFO
 # Provides: vmware-tools-thinprint
-# Required-Start: cups
-# Required-Stop: cups
-# Default-Start: 2 3 4 5
-# Default-Stop: 0 1 6
-# Short-Description: VMware Tools thinprint
-# Description: The VMware Thinprint service enables guests VMs to seamlessly use printers on the host
-### END INIT INFO
-END
-
-# It's 'cupsd' (not: 'cups') for SuSE. Life would be so boring
-# without these little differences.
-my $cLSBInitInfoThinPrintSuSE = <<END;
-### BEGIN INIT INFO
-# Provides: vmware-tools-thinprint
-# Required-Start: cupsd
-# Required-Stop: cupsd
-# Default-Start: 2 3 4 5
-# Default-Stop: 0 1 6
+# Required-Start: __CUPS__
+# Required-Stop: __CUPS__
+# Default-Start: __DEFAULT_START__
+# Default-Stop: __DEFAULT_STOP__
 # Short-Description: VMware Tools thinprint
 # Description: The VMware Thinprint service enables guests VMs to seamlessly use printers on the host
 ### END INIT INFO
@@ -2677,8 +1658,6 @@ my $gIsUninstallerInstalled;
 
 # Hash of multi architecture supporting products
 my %multi_arch_products;
-# Hash of product conflicts
-my %product_conflicts;
 
 # BEGINNING OF THE SECOND LIBRARY FUNCTIONS
 # Global variables
@@ -2692,16 +1671,12 @@ my $gUninstallerFileName;
 my $gConfigurator;
 my $gConfig;
 my $gConfigFile;
-my @gOldUninstallers = '';
 
 my %gDBAnswer;
 my %gDBFile;
 my %gDBDir;
 my %gDBLink;
 my %gDBMove;
-
-my @gLower; # list of modules whose versions are less than the shipped
-my @gMissing; # list of modules not installed
 
 # list of files that are config failes users may modify
 my %gDBUserModified;
@@ -2892,114 +1867,12 @@ sub db_save {
   close(INSTALLDB);
 }
 
-# Parse an installer database and return a specified answer if it exists
-sub ext_db_get_answer_if_exists {
-   # parse arguments
-   my $InstallDB = shift;
-   my $id = shift;
-
-   # temporary database
-   my %DBAnswer;
-   my %DBFile;
-   my %DBDir;
-   my %DBLink;
-   my %DBMove;
-
-   # Open the installdb, or error.
-   open(INSTDB, '<' . $InstallDB)
-      or error('Unable to open the installer database '
-               . $InstallDB . ' in read-mode.' . "\n\n");
-
-   # parse the installdb
-   while (<INSTDB>) {
-      chomp;
-      if (/^answer (\S+) (.+)$/) {
-         $DBAnswer{$1} = $2;
-      } elsif (/^answer (\S+)/) {
-         $DBAnswer{$1} = '';
-      } elsif (/^remove_answer (\S+)/) {
-         delete $DBAnswer{$1};
-      } elsif (/^file (.+) (\d+)$/) {
-         $DBFile{$1} = $2;
-      } elsif (/^file (.+)$/) {
-         $DBFile{$1} = 0;
-      } elsif (/^remove_file (.+)$/) {
-         delete $DBFile{$1};
-      } elsif (/^directory (.+)$/) {
-         $DBDir{$1} = '';
-      } elsif (/^remove_directory (.+)$/) {
-         delete $DBDir{$1};
-      } elsif (/^link (\S+) (\S+)/) {
-         $DBLink{$2} = $1;
-      } elsif (/^move (\S+) (\S+)/) {
-         $DBMove{$2} = $1;
-      }
-   }
-   close(INSTDB);
-
-   # return the requested answer key value
-   if (not defined($DBAnswer{$id})) {
-      return undef;
-   } elsif($DBAnswer{$id} eq '') {
-      return undef;
-   } else {
-      return $DBAnswer{$id};
-   }
-}
-
-# uninstall a product
-#
-# returns true if product was successfully uninstalled, false otherwise
-sub uninstall_product {
-   my $product = shift;
-
-   # try to use an installer object if it exists
-   my $InstallerObject = $cRegistryDir . '-' . $product . '/installer.sh';
-   if ( -x $InstallerObject ) {
-      system(shell_string($InstallerObject) . ' uninstall');
-      if (!($? >> 8 eq 0)) {
-         print wrap("warning: could not uninstall $product with its installer object\n\n", 0);
-      } else {
-         return 1;
-      }
-   }
-
-   # check for an uninstaller in BINDIR
-   my $InstallDB = $cRegistryDir . '-' . $product . '/locations';
-   if ( -e $InstallDB ) {
-      my $bindir = ext_db_get_answer_if_exists($InstallDB, 'BINDIR');
-      if (not(defined($bindir))) {
-         print wrap("warning: could not find uninstaller for $product", 0);
-         return 0;
-      }
-      my $uninstaller = $bindir . '/vmware-uninstall-' . $product . '.pl';
-      if (! -x $uninstaller) {
-         print wrap("warning: could not find uninstaller for $product", 0);
-         return 0;
-      }
-      system(shell_string($uninstaller));
-      if (!($? >> 8 eq 0)) {
-         print wrap("warning: could not uninstall $product with its uninstaller", 0);
-      } else {
-         return 1;
-      }
-   }
-
-   # nothing worked
-   return 0;
-}
-
 # END OF THE SECOND LIBRARY FUNCTIONS
 
 # BEGINNING OF THE LIBRARY FUNCTIONS
 # Global variables
 my %gAnswerSize;
 my %gCheckAnswerFct;
-
-# Tell if the user is the super user
-sub is_root {
-  return $> == 0;
-}
 
 # Contrary to a popular belief, 'which' is not always a shell builtin command.
 # So we can not trust it to determine the location of other binaries.
@@ -3076,16 +1949,6 @@ sub DoesBinaryExist_Prompt {
   return get_answer('What is the location of the "' . $bin . '" program on your machine?', 'binpath', '');
 }
 
-# chmod() that reports errors
-sub safe_chmod {
-  my $mode = shift;
-  my $file = shift;
-
-  if (chmod($mode, $file) != 1) {
-    error('Unable to change the access rights of the file ' . $file . '.' . "\n\n");
-  }
-}
-
 # Install a file permission
 sub install_permission {
   my $src = shift;
@@ -3097,14 +1960,7 @@ sub install_permission {
     error('Unable to get the access rights of source file "' . $src . '".' . "\n\n");
   }
 
-  # ACE packages may be installed from CD/DVDs, which don't have the same file
-  # permissions of the original package (no write permission). Since these
-  # packages are installed by a user under a single directory, it's safe to do
-  # 'u+w' on everything.
   $mode = $statbuf[2] & 07777;
-  if (vmware_product() eq 'acevm') {
-    $mode |= 0200;
-  }
   safe_chmod($mode, $dst);
 }
 
@@ -3175,7 +2031,7 @@ sub file_check_exist {
   my $lib_dir = $Config{'archlib'} || $ENV{'PERL5LIB'} || $ENV{'PERLLIB'} ;
   my $share_dir = $Config{'installprivlib'} || $ENV{'PERLSHARE'} ;
 
-  # donot ovewrite perl module files
+  # do not overwrite perl module files
   if($file =~ m/$lib_dir|$share_dir/) {
     return 1;
   }
@@ -3388,7 +2244,7 @@ sub uninstall_file {
       db_remove_file($file);
     }
 
-  } elsif (vmware_product() ne 'acevm') {
+  } else {
     print wrap('This program previously created the file ' . $file . ', and '
                . 'was about to remove it.  Somebody else apparently did it '
                . 'already.' . "\n\n", 0);
@@ -3419,7 +2275,7 @@ sub uninstall_dir {
         system('ls -AlR ' . shell_string($dir));
       }
     }
-  } elsif (vmware_product() ne 'acevm') {
+  } else {
     print wrap('This program previously created the directory ' . $dir
                . ', and was about to remove it. Somebody else apparently did '
                . 'it already.' . "\n\n", 0);
@@ -3432,7 +2288,7 @@ sub uninstall_dir {
 sub vmware_version {
   my $buildNr;
 
-  $buildNr = '9.2.3 build-1031360';
+  $buildNr = '9.9.3 build-2759765';
   return remove_whitespaces($buildNr);
 }
 
@@ -3486,14 +2342,6 @@ sub initialize_globals {
     $gRegistryDir = '/etc/vmware-api';
     $gUninstallerFileName = 'vmware-uninstall-api.pl';
     $gConfigurator = 'vmware-config-api.pl';
-  } elsif (vmware_product() eq 'acevm') {
-    %gManifest = acevm_parse_manifest($dirname . '/' . $cManifestFilename);
-    $gRegistryDir = $dirname;
-    $gUninstallerFileName = 'vmware-uninstall-ace.pl';
-    $gACEVMUpdate = (defined $gManifest{'update'}) && ($gManifest{'update'} == 1);
-    $gPlayerBundle = 'VMware-Player.' . (is64BitUserLand() ? 'x86_64' : 'i386') .
-                     '.bundle';
-    $gConfigFile = '/etc/vmware/config';
   } elsif (vmware_product() eq 'tools-for-linux' ||
            vmware_product() eq 'tools-for-freebsd' ||
            vmware_product() eq 'tools-for-solaris') {
@@ -3524,7 +2372,6 @@ sub initialize_globals {
   $gConfFlag = $gRegistryDir . '/not_configured';
 
   $gOption{'default'} = 0;
-  $gOption{'nested'} = 0;
   $gOption{'upgrade'} = 0;
   $gOption{'ws-upgrade'} = 0;
   $gOption{'eula_agreed'} = 0;
@@ -3591,9 +2438,6 @@ sub initialize_external_helpers {
                     'modload', 'modunload', 'umount', 'mv', 'uname',
                     'mount', 'cat', 'update_drv', 'grep', 'gunzip',
                     'gzip', 'du', 'df', 'isainfo');
-  } elsif (vmware_product() eq 'acevm') {
-    @programList = ('tar', 'sed', 'rm', 'rmdir', 'mv', 'ps', 'du', 'df', 'mkdir',
-		    'cp', 'chown');
   } elsif (vmware_product() eq 'vix') {
     @programList = ('tar', 'sed', 'rm', 'mv', 'ps', 'du', 'df', 'cp');
   } elsif (vmware_product() eq 'vix-disklib') {
@@ -4097,6 +2941,46 @@ sub configure_gtk2 {
    return system(sprintf "%s/bin/configure-gtk.sh", db_get_answer("LIBDIR")) == 0;
 }
 
+# Check available space when asking the user for destination directory.
+sub spacechk_answer {
+  my $msg = shift;
+  my $type = shift;
+  my $default = shift;
+  my $srcDir = shift;
+  my $id = shift;
+  my $ifdefault = shift;
+  my $answer;
+  my $space = -1;
+
+  while ($space < 0) {
+
+    if (!defined($id)) {
+      $answer = get_answer($msg, $type, $default);
+    } else {
+      if (!defined($ifdefault)) {
+         $answer = get_persistent_answer($msg, $id, $type, $default);
+      } else {
+         $answer = get_persistent_answer($msg, $id, $type, $default, $ifdefault);
+      }
+    }
+
+    # XXX check $answer for a null value which can happen with the get_answer
+    # in config.pl but not with the get_answer in pkg_mgr.pl.  Moving these
+    # (get_answer, get_persistent_answer) routines into util.pl eventually.
+    if ($answer && ($space = check_disk_space($srcDir, $answer)) < 0) {
+      my $lmsg;
+      $lmsg = 'There is insufficient disk space available in ' . $answer
+              . '.  Please make at least an additional ' . -$space
+              . 'KB available';
+      if ($gOption{'default'} == 1) {
+        error($lmsg . ".\n");
+      }
+      print wrap($lmsg . " or choose another directory.\n", 0);
+    }
+  }
+  return $answer;
+}
+
 # Handle the installation and configuration of vmware's perl module
 sub install_perl_api {
   my $rootdir;
@@ -4149,290 +3033,60 @@ sub install_perl_api {
   build_perl_api();
 }
 
-# Look for the location of the vmware-acetool binary. We search /etc/vmware/locations
-# for it and return the path or '' if we can't find it.
-sub acevm_find_acetool  {
-  if (!defined $gConfig) {
-    return '';
-  }
 
-  my $path = $gConfig->get('bindir') .  "/vmware-acetool";
+sub prelink_fix {
+  my $source = "/etc/vmware-tools/vmware-tools-prelink.conf";
+  my $dest = '/etc/prelink.conf.d/vmware-tools-prelink.conf';
+  my $prelink_file = '/etc/prelink.conf';
+  my $libdir = db_get_answer_if_exists('LIBDIR');
+  my %patch;
 
-  return file_name_exist($path) ? $path : '';
-}
-
-
-# returns true if the included build player is newer
-sub acevm_included_player_newer {
-  return 1031360 gt int($gConfig->get('product.buildNumber', ''));
-}
-
-# untar and install vmware-player.
-sub acevm_install_vmplayer {
-  my $ret;
-
-  if (!-e $gPlayerBundle) {
-    error('This ACE package does not contain a VMware Player installer. You must ' .
-	  'install VMware Player before installing this package.' . "\n\n");
-  } elsif (!is_root()) {
-    error('This program can install VMware Player installer for you, but you must ' .
-	  'be a system administrator. Try running this setup program with sudo or ' .
-	  'contact your system administrator for help.' . "\n\n");
+  if (defined($libdir)) {
+    %patch = ('@@LIBDIR@@' => $libdir);
   } else {
-    my $cmd;
-    my $tmpDir;
-
-    print wrap("Installing VMware Player\n\n", 0);
-
-    # TODO: Need a way to inhibit creation of shortcuts.  env variable
-    # probably.
-    my @args = ("sh", "$gPlayerBundle");
-    return system("sh $gPlayerBundle") == 0;
+    error ("LIBDIR must be defined before prelink_fix is called.\n");
   }
-}
 
-# Open and parse the manifest file. This file contains little bits of information
-# we need to install and ACE.
-sub acevm_parse_manifest {
-  my $path = shift;
-  my $line;
-  my %ret;
+  if (-d internal_dirname($dest)) {
+    install_file($source, $dest, \%patch, 1);
+  } elsif (-f $prelink_file) {
+    # Readin our prelink file, do the appropreiate substitutions, and
+    # block insert it into the prelink.conf file.
 
-  if (not open(MANIFEST, '<' . $path)) {
-    error('Unable to open the MANIFEST file in read-mode.' . "\n\n");
-  }
-  while ($line = <MANIFEST>) {
-    # Strip carriage returns, if they exist.
-    $line =~ s/\r//g;
-    $line =~ m/^(.+)=(.+)$/;
-    $ret{$1} = $2;
-  }
-  close MANIFEST;
-  return %ret;
-}
+    my $key;
+    my $value;
+    my $line;
+    my $to_append = '';
 
-# Get the install (non-update) directory for this ACE package. If the directory
-# contains a VMX file, make sure this package does not. Finally, there must be enough
-# space to hold the package.
-sub acevm_get_dir {
-  my $rootdir = shift;
-  my $answer = undef;
+    if (not open(FH, $source)) {
+      error("Could not open $source\n");
+    }
 
-  while (!defined($answer)) {
-    $answer = get_answer("In which directory do you want to install this ACE?",
-			 'dirpath', $rootdir, 0);
-    if (acevm_find_vmx($answer) ne '' && $gManifest{'hasVM'}) {
-      print wrap("There is another ACE already installed in '" . $answer .
-		 "'. Please choose another directory.\n\n", 0);
-      $answer = '';
-    } else {
-      if (!check_dir_writeable($answer)) {
-	print wrap("No permission to write to directory '" . $answer .
-		   "'. Please choose another directory.\n\n", 0);
-	$answer = '';
+    foreach $line (<FH>) {
+      chomp ($line);
+      while (($key, $value) = each %patch) {
+   $line =~ s/$key/$value/g;
       }
-      if (check_disk_space('.', internal_dirname($answer)) < 0) {
-	print wrap("There is not enough space to install this ACE in '" .
-		   $answer . "'. Please choose another directory.\n\n", 0);
-	$answer = '';
-      }
+      $to_append .= $line . "\n";
     }
-    if ($answer eq '' && !$gOption{'default'}) {
-      undef $answer;
-    }
-  }
-  return $answer;
-}
 
-# Return the config filename. Usually, the MANIFEST file has this for us. If it
-# doesn't we'll try to construct it from the acename entry.
-sub acevm_get_config_filename {
-  return (defined $gManifest{'configFile'} ? $gManifest{'configFile'} :
-                                              $gManifest{'acename'}) .
-          '.';
-}
+    close FH;
 
-# Get the installed directory for an already installed ACE package that we will update.
-# The directory must exist already and there must be enough space to hold the update
-# content.
-sub acevm_get_updatedir {
-  my $rootdir = shift;
-  my $answer = undef;
-  my $cfgFile;
-
-  while (!defined($answer)) {
-    $answer = get_answer('Which directory contains the ACE you want to update?',
-			 'existdirpath', $rootdir, 0);
-    if (($cfgFile = acevm_find_vmx($answer)) eq '') {
-      print wrap("There is no ACE installed in '$answer'. ", 0);
-      $answer = '';
-    } elsif (!acevm_checkMasterID($cfgFile)) {
-      print wrap("The ACE in '$answer' does not have the same ID as this " .
-		 'ACE update package. ', 0);
-      $answer = '';
-    } elsif (check_disk_space('.', internal_dirname($answer)) < 0) {
-      print wrap("There is not enough space to install this ACE update package in '" .
-		 $answer . "'. ", 0);
-      $answer = '';
-    }
-    if ($answer eq '' && !$gOption{'default'}) {
-      undef $answer;
-      print wrap('Please choose another directory.' . "\n\n", 0);
+    if (block_insert($prelink_file, '^ *-b', $cMarkerBegin,
+           $to_append, $cMarkerEnd) == 1) {
+      db_add_answer('PRELINK_CONFED', $prelink_file);
     }
   }
-  return $answer;
 }
 
-# Uninstall host policies
-sub acevm_uninstall_host_policies() {
-  my $bindir = $gConfig->get('bindir');
-  my $cmd = sprintf "%s --uninstall-host-policy > /dev/null",
-               shell_string("$bindir/vmware-networks");
-  return system($cmd) == 0;
-}
+sub prelink_restore {
+  my $prelink_file = db_get_answer_if_exists('PRELINK_CONFED');
 
-# Does the package we're about to install have host.vmpl or host-update.vmpl?
-sub acevm_package_has_host_policies  {
-  return (file_name_exist('./VM/host.vmpl') ||
-	  file_name_exist('./VM/host-update.vmpl'));
-}
-
-# Can we install host.vmpl? We will install our host.vmpl if:
-# - There is no /etc/vmware-ace/host.vmpl installed
-# - If there is a host.vmpl, is this an update? Specifically, the aceid of this
-#   package matches the aceid of the package that installed the host.vmpl
-sub acevm_can_install_host_policies {
-  my $hostvmpl = "$gHostVmplDir/host.vmpl";
-  my $ret;
-
-  if (file_name_exist($hostvmpl)) {
-    my $cmd = sprintf "%s checkMasterID %s %s > /dev/null 2>&1",
-                 shell_string($gHelper{'vmware-acetool'}),
-                 shell_string($hostvmpl),
-                 shell_string($gManifest{'aceid'});
-    $ret = system($cmd) == 0;
-  } else {
-    $ret = 1;
-  }
-
-  return $ret;
-}
-
-# Handle the installation and configuration of a packaged ACE vm.
-# These are installed per user.
-sub install_content_acevm {
-  my %patch;
-
-  # First, write BINDIR. It's the same directory as the one
-  # containing $gInstallerMainDB.
-  db_add_answer('BINDIR', $gRegistryDir);
-  db_add_dir($gRegistryDir, 0x0);
-  undef %patch;
-  install_file("./vmware-install.pl", $gRegistryDir . '/' . $gUninstallerFileName,
-	       \%patch, 0x0);
-  undef %patch;
-  install_file("./installer.sh", $gRegistryDir . '/installer.sh', \%patch, 0x0);
-  undef %patch;
-  install_file("./MANIFEST", $gRegistryDir . '/MANIFEST', \%patch, 0x0);
-  $gIsUninstallerInstalled = 1;
-
-  # copy VM to installPath
-  install_dir("./VM", $gRegistryDir, \%patch, 0x0);
-
-  if (acevm_package_has_host_policies()) {
-      acevm_install_host_policies();
-  }
-
-  if ($gManifest{'hasVM'} == 1) {
-    print wrap('Finalizing ACE... ', 0);
-    my $ret = acevm_finalize();
-    print wrap("\n", 0);
-    if (!$ret) {
-      print wrap("This ACE was not finalized correctly, undoing installation...\n\n", 0);
-      system(shell_string("$gRegistryDir/$gUninstallerFileName"));
-      error("Unable to finalize ACE, installation failed.\n\n")
-    }
-  }
-
-  acevm_create_desktop_icon($gManifest{'acename'}, $gManifest{'aceid'}, $gRegistryDir .
-                            '/VM/' . $gManifest{'configFile'});
-}
-
-# Handle an update to a packaged ACE vm.
-# A matching ACE package must already have been installed
-sub install_content_acevm_update {
-  my %patch;
-
-  # copy VM to installPath
-  install_dir("./VM", $gRegistryDir, \%patch, 0x0);
-
-  if (acevm_package_has_host_policies()) {
-      acevm_install_host_policies();
+  if (defined $prelink_file) {
+    block_restore($prelink_file, $cMarkerBegin, $cMarkerEnd);
   }
 }
 
-# Install a host policy file, a ace.dat, maybe an an ace.crt, and restart
-# vmware-netdetect
-sub acevm_install_host_policies() {
-  my %patch;
-  my $update = '';
-  my $hostVMPolicy = "$gHostVmplDir/host$update.vmpl";
-  my $cmd;
-
-  if (file_name_exist("$gRegistryDir/host.vmpl")) {
-    if (not (-d $gHostVmplDir)) {
-      safe_mkdir($gHostVmplDir);
-      safe_chmod(0755, $gHostVmplDir);
-    }
-
-    if (file_name_exist("$gHostVmplDir/host.vmpl")) {
-      $update = '-update';
-    }
-
-    undef %patch;
-    unlink($hostVMPolicy);
-    install_file("$gRegistryDir/host.vmpl", "$hostVMPolicy", \%patch, 0x0);
-    uninstall_file("$gRegistryDir/host.vmpl");
-
-    undef %patch;
-    unlink("$gHostVmplDir/ace.dat");
-    install_file("$gRegistryDir/ace.dat", "$gHostVmplDir/ace.dat", \%patch, 0x0);
-
-    # If ace.crt exists, install it next to host policies. ace.crt
-    # lives either in the VM directory or in the Resources directory.
-    my $ace_crt_file = sprintf "$gRegistryDir/%s/ace.crt",
-    ($gManifest{'hasVM'} ? '/ACE Resources' : '');
-
-    if (file_name_exist($ace_crt_file)) {
-      undef %patch;
-      install_file($ace_crt_file, "$gHostVmplDir/ace.crt", \%patch, 0x0);
-    }
-  }
-
-  # Setup NAT
-  my $subnet;
-  my $dhcp;
-  my $result;
-  $cmd = sprintf "%s configureNATSubnet %s 2> /dev/null",
-           shell_string($gHelper{'vmware-acetool'}),
-           shell_string($hostVMPolicy);
-  open(CMD, $cmd . ' |');
-  ($subnet, $dhcp) = <CMD>;
-  $result = close(CMD);
-
-  if (defined $dhcp) {
-    chomp($dhcp);
-    $dhcp = $dhcp eq "yes" ? 1 : 0;
-  }
-
-  defined $subnet && chomp($subnet);
-
-  my $bindir = $gConfig->get('bindir');
-  $cmd = sprintf "%s --install-host-policy%s > /dev/null",
-                shell_string("$bindir/vmware-networks"),
-                (defined $subnet && defined $dhcp) ? "=$subnet,$dhcp" : "";
-  return system($cmd) == 0;
-}
 
 sub generate_initscript_patch {
   my $lsbInitInfo = shift;
@@ -4459,19 +3113,94 @@ sub generate_initscript_patch {
   return \%patch;
 }
 
-sub generate_upstart_thinprint_patch {
-  my %patch = ();
+sub install_content_tools_etc_openvmcompat {
+  my @files = (
+   'vmware-tools-libraries.conf',
+   'manifest.txt.shipped',
+   'vmware-tools-prelink.conf',
+   'installer.sh',
+   'not_configured'
+  );
+  my $f;
 
-  # Ubuntu 9.10 uses upstart, but cups does not. Therefore we cannot depend on
-  # cups:
-  if ( glob(db_get_answer('INITDIR') . '/rc2.d/' . 'S??cups*' )) {
-    %patch = ('##UPSTART_STARTON##' => 'start on runlevel [23]',
-              '##UPSTART_STOPON##' => 'stop on runlevel [!23]');
-  } else {
-    %patch = ('##UPSTART_STARTON##' => 'start on started cups',
-              '##UPSTART_STOPON##' => 'stop on stopping cups');
+  if($have_thinprint eq 'yes') {
+    push @files, 'tpvmlp.conf';
   }
-  return \%patch;
+
+  foreach $f (@files) {
+    install_file('./etc/' . $f, $gRegistryDir . '/' . $f, undef, 0);
+  }
+}
+
+sub install_content_vgauth {
+  my $rootdir = shift;
+  my %patch;
+
+  if(vmware_product() ne 'tools-for-linux') {
+    return;
+  }
+
+  my $vgauth_dir = $rootdir . '/lib/vmware-vgauth';
+
+  install_dir('./vgauth', $vgauth_dir, undef, 0x1);
+  %patch = ('@@VGAUTHSCHEMADIR@@' => "$vgauth_dir/schemas");
+  install_file("$cInstallerDir/vgauth.conf", '/etc/vmware-tools/vgauth.conf', \%patch, 0x01);
+}
+
+# Install the necessary directories and generate the necessary
+# Certificate files for 'grabbitmqproxy' plugin in 'VMware Tools'.
+sub install_content_guestproxy {
+  my $rootdir = shift;
+
+  if(vmware_product() ne 'tools-for-linux') {
+    return;
+  }
+
+  my $guestproxy_ssl_conf = $gRegistryDir . "/guestproxy-ssl.conf";
+
+  install_file("$cInstallerDir/guestproxy-ssl.conf",
+               $guestproxy_ssl_conf, undef, 0x01);
+
+  my $guestproxy_dir = $gRegistryDir . '/GuestProxyData';
+  my $guestproxy_server_certs_dir = $guestproxy_dir . '/server';
+  my $guestproxy_server_trusted_dir = $guestproxy_dir . '/trusted';
+
+  create_dir($guestproxy_dir, 1);
+  create_dir($guestproxy_server_certs_dir, 1);
+  create_dir($guestproxy_server_trusted_dir, 1);
+  safe_chmod(0700, $guestproxy_server_trusted_dir);
+
+  my $libdir = db_get_answer('LIBDIR');
+  my $libbindir = $libdir . (is64BitUserLand() ? '/bin64' : '/bin32');
+  my $opensslBinaryPath = $libbindir . '/openssl-0.9.8';
+  my $guestproxy_server_key_pem  = $guestproxy_server_certs_dir . '/key.pem';
+  my $guestproxy_server_cert_pem = $guestproxy_server_certs_dir . '/cert.pem';
+
+  if (system(shell_string($opensslBinaryPath) .
+             ' genrsa' .
+             ' -out '  . shell_string($guestproxy_server_key_pem) .
+             ' 2048 >/dev/null 2>&1')) {
+    print "Failed to Create key.pem file with error: " . $? . "\n";
+  } else {
+    # Setuid root
+    safe_chmod(0600, $guestproxy_server_key_pem);
+    db_add_file($guestproxy_server_key_pem, 0);
+  }
+
+  if (system(shell_string($opensslBinaryPath) .
+             ' req'   .
+             ' -new'  .
+             ' -x509' .
+             ' -key ' . shell_string($guestproxy_server_key_pem) .
+             ' -out ' . shell_string($guestproxy_server_cert_pem) .
+             ' -config ' . shell_string($guestproxy_ssl_conf) .
+             '>/dev/null 2>&1')) {
+    print "Failed to create cert.pem file with error: " . $? . "\n";
+  } else {
+    # Setuid root
+    safe_chmod(0644, $guestproxy_server_cert_pem);
+    db_add_file($guestproxy_server_cert_pem, 0);
+  }
 }
 
 # Install the content of the tools tar package
@@ -4483,7 +3212,11 @@ sub install_content_tools {
   my $docdir;
   my @upstartJobInfo;
 
-  install_dir('./etc', $gRegistryDir, \%patch, 0x1);
+  if ($open_vm_compat) {
+    install_content_tools_etc_openvmcompat();
+  } else {
+    install_dir('./etc', $gRegistryDir, \%patch, 0x1);
+  }
 
   if (defined($gOption{'prefix'})) {
     $rootdir = $gOption{'prefix'};
@@ -4514,7 +3247,6 @@ sub install_content_tools {
       (@upstartJobInfo = locate_upstart_jobinfo())) {
     my ($jobPath, $jobSuffix) = @upstartJobInfo;
     my $upstartJobFile = "$jobPath/vmware-tools$jobSuffix";
-    my $upstartJobFileThinPrint = "$jobPath/vmware-tools-thinprint$jobSuffix";
 
     # Step 1:  Install services script in $gRegistryDir.
     install_file($cStartupFileName, "$gRegistryDir/services.sh", undef, 0);
@@ -4522,11 +3254,15 @@ sub install_content_tools {
     install_file("$cInstallerDir/upstart-job.conf", $upstartJobFile, undef, 0);
     db_add_answer('UPSTARTJOB', $upstartJobFile);
 
-    # Step 1:  Install services script in $gRegistryDir.
-    install_file($cStartupFileNameThinPrint, "$gRegistryDir/thinprint.sh", undef, 0);
-    # Step 2:  Install Upstart job.
-    my $patch = generate_upstart_thinprint_patch();
-    install_file("$cInstallerDir/thinprint.conf", $upstartJobFileThinPrint, $patch, 0);
+    if($have_thinprint eq 'yes') {
+       my $upstartJobFileThinPrint = "$jobPath/vmware-tools-thinprint$jobSuffix";
+       # Step 1:  Install services script in $gRegistryDir.
+       install_file($cStartupFileNameThinPrint, "$gRegistryDir/thinprint.sh", undef, 0);
+       # Step 2:  Install Upstart job.
+       my %patch = ('##UPSTART_STARTON##' => 'start on started cups',
+                    '##UPSTART_STOPON##' => 'stop on stopping cups');
+       install_file("$cInstallerDir/thinprint.conf", $upstartJobFileThinPrint, \%patch, 0);
+    }
   } else {
     db_remove_answer('UPSTARTJOB');
     # install the service script.
@@ -4540,11 +3276,10 @@ sub install_content_tools {
     my $insserv = internal_which('insserv');
     my $chkconfig = internal_which('chkconfig');
     my $update_rc_dot_d = internal_which('update-rc.d');
-    my $lsbInitInfo = $cLSBInitInfo;
+    my $lsbInitInfo;
 
     if ( "$update_rc_dot_d" ne "") {
       db_add_answer('INIT_STYLE', 'update-rc.d');
-      $lsbInitInfo = $cLSBInitInfoDebian;
     } elsif ( "$insserv" ne "") {
       db_add_answer('INIT_STYLE', 'lsb');
     } elsif ("$chkconfig" ne '') {
@@ -4553,21 +3288,53 @@ sub install_content_tools {
       db_add_answer('INIT_STYLE', 'custom');
     }
 
+    $lsbInitInfo = $cLSBInitInfoTempl;
+    if ( "$update_rc_dot_d" ne "") {
+      # Ubuntu's update-rc.d insists that the values in the header
+      # match those in its arguments, and we need to start early:
+      $lsbInitInfo =~ s/__DEFAULT_START__/S/g;
+      $lsbInitInfo =~ s/__DEFAULT_STOP__/0 6/g;
+    } elsif ( -e '/etc/SuSE-release' ) {
+      # we don't want tools to run in runlevel 4 in SuSE (bug #933899)
+      $lsbInitInfo =~ s/__DEFAULT_START__/2 3 5/g;
+      $lsbInitInfo =~ s/__DEFAULT_STOP__/0 1 6/g;
+    } else {
+      $lsbInitInfo =~ s/__DEFAULT_START__/2 3 4 5/g;
+      $lsbInitInfo =~ s/__DEFAULT_STOP__/0 1 6/g;
+    }
+
     my $patch = generate_initscript_patch($lsbInitInfo, $cChkconfigInfo);
     install_file($cStartupFileName,
                  $answer . (vmware_product() eq 'tools-for-freebsd' ?
                             '/vmware-tools.sh' : '/vmware-tools'), $patch, 0x1);
 
     # no thinprint for FreeBSD or Solaris:
-    if(vmware_product() eq 'tools-for-linux') {
+    if((vmware_product() eq 'tools-for-linux') && ($have_thinprint eq 'yes')) {
+
+      my $lsbInitInfoTP = $cLSBInitInfoTPTempl;
       if ( -e '/etc/SuSE-release' ) {
-        $patch = generate_initscript_patch($cLSBInitInfoThinPrintSuSE, $cChkconfigInfoThinPrint);
+        # we don't want tools to run in runlevel 4 in SuSE (bug #933899)
+        $lsbInitInfoTP =~ s/__DEFAULT_START__/2 3 5/g;
+        $lsbInitInfoTP =~ s/__DEFAULT_STOP__/0 1 6/g;
+        # It's 'cupsd' (not: 'cups') for SuSE:
+        $lsbInitInfoTP =~ s/__CUPS__/cupsd/g;
       } else {
-        $patch = generate_initscript_patch($cLSBInitInfoThinPrint, $cChkconfigInfoThinPrint);
+        $lsbInitInfoTP =~ s/__DEFAULT_START__/2 3 4 5/g;
+        $lsbInitInfoTP =~ s/__DEFAULT_STOP__/0 1 6/g;
+        $lsbInitInfoTP =~ s/__CUPS__/cups/g;
       }
+
+      $patch = generate_initscript_patch($lsbInitInfoTP, $cChkconfigInfoThinPrint);
       install_file($cStartupFileNameThinPrint,
                    $answer. '/vmware-tools-thinprint', $patch, 0x1);
     }
+
+    # on systems using systemd, we need to call 'systemctl daemon-reload':
+    my $systemctl_path = internal_which('systemctl');
+    if ($systemctl_path ne '') {
+       system("$systemctl_path daemon-reload");
+    }
+
   }
 
   $gIsUninstallerInstalled = 1;
@@ -4602,6 +3369,13 @@ sub install_content_tools {
 
   undef %patch;
   install_dir('./lib', $answer, \%patch, 0x1);
+
+  if ($have_grabbitmqproxy eq 'yes') {
+     install_content_guestproxy($rootdir);
+  }
+  if ($have_vgauth eq 'yes') {
+     install_content_vgauth($rootdir);
+  }
 
   # We don't yet maintain ownership and permissions metadata for all the
   # files we install.  For the timebeing until vmis obsoletes this code,
@@ -4675,6 +3449,10 @@ sub install_content_tools {
   my $filePath = $gRegistryDir . '/vmware-user.desktop';
   %patch = ('Exec=.*$' => $execStr);
   internal_sed ('./etc/vmware-user.desktop', $filePath, 0, \%patch);
+
+  # re-add file to database so they it will not stay behind on uninstall
+  # see bug #745860
+  db_add_file($filePath, 0x1);
 }
 
 sub uninstall_content_legacy_tools {
@@ -4792,47 +3570,10 @@ sub uninstall_content_legacy_tools {
   $gInstallerMainDB = $TmpMainDB;
 }
 
-# Return GSX or ESX for server products, Workstation for ws
-sub installed_vmware_version {
-  my $vmware_version;
-  my $vmware_version_string;
-
-  if (not defined($gHelper{"vmware"})) {
-    $gHelper{"vmware"} = DoesBinaryExist_Prompt("vmware");
-    if ($gHelper{"vmware"} eq '') {
-      error('Unable to continue.' . "\n\n");
-    }
-  }
-
-  $vmware_version_string = direct_command(shell_string($gHelper{"vmware"})
-                                          . ' -v 2>&1 < /dev/null');
-  if ($vmware_version_string =~ /.*VMware\s*(\S+)\s*Server.*/) {
-    $vmware_version = $1;
-  } else {
-    $vmware_version = "Workstation";
-  }
-  return $vmware_version;
-}
-
 #BEGIN UNINSTALLER SECTION
 # Uninstaller section for old style MUI installer: Most of this code is
 # directly copied over from the old installer
 my %gConfData;
-
-# Read the config vars to our internal array
-sub readConfig {
-  my $registryFile = shift;
-  if (open(OLDCONFIG, $registryFile)) {
-    # Populate our array with everthing from the conf file.
-    while (<OLDCONFIG>) {
-      m/^\s*(\S*)\s*=\s*(\S*)/;
-      $gConfData{$1} = $2;
-    }
-    close(OLDCONFIG);
-    return(1);
-  }
-  return(0);
-}
 
 # END UNINSTALLER SECTION
 # Install the content of the tar package
@@ -4869,16 +3610,6 @@ sub install_content {
   undef %patch;
   install_file($cStartupFileName, $initscriptsdir . '/vmware', \%patch, 0x1);
 
-  if (vmware_product() eq 'wgs') {
-    # this is only relevant for wgs
-    install_symlink($initscriptsdir . '/vmware',
-                    $initscriptsdir . '/vmware-core');
-    install_symlink($initscriptsdir . '/vmware',
-                    $initscriptsdir . '/vmware-mgmt');
-    install_symlink($initscriptsdir . '/vmware',
-                    $initscriptsdir . '/vmware-autostart');
-  }
-
   $gIsUninstallerInstalled = 1;
 
   # Setuid root
@@ -4895,7 +3626,7 @@ sub install_content {
   # his/her previous answers.  Even though this is asking for a directory,
   # the actual source of the files is within the source ./lib so the
   # spacechk_answer() below handles it.
-  if (vmware_product() eq 'wgs' || vmware_product() eq 'ws') {
+  if (vmware_product() eq 'ws') {
     $redo=1;
     while($redo) {
       $answer = get_answer('In which directory do you want to install '
@@ -5032,56 +3763,12 @@ sub get_initscriptsdir {
   return $answer;
 }
 
-sub get_home_dir {
-   return (getpwnam(get_user()))[7] || (getpwuid($<))[7];
-}
-
-sub get_user {
-   if (defined $ENV{'SUDO_USER'}) {
-      return $ENV{'SUDO_USER'};
-   }
-   else {
-      return $ENV{'USER'};
-   }
-}
-
 # Install a tar package or upgrade an already installed tar package
 sub install_or_upgrade {
-  if (vmware_product() eq 'acevm') {
-     print wrap('Installing VMware ACE.  This may take from several minutes to over ' .
-                'an hour depending upon its size.' . "\n\n", 0);
-  } else {
-     print wrap('Installing ' . vmware_product_name() . ".\n\n", 0);
-  }
+  print wrap('Installing ' . vmware_product_name() . ".\n\n", 0);
 
   if (vmware_product() eq 'api') {
     install_perl_api();
-  } elsif (vmware_product() eq 'acevm') {
-    if (acevm_is_instance_running()) {
-     error ('Cannot install this package because this ACE appears to be ' .
-	     'running. Please close the running ACE and run this setup ' .
-	     'program again.' . "\n\n");
-    }
-    if ($gACEVMUpdate) {
-      install_content_acevm_update();
-    } else {
-      install_content_acevm();
-    }
-    if (is_root()) {
-      print wrap('You have installed this ACE package as the root user. This setup ' .
-		 'package can change the ownership (chown) of the package files so ' .
-		 'that another user may run this package.'. "\n\n", 0);
-      my $user = get_answer('Enter a username to change package ownership',
-			 'username', get_user());
-      my ($name,$passwd,$uid,$gid,$quota,$comment,$gcos,$home) = getpwnam($user);
-
-      if ($gACEVMUpdate) {
-         system("chown -R $uid:$gid " . shell_string(db_get_answer('BINDIR')));
-      } else {
-         system("chown -R $uid:$gid " . shell_string($gFirstCreatedDir));
-         system("chown -R $uid:$gid " . shell_string($home . '/.local'));
-      }
-    }
   } elsif (vmware_product() eq 'tools-for-linux' ||
            vmware_product() eq 'tools-for-freebsd' ||
            vmware_product() eq 'tools-for-solaris') {
@@ -5094,31 +3781,14 @@ sub install_or_upgrade {
       install_content_nvdk();
   } else {
     install_content();
-    if (vmware_product() eq 'wgs') {
-      install_content_webAccess();
-    }
   }
 
-  if (vmware_product() eq 'acevm' && (my $vmx = acevm_find_vmx($gRegistryDir)) ne '') {
-    print wrap('The installation of this VMware ACE package completed successfully. '
-	       . 'You can decide to remove this software from your system at any '
-	       . 'time by invoking the following command: "'
-	       . db_get_answer('BINDIR') . '/' . $gUninstallerFileName . '".'
-	       . "\n\n", 0);
-
-    print wrap('You can now run this ACE by invoking the following ' .
-	       ' command: "vmplayer ' . $vmx . '"' . "\n\n", 0);
-    print wrap('A shortcut to your ACE package has been added to your ' .
-               'application menu under the "VMware ACE" folder.  You may have to ' .
-               "logout and log back in for it to appear.\n\n", 0);
-  } else {
-    print wrap('The installation of ' . vmware_longname()
-               . ' completed successfully. '
-               . 'You can decide to remove this software from your system at any '
-               . 'time by invoking the following command: "'
-               . db_get_answer('BINDIR') . '/' . $gUninstallerFileName . '".'
-               . "\n\n", 0);
-  }
+  print wrap('The installation of ' . vmware_longname()
+            . ' completed successfully. '
+            . 'You can decide to remove this software from your system at any '
+            . 'time by invoking the following command: "'
+            . db_get_answer('BINDIR') . '/' . $gUninstallerFileName . '".'
+            . "\n\n", 0);
 
 }
 
@@ -5143,7 +3813,7 @@ sub uninstall_prefix {
   # remove the inner ones before the outer ones
   foreach $dir (sort {length($b) <=> length($a)} keys %gDBDir) {
     if (substr($dir, 0, $prefix_len) eq $prefix) {
-      uninstall_dir($dir, vmware_product() eq 'acevm' ? '1' : '0');
+      uninstall_dir($dir, '0');
     }
   }
 }
@@ -5151,24 +3821,26 @@ sub uninstall_prefix {
 # Uninstall a tar package
 sub uninstall {
   my $service_name = shift;
-  my $hostVmplPresent = file_name_exist("$gHostVmplDir/host.vmpl");
+  my @services;
 
-  if ($hostVmplPresent && vmware_product() eq 'acevm') {
-    if (!is_root()) {
-      error ('This package installed host policies and must be uninstalled by a ' .
-	     'system administrator. Try running this setup program with sudo ' .
-	     'or contact your system administrator for help.' . "\n\n");
-    } else {
-      acevm_uninstall_host_policies();
-      uninstall_file("$gHostVmplDir/ace.dat");
+  if (vmware_product() eq 'tools-for-linux') {
+    @services = ('/vmware-tools');
+    if ($have_thinprint eq 'yes') {
+      push (@services, '/vmware-tools-thinprint');
     }
+  } elsif (vmware_product() eq 'tools-for-freebsd') {
+    @services = ('/vmware-tools.sh');
+  } else {
+    @services = ($service_name);
   }
 
   # New school Upstart support for Linux Tools.
   if (vmware_product() eq 'tools-for-linux' and
       db_get_answer_if_exists('UPSTARTJOB')) {
 
-    foreach my $service ('vmware-tools', 'vmware-tools-thinprint') {
+    foreach my $service (@services) {
+      my $service = (substr($service, 0, 1) eq '/')
+         ? substr($service, 1) : $service;
       print wrap('Stopping services for ' . $service . "\n\n", 0);
       vmware_service_issue_command1($cServiceCommandSystem, $service, 'stop');
     }
@@ -5177,7 +3849,7 @@ sub uninstall {
   } elsif (defined($gDBAnswer{'INITSCRIPTSDIR'})
       && db_file_in(db_get_answer('INITSCRIPTSDIR') . $service_name)) {
 
-    if ((isDesktopProduct()) || (isServerProduct())) {
+    if (isDesktopProduct()) {
       # Check that there are no VMs active else the server will fail to stop.
       print wrap("Checking for active VMs:\n", 0);
       if (system(shell_string(db_get_answer('INITSCRIPTSDIR') . '/vmware') .
@@ -5190,15 +3862,6 @@ sub uninstall {
     }
 
     print wrap('Stopping services for ' . vmware_product_name() . "\n\n", 0);
-
-    my @services;
-    if (vmware_product() eq 'tools-for-linux') {
-      @services = ('/vmware-tools', '/vmware-tools-thinprint');
-    } elsif (vmware_product() eq 'tools-for-freebsd') {
-      @services = ('/vmware-tools.sh', '/vmware-tools-thinprint.sh');
-    } else {
-      @services = ($service_name);
-    }
 
     foreach my $service (@services) {
 
@@ -5287,15 +3950,11 @@ sub uninstall {
     }
   }
 
-  if (vmware_product() eq 'wgs') {
-    uninstall_wgs();
-  }
-
   # Check to see if this uninstall is part of an upgrade.  When an upgrade occurs,
   # an install ontop of a current product, the uninstall part is called with the
   # upgrade option set to 1.
   if (!defined($gOption{'upgrade'}) || $gOption{'upgrade'} == 0) {
-    if (vmware_product() eq 'ws' || vmware_product() eq 'wgs') {
+    if (vmware_product() eq 'ws') {
       uninstall_vix();
     }
 
@@ -5314,12 +3973,13 @@ sub uninstall {
   # send the RPC. But we'd like to do it as late as possible in the
   # uninstall process so that we won't accidentally tell the VMX that the
   # Tools are gone when they're still there.
-  if (vmware_product() eq 'tools-for-linux' ||
-      vmware_product() eq 'tools-for-freebsd' ||
-      vmware_product() eq 'tools-for-solaris') {
-    send_rpc('tools.set.version 0');
+  if (!$open_vm_compat) {
+    if (vmware_product() eq 'tools-for-linux' ||
+        vmware_product() eq 'tools-for-freebsd' ||
+        vmware_product() eq 'tools-for-solaris') {
+      send_rpc('tools.set.version 0');
+    }
   }
-
   uninstall_prefix('');
 }
 
@@ -5371,309 +4031,6 @@ sub deconfigure_vnetlib() {
     }
 }
 
-#
-# Given two strings where the format is a tuple of things separated by a '.'
-# if more than one, i.e. X.Y, A.B.C, Z, determine which of the strings is
-# of higher value representing a more recent version of a lib, say.
-# This works 0.0.0b style lettered version strings.
-#
-# Result:
-# If the Base String is greater than the New string, return 1.
-# If the two are equal, return 0
-# If the Base String is less than the New string, return -1.
-sub compare_dot_version_strings {
-   my ($base, $new) = @_;
-   my @base_digits = split(/\./, $base);
-   my @new_digits = split(/\./, $new);
-
-   my $i = 0;
-
-   # Use the smaller limit value so we dont go outside the bounds of the array.
-   my $limit = $#base_digits > $#new_digits ? $#new_digits : $#base_digits;
-
-   while (($i < $limit) && ($base_digits[$i] eq $new_digits[$i])) {
-      $i++;
-   }
-
-   my $result;
-   if (($i == $limit) && ($base_digits[$i] eq $new_digits[$i])) {
-      if ($#base_digits == $#new_digits) {
-         $result = 0;
-      } elsif ($#base_digits < $#new_digits) {
-         # if the new_digits string is longer, then it is greater.
-         $result = -1;
-      } else {
-         # Else the base_digits is longer, and thus is greater
-         $result = 1;
-      }
-   } else {
-      if ($base_digits[$i] gt $new_digits[$i]) {
-         $result = 1;
-      } else {
-         $result = -1;
-      }
-   }
-
-   return $result;
-}
-
-
-sub install_content_vicli_perl {
-   my %patch;
-   my $shipped_ssl_version = '0.9.8';
-   my $installed_ssl_version = '0';
-   my $minimum_ssl_version = '0.9.7';
-   my $ssleay_installed = 0;
-   my $link_ssleay = 0;
-   my $linker_installed = `which ld`;
-   my $minimum_libxml_version = '2.6.26';
-   my $installed_libxml_version = '0';
-
-   my $OpenSSL_installed = 0;
-   my $LibXML2_installed = 0;
-   my $OpenSSL_dev_installed = 0;
-   my $libxml_perl_installed = 1;
-
-   my $e2fsprogs_installed = 0;
-   my $e2fsprogs_version = '0';
-   my $minimum_e2fsprogs_version = '1.38';
-
-   my $vicliName = vmware_product_name();
-   if ($] < 5.008) {
-      error($vicliName . " requires Perl version 5.8 or later.\n\n");
-   }
-
-   unless(direct_command("perldoc -V 2> /dev/null")) {
-      print wrap("warning: " . $vicliName . " requires Perldoc.\n Please install perldoc.\n\n");
-   }
-
-   # Determine version of libxml2 that's installed.
-   foreach my $line (direct_command("ldconfig -v 2> /dev/null")) {
-      chomp($line);
-      # Only find lines related to libxml2
-      if ($line !~ /->\s+libxml2\.so\.(\d+\.?\d*\.?\d*[a-zA-Z]*)/) {
-         next;
-      }
-
-      if (compare_dot_version_strings($installed_libxml_version, $1) <= 0) {
-         # report back the highest installed version of libxml2
-         $installed_libxml_version = $1;
-      }
-   }
-
-   if ( $installed_libxml_version eq '0' ) {
-      print wrap("libxml2 is not installed on the system \n");
-   } else {
-      $LibXML2_installed = 1;
-   }
-
-   if (compare_dot_version_strings($installed_libxml_version, $minimum_libxml_version) < 0) {
-       print wrap("libxml2 $minimum_libxml_version is required for " . $vicliName . ". \n" .
-		   "Please install libxml2 $minimum_libxml_version or greater.\n\n");
-   }
-
-   # Determine greatest version of OpenSSL that's installed.
-   # We need version 0.9.7 or greater.  We ship 0.9.8
-   # Since we are root, lets use ldconfig to view the installed libraries
-   foreach my $line (direct_command("ldconfig -v 2> /dev/null")) {
-      chomp($line);
-      # Only find lines related to libssl
-      if ($line !~ /->\s+libssl\.so\.(\d+\.?\d*\.?\d*[a-zA-Z]*)/) {
-         next;
-      }
-      if (compare_dot_version_strings($installed_ssl_version, $1) <= 0) {
-         # report back the highest installed version of libssl
-         $installed_ssl_version = $1;
-      }
-   }
-
-   if ( $installed_ssl_version eq '0' ) {
-      print wrap(" OpenSSL is not installed on the system \n");
-   } else {
-      $OpenSSL_installed = 1;
-   }
-
-   if (compare_dot_version_strings($installed_ssl_version, $minimum_ssl_version) < 0) {
-	   print wrap("OpenSSL $minimum_ssl_version is required for encrypted connections.\n" .
-                 "Please install OpenSSL and OpenSSL-devel version $minimum_ssl_version or greater.\n\n", 0);
-   }
-
-   # check for e2fsprogs-devel installed
-   if ( direct_command("cat /etc/*-release | grep -i ubuntu") || direct_command("cat /proc/version | grep -i ubuntu") ) {
-       my $libssl_dev = direct_command("dpkg-query -W -f='\${Version}\n' '*ssl-dev*' ");
-       if ( $libssl_dev ) {
-		   $OpenSSL_dev_installed = 1;
-       }   else {
-            print wrap("libssl-dev $minimum_ssl_version is required for encrypted connections.\n" .
-                  "Please install libssl-dev version $minimum_ssl_version or greater.\n\n", 0);
-       }
-
-       my $e2fsprogs = direct_command("dpkg-query -W -f='\${Version}\n' e2fsprogs ");
-       if ($e2fsprogs) {
-          my @e2fs = split('-', $e2fsprogs);
-          $e2fsprogs_version = $e2fs[0];
-          $e2fsprogs_installed = 1;
-       }
-
-       if ( direct_command("dpkg-query -W -f'\${Status}\n' libxml-libxml-perl | grep not-installed ") ) {
-           print wrap("libxml-libxml-perl package is not installed on the system. libxml-libxml-perl package must be installed for use by " . $vicliName . ":\n\n", 0);
-           $libxml_perl_installed = 0;
-       }
-
-   } else {
-      my @openssl_dev = direct_command("rpm -qa | grep 'ssl-dev'");
-
-      foreach my $line (@openssl_dev)  {
-         chomp($line);
-         if ($line =~ /[a-zA-Z]*ssl-dev[a-zA-Z]*-(\d+\.?\d*\.?\d*[a-zA-Z]*)/) {
-	    $OpenSSL_dev_installed = 1;
-         }
-      }
-
-      if (! $OpenSSL_dev_installed) {
-         print wrap("openssl $minimum_ssl_version is required for encrypted connections.\n" .
-              "Please install openssl-devel version $minimum_ssl_version or greater.\n\n", 0);
-      }
-
-      my @e2fsprogs = split('\n', direct_command("rpm -qa | grep 'e2fsprogs'"));
-      foreach my $line (@e2fsprogs)  {
-         chomp($line);
-         if ($line =~ /e2fsprogs-+([0-9\.]+)/) {
-            $e2fsprogs_version = "$1";
-            $e2fsprogs_installed = 1;
-         }
-      }
-   }
-
-   if (! $e2fsprogs_installed ) {
-      print wrap("e2fsprogs is not installed on the system \n\n", 0);
-   }
-
-   if (compare_dot_version_strings($e2fsprogs_version, $minimum_e2fsprogs_version) < 0) {
-       print wrap("e2fsprogs $minimum_e2fsprogs_version is required for UUID.\n" .
-                 "Please install e2fsprogs $minimum_e2fsprogs_version or greater.\n\n", 0);
-   }
-
-   # Exit the insatllation if OpenSSL or LibXML or e2fsprogs not installed on system.
-   if ( ! $OpenSSL_installed || ! $LibXML2_installed || ! $e2fsprogs_installed || ! $OpenSSL_dev_installed || ! $libxml_perl_installed ) {
-      uninstall_file($gInstallerMainDB);
-      exit 1;
-   }
-
-   # Make sure we are using a valid path for Crypt-SSLeay
-   # Valid paths are
-   # Crypt-SSLeay-0.55-0.9.7
-   # Crypt-SSLeay-0.55-0.9.8
-   # Use 0.9.8 for newer ssl libs
-   my $SSLeay_ssl_version = '0.9.7';
-   if (compare_dot_version_strings('0.9.8', $installed_ssl_version) <= 0) {
-      # Then use 0.9.8
-      $SSLeay_ssl_version = '0.9.8';
-   }
-
-   my @modules = (
-     {'module' => 'Crypt::SSLeay',         'version' => '0.55',   'path' => "Crypt-SSLeay-0.55-$SSLeay_ssl_version"},
-     {'module' => 'version',               'version' => '0.78',   'path' => 'version-0.78'},
-     {'module' => 'IO::Compress::Base',    'version' => '2.005',  'path' => 'IO-Compress-Base-2.005'},
-     {'module' => 'Compress::Zlib',        'version' => '2.005',  'path' => 'Compress-Zlib-2.005'},
-     {'module' => 'IO::Compress::Zlib::Constants',    'version' => '2.005',  'path' => 'IO-Compress-Zlib-2.005'},
-     {'module' => 'Compress::Raw::Zlib',   'version' => '2.017',  'path' => 'Compress-Raw-Zlib-2.017'},
-     {'module' => 'Archive::Zip',          'version' => '1.20',   'path' => 'Archive-Zip-1.26'},
-     {'module' => 'Data::Dumper',          'version' => '2.121',  'path' => 'Data-Dumper-2.121'},
-     {'module' => 'Class::MethodMaker',    'version' => '2.10',   'path' => 'Class-MethodMaker-2.10'},
-     {'module' => 'HTML::Parser',           'version' => '3.60',   'path' => 'HTML-Parser-3.60'},
-     {'module' => 'UUID',                  'version' => '0.03',   'path' => 'UUID-0.03'},
-     {'module' => 'Data::Dump',             'version' => '1.15',    'path' => 'Data-Dump-1.15'},
-     {'module' => 'SOAP::Lite',             'version' => '0.710.08',  'path' => 'SOAP-Lite-0.710.08'},
-     {'module' => 'URI',                   'version' => '1.37',   'path' => 'URI-1.37'},
-     {'module' => 'XML::LibXML',           'version' => '1.63',   'path' => 'XML-LibXML-1.63'},
-     {'module' => 'LWP',                   'version' => '5.805', 'path' => 'libwww-perl-5.805'},
-     {'module' => 'XML::LibXML::Common',   'version' => '0.13',   'path' => 'XML-LibXML-Common-0.13'},
-     {'module' => 'XML::NamespaceSupport', 'version' => '1.09',   'path' => 'XML-NamespaceSupport-1.09'},
-     {'module' => 'XML::SAX',              'version' => '0.16',   'path' => 'XML-SAX-0.16'},
-     {'module' => 'VMware::VIRuntime',     'version' => '0.9',    'path' => 'VMware'},
-     {'module' => 'WSMan::StubOps',        'version' => '0.1',    'path' => 'WSMan'}
-   );
-   my @install; # list of modules to be installed
-
-   my $lib_dir = $Config{'archlib'} || $ENV{'PERL5LIB'} || $ENV{'PERLLIB'} ||
-      error("Unable to determine the Perl module directory.  You may set the " .
-            "destination manually by setting the PERLLIB directory.\n\n");
-
-   my $share_dir = $Config{'installprivlib'} || $ENV{'PERLSHARE'} ||
-      error("Unable to determine share_dir.  You may set the destination " .
-            "manually using PERLSHARE.\n\n");
-
-   foreach my $module (@modules) {
-      eval "require $module->{'module'}";
-      if ($@) {
-         push @install, $module;
-      } elsif ($module->{'module'}->VERSION lt $module->{'version'}) {
-         push @gLower, $module;
-      }
-   }
-
-   # If SSLeay is going to be installed by us, they must have a linker on the system
-   foreach my $module (@install) {
-      if ($module->{'module'} eq 'Crypt::SSLeay') {
-         if (! $linker_installed) {
-            print wrap("No Crypt::SSLeay Perl module or linker could be found on the " .
-                       "system.  Please either install SSLeay from your distribution " .
-                       "or install a development toolchain and run this installer " .
-                       "again for encrypted connections.\n\n", 0);
-            uninstall();
-            exit 1;
-         } else {
-            $link_ssleay = 1;
-         }
-      }
-   }
-
-   # install modules in @install
-   foreach my $module (@install) {
-      if ($module->{'module'} eq 'Crypt::SSLeay') {
-         if ($link_ssleay) {
-            my $path = "./lib/$module->{'path'}/lib/auto/Crypt/SSLeay";
-            if ($] >= 5.010 && ( -e "./lib/5.10/$module->{'path'}/lib" ) )  {
-               $path = "./lib/5.10/$module->{'path'}/lib/auto/Crypt/SSLeay";
-            }
-
-            if (system("ld -shared -o $path/SSLeay.so $path/SSLeay.o -lcrypto -lssl") >> 8) {
-               print wrap("Unable to link the Crypt::SSLeay Perl module.  Secured " .
-                          "connections will be unavailable until you install the " .
-                          "Crypt::SSLeay module.\n\n", 0);
-               uninstall();
-               exit 1;
-             }
-         } else {
-            next;
-         }
-      }
-
-      undef %patch;
-      if ($] >= 5.010 && ( -e "./lib/5.10/$module->{'path'}/lib" ) )  {
-         install_dir("./lib/5.10/$module->{'path'}/lib", "$lib_dir", \%patch, 0x1);
-      } elsif (-e "./lib/$module->{'path'}/lib") {
-         install_dir("./lib/$module->{'path'}/lib", "$lib_dir", \%patch, 0x1);
-      }
-
-      undef %patch;
-      if ($] >= 5.010 && ( -e "./lib/5.10/$module->{'path'}/share" ) )  {
-         install_dir("./lib/5.10/$module->{'path'}/share", "$share_dir", \%patch, 0x1);
-      } elsif (-e "./lib/$module->{'path'}/share") {
-         install_dir("./lib/$module->{'path'}/share", "$share_dir", \%patch, 0x1);
-      }
-   }
-
-   foreach my $module (@modules) {
-        eval "require $module->{'module'}";
-        if ($@) {
-	   push @gMissing, $module;
-        } else {
-          next;
-        }
-   }
-}
 
 sub install_content_vix_disklib {
   my $rootdir;
@@ -5705,10 +4062,8 @@ sub install_content_vix_disklib {
 
   undef %patch;
   $bindir = "$rootdir/lib/vmware-vix-disklib/bin";
-  install_dir('./bin32', $bindir . '32', \%patch, 0x1);
   install_dir('./bin64', $bindir . '64', \%patch, 0x1);
   create_dir("$rootdir/bin", 1);
-  install_symlink("$bindir$suffix/vmware-mount", "$rootdir/bin/vmware-mount");
   install_symlink("$bindir$suffix/vmware-vdiskmanager", "$rootdir/bin/vmware-vdiskmanager");
   install_symlink("$bindir$suffix/vmware-uninstall-vix-disklib.pl",
      "$rootdir/bin/vmware-uninstall-vix-disklib.pl");
@@ -5718,10 +4073,9 @@ sub install_content_vix_disklib {
 
   $libdir = "$rootdir/lib/vmware-vix-disklib/lib";
   undef %patch;
-  install_dir('./lib32', $libdir . '32', \%patch, 0x1);
   install_dir('./lib64', $libdir . '64', \%patch, 0x1);
 
-  foreach my $arch (qw(32 64)) {
+  foreach my $arch (qw(64)) {
      install_symlink("$libdir$arch/libssl.so.0.9.8", "$bindir$arch/libssl.so.0.9.8");
      install_symlink("$libdir$arch/libcrypto.so.0.9.8", "$bindir$arch/libcrypto.so.0.9.8");
   }
@@ -5733,7 +4087,7 @@ sub install_content_vix_disklib {
 
   my $pkgdir = "$rootdir/lib/pkgconfig";
   create_dir($pkgdir, 1);
-  foreach my $arch (qw(32 64)) {
+  foreach my $arch (qw(64)) {
      my $pcfile = "$pkgdir/vix-disklib-$arch.pc";
      if (open(PKGCONFIG, '>' . $pcfile)) {
        db_add_file($pcfile, 0);
@@ -5760,24 +4114,6 @@ sub install_content_vix_disklib {
 
   $docdir = $rootdir . '/share/doc/vmware-vix-disklib';
   install_dir('./doc', $docdir, \%patch, 0x1);
-
-  my @missing;
-  my $ldd_out = direct_command(shell_string($gHelper{'ldd'}) . ' ' .
-                "$rootdir/bin/vmware-mount");
-  foreach my $lib (split(/\n/, $ldd_out)) {
-    if ($lib =~ '(\S+) => not found') {
-       push(@missing, $1);
-    }
-  }
-
-  if (scalar(@missing) > 0) {
-     print wrap("The following libraries could not be found on your system:\n", 0);
-     print join("\n", @missing);
-     print "\n\n";
-
-     query('You will need to install these manually before you can run ' .
-           vmware_product_name() . ".\n\nPress enter to continue.", '', 0);
-  }
 
   return 1;
 }
@@ -5858,7 +4194,7 @@ sub install_content_vix {
   undef %patch;
   install_dir('./etc', $gRegistryDir, \%patch, 0x1);
 
-  if ('1031360' != 0) {
+  if ('2759765' != 0) {
     # suspend any '--default' option to force user interaction here.  The user
     # must answer the EULA question before continuing.
     my $tmp = $gOption{'default'};
@@ -6103,113 +4439,6 @@ sub vmware_longname {
    return $name;
 }
 
-# If this was a WGS build, remove our inetd.conf entry for auth daemon
-# and stop the vmware-serverd
-sub uninstall_wgs {
-
-  system(shell_string($gHelper{'killall'}) . ' -TERM vmware-serverd  >/dev/null 2>&1');
-  uninstall_superserver();
-}
-
-sub install_content_webAccess {
-  my %patch;
-
-  undef %patch;
-  install_dir("./webAccess", db_get_answer('LIBDIR') . "/webAccess", \%patch, 0x1);
-}
-
-# Try and figure out which "superserver" is installed and unconfigure correct
-# one.
-sub uninstall_superserver {
-  my $inetd_conf  = "/etc/inetd.conf";
-  my $xinetd_dir  = "/etc/xinetd.d";
-
-  # check for xinetd
-  # XXX Could be a problem, as they could start xinetd with '-f config_file'.
-  #     We could do a ps -ax, look for xinetd, parse the line, find the config
-  #     file, parse the config file to find the xinet.d directory.  Or parse if
-  #     from the init.d script somewhere.  If they use init.d.
-  if ( -d $xinetd_dir ) {
-    uninstall_xinetd($xinetd_dir);
-  }
-
-  # check for inetd
-  if ( -e $inetd_conf ) {
-    uninstall_inetd($inetd_conf);
-  }
-}
-
-# Restart the inetd service
-sub restart_inetd {
-  my $inetd_restart = db_get_answer('INITSCRIPTSDIR') . '/inetd';
-  if (-e $inetd_restart) {
-    if (!system(shell_string($inetd_restart) . ' restart')) {
-      return;
-    }
-  }
-
-  if (check_is_running('inetd')) {
-    system(shell_string($gHelper{'killall'}) . ' -HUP inetd');
-  }
-}
-
-# Cleanup the inetd.conf file.
-sub uninstall_inetd {
-  my $inetd = shift;
-  my %patch = ('^# VMware auth.*$' => '',
-          '^.*stream\s+tcp\s+nowait.*vmauthd.*$' => '',
-          '^.*stream\s+tcp\s+nowait.*vmware-authd.*$' => '');
-  my $tmp_dir = make_tmp_dir('vmware-installer');
-  # Build the temp file's path
-  my $tmp = $tmp_dir . '/tmp';
-
-  # XXX Use the block_*() API instead, like we do for $cServices.
-  internal_sed($inetd, $tmp, 0, \%patch);
-  undef %patch;
-
-  if (not internal_sed($tmp, $inetd, 0, \%patch)) {
-    print STDERR wrap('Unable to copy file ' . $tmp . ' back to ' . $inetd
-                      . '.' . "\n" . 'The authentication daemon was not removed from '
-                      . $inetd . "\n\n", 0);
-  }
-  remove_tmp_dir($tmp_dir);
-  restart_inetd();
-}
-
-#Restart xinetd
-sub restart_xinetd {
-  my $xinetd_restart = db_get_answer('INITSCRIPTSDIR') . '/xinetd';
-  if (-e $xinetd_restart) {
-    if (!system(shell_string($xinetd_restart) . ' restart')) {
-      return;
-    }
-  }
-
-  if (check_is_running('xinetd')) {
-    system(shell_string($gHelper{'killall'}) . ' -USR2 xinetd');
-  }
-}
-
-
-# Cleanup the xinetd.d directory.
-sub uninstall_xinetd {
-  my $conf_dir = shift;
-  my $tmp_dir;
-  my $tmp;
-
-  # Unregister the IP service.
-  $tmp_dir = make_tmp_dir('vmware-installer');
-  $tmp = $tmp_dir . '/tmp';
-  if (block_remove($cServices, $tmp, $cMarkerBegin, $cMarkerEnd) >= 0) {
-    system(shell_string($gHelper{'mv'}) . ' -f ' . shell_string($tmp) . ' '
-           . shell_string($cServices));
-  }
-  remove_tmp_dir($tmp_dir);
-
-  restart_xinetd();
-}
-
-
 # Display a usage error message for the install program and exit
 sub install_usage {
   print STDERR wrap(vmware_longname() . ' installer' . "\n" . 'Usage: ' . $0
@@ -6308,16 +4537,6 @@ sub compute_subnet {
 }
 
 #
-# Check to see if a conflicting product is installed and how it relates
-# to the new product being installed, asking the user relevant questions.
-# Based on user feedback, the conflicting product will either be removed,
-# or the installation will be aborted.
-#
-sub prompt_and_uninstall_conflicting_products {
-
-}
-
-#
 # This sub fetches the installed product's binfile and returns it.
 # It returns '' if there is no product, 'UNKNOWN' if a product but
 # no known bin.
@@ -6329,7 +4548,7 @@ sub get_installed_product_bin {
   # previously installed product.
   my $tmp_db = $gInstallerMainDB;
 
-  if ((not isDesktopProduct()) && (not isServerProduct())) {
+  if (not isDesktopProduct()) {
     return 'UNKNOWN';
   }
 
@@ -6431,8 +4650,7 @@ sub compare_version_strings {
 #
 sub prompt_user_to_remove_installed_product {
   # First off, only a few products even have "mismatches", i.e. can possibly conflict.
-  if (((vmware_product() eq 'wgs') ||
-       (vmware_product() eq 'ws') ||
+  if (((vmware_product() eq 'ws') ||
        (vmware_product() eq 'player')) &&
       (installed_product_mismatch() != 0)) {
     if (get_answer('You have a product that conflicts with '.vmware_product_name().' installed.  ' .
@@ -6531,46 +4749,18 @@ sub preuninstall_installed_tools {
 	}
       }
 
+      # Add INITRDMODS_CONF_VALS, so that it won't fail the old uninstaller.
+      # And this is PR 983072.
+      $answer = db_get_answer_if_exists("INITRDMODS_CONF_VALS");
+      if (!defined($answer)) {
+         db_add_answer("INITRDMODS_CONF_VALS", "");
+      }
+
       db_save();  #close db
     }
   }
 }
 
-#
-# remove_outdated_products
-#
-# Based on the gOldUninstallers list, prompt the user to remove these
-# installations of these programs if they exist.  Otherwise bail out
-# if the user does not want to uninstall them.
-#
-# SIDE EFFECTS:
-#    Will invoke old installers if found and may cause the install
-#    to fail if the old installer fails.
-#
-
-sub remove_outdated_products {
-  my $oldUninstaller;
-  my $status;
-  foreach $oldUninstaller (@gOldUninstallers) {
-     if ( -x $oldUninstaller ) {
-        # Then we have found an old named version of this program, and should
-        # uninstall it.  We also have to nuke the database because it will
-        # contain incorrect information regarding older path names. -astiegmann
-        my $msg = 'An Older version of ' . vmware_product_name() . ' with a '
-                . 'different name was found on your system.  Would you like '
-                . 'to uninstall it?';
-        if (get_answer($msg, 'yesno', 'yes') eq 'no') {
-           error("User cancelled install.\n");
-        }
-        print wrap('Running ' . $oldUninstaller . "...\n",0);
-        $status = system(shell_string($oldUninstaller) . ' uninstall');
-        if ($status) {
-           error("Uninstall of the old program has failed. "
-               . " Please correct the failure and re run the install.\n\n");
-        }
-     }
-  }
-}
 
 #
 # Make sure we have an initial database suitable for this installer. The goal
@@ -6594,10 +4784,6 @@ sub get_initial_database {
   my $state_file;
   my $state_files;
   my $clear_db = 0;
-
-  # Check for older products with a different name, and uninstall them if
-  # we can find their uninstall programs.
-  remove_outdated_products();
 
   if (not (-e $gInstallerMainDB)) {
     create_initial_database();
@@ -6649,8 +4835,7 @@ sub get_initial_database {
            . shell_string($intermediate_format) . ' ' . shell_string($bkp));
 
     # Uninstall the previous installation
-    if (((vmware_product() eq 'wgs') ||
-        (vmware_product() eq 'ws') ||
+    if (((vmware_product() eq 'ws') ||
         (vmware_product() eq 'player')) &&
         (installed_product_mismatch() != 0)) {
         $clear_db = 1;
@@ -6902,7 +5087,7 @@ sub create_initial_database {
   print wrap('Creating a new ' . vmware_product_name()
              . ' installer database using the tar4 format.' . "\n\n", 0);
 
-  $made_dir1 = create_dir($gRegistryDir, 0);
+  $made_dir1 = not create_dir($gRegistryDir, 0);
   safe_chmod(0755, $gRegistryDir);
 
   if (not open(INSTALLDB, '>' . $gInstallerMainDB)) {
@@ -6936,27 +5121,6 @@ sub sigint_handler {
   }
 
   error('');
-}
-
-#  Write the VMware host-wide configuration file - only if console
-sub write_vmware_config {
-  my $name;
-
-  $name = $gRegistryDir . '/config';
-
-  uninstall_file($name);
-  if (file_check_exist($name)) {
-    return;
-  }
-  # The file could be a symlink to another location. Remove it
-  unlink($name);
-
-  open(CONFIGFILE, '>' . $name) or error('Unable to open the configuration file '
-                                         . $name . ' in write-mode.' . "\n\n");
-  db_add_file($name, 0x1);
-  safe_chmod(0444, $name);
-  print CONFIGFILE 'libdir = "' . db_get_answer('LIBDIR') . '"' . "\n";
-  close(CONFIGFILE);
 }
 
 # Get the installed version of VMware
@@ -7324,7 +5488,7 @@ sub deconfigure_initmodfile {
 sub restore_appended_files {
    my $list = '';
 
-   $list = db_get_answer_if_exists('APPENDED_FILES');
+   $list = db_get_answer_if_exists($cDBAppendString);
    if (not defined($list)) {
       return;
    }
@@ -7334,157 +5498,6 @@ sub restore_appended_files {
          block_restore($file, $cMarkerBegin, $cMarkerEnd);
       }
    }
-}
-
-### Finalize this ACE package so it can be used.
-sub acevm_finalize {
-  my $vmxPath = acevm_find_vmx($gRegistryDir);
-  my $ret;
-  if ($vmxPath eq '') {
-    error('Failed. Can\'t find VMX file for this package' . "\n\n");
-  }
-  $ret = system(shell_string($gHelper{'vmware-acetool'}) . ' finalizePolicies '
-		. shell_string($vmxPath));
-  return (($ret >> 8) == 0);
-}
-
-### Check to see if the passed in instance has the same ace id as this update package
-sub acevm_checkMasterID {
-  my $vmxPath = shift;
-  my $exitValue;
-
-  if ($vmxPath eq '') {
-    error('Failed. Can\'t find vmx file for this package' . "\n\n");
-  }
-  system(shell_string($gHelper{'vmware-acetool'}) . ' checkMasterID '
-	 . shell_string($vmxPath) . ' ' . shell_string($gManifest{'aceid'})
-	 . '> /dev/null 2>&1');
-  $exitValue = $? >> 8;
-  return $exitValue == 0;
-}
-
-### Check to see if "now" falls outside this package's valid date range.
-sub acevm_check_valid_date {
-  my $now = time();
-  my $ret = 1;
-  if (!defined($gManifest{'validFrom'})) {
-    $gManifest{'validFrom'} = 0;
-  }
-  if (!defined($gManifest{'validTo'})) {
-    $gManifest{'validTo'} = 0;
-  }
-
-  # Default to returning true. Return false only if either of the
-  # following is true:
-  #   - 'from' is valid and we're not there yet.
-  #   - 'to' is valid and we've already passed it.
-  if ($gManifest{'validFrom'} > 0 && $gManifest{'validFrom'} > $now) {
-    $ret = 0;
-  } elsif ($gManifest{'validTo'} > 0 && $gManifest{'validTo'} < $now) {
-    $ret = 0;
-  }
-
-  return $ret;
-}
-
-### Find the vmx file for this package.
-sub acevm_find_vmx {
-  my $dir = shift;
-  my $ret = '';
-  my $file;
-
-  opendir(DIR, $dir) or return '';
-
-  while( defined ($file = readdir(DIR)) ) {
-    if ($file =~ /^.+\.$/) {
-      $ret = $file;
-      last;
-    }
-  }
-  close DIR;
-  if ($ret ne '') {
-    $ret = $dir . '/' . $ret;
-  }
-  return $ret;
-}
-
-### Check if this ace instance is running.
-### We do this by pattern matching 'vmware-vmx' and the vmx filename in a single
-### line of the 'ps -ef' output.
-sub acevm_is_instance_running {
-  my $line;
-  my $found = 0;
-  my $vmxFile = acevm_find_vmx($gRegistryDir);
-
-  if ($vmxFile eq '') {
-    return 0;
-  }
-  open(PSOUT, 'ps -ef|');
-  while (<PSOUT>) {
-    if (m/vmware-vmx.+$vmxFile/) {
-      $found = 1;
-      last;
-    }
-  }
-  close(PSOUT);
-  return $found;
-}
-
-# Create launcher (shortcuts) in the user's home directory.
-sub acevm_create_desktop_icon {
-   my $acename = shift;
-   my $aceid = shift;
-   my $file = shift;
-   my %patch;
-   my $homedir = get_home_dir();
-
-   if (! $homedir) {
-      print STDERR 'Unable to install shortcuts because the ' .
-                   "home directory can't be found.\n\n";
-      return;
-   }
-
-   # create base menu file structure
-   create_dir($homedir . '/.local/share/applications', 0);
-
-   # count number of packages from this ACE master
-   my $count = 0;
-   foreach $file (glob("$homedir/.local/share/applications/*.desktop")) {
-      if ($file =~ /$gManifest{'aceid'}(.)*\.desktop$/) {
-         $count++;
-      }
-   }
-   $count = $count gt 0 ? " $count" : '';
-
-   # create desktop entry
-   my $DESKTOP;
-   my $desktop_file_name = $aceid . $count . '.desktop';
-   my $tmpdir = make_tmp_dir('vmware-installer');
-   my $tmpfile = $tmpdir . '/' . $desktop_file_name;
-   if (!open(DESKTOP, ">$tmpfile")) {
-      print STDERR wrap("Unable to open file $tmpfile for writing.  You must either " .
-                        "create the launcher by hand or launch the ACE VM directly.");
-      remove_tmp_dir($tmpdir);
-      return;
-   }
-
-   my $vmplayerFile = $gConfig->get('bindir') . '/vmplayer';
-   my $vmx = acevm_find_vmx($gRegistryDir);
-   print DESKTOP <<EOF;
-[Desktop Entry]
-Encoding=UTF-8
-Type=Application
-Icon=vmware-acevm
-Exec=$vmplayerFile "$vmx"
-Name=$acename$count
-Categories=VirtualMachines;ACE;
-EOF
-
-   close(DESKTOP);
-   my $desktop_dest = $homedir . "/.local/share/applications/$desktop_file_name";
-   undef %patch;
-   install_file($tmpfile, $desktop_dest, \%patch, 1);
-   remove_tmp_dir($tmpdir);
 }
 
 ### Does the dstDir have enough space to hold srcDir
@@ -7522,41 +5535,6 @@ sub check_disk_space {
   return ($dstSpace - $srcSpace);
 }
 
-sub check_for_xen {
-   if ((not -d '/proc/xen') ||
-       (not -e '/proc/xen/capabilities') ||
-       (not open(XEN, '/proc/xen/capabilities'))) {
-      return 0;
-   }
-   my $isXen = 0;
-   while (<XEN>) {
-      if ($_ =~ /\w+/) {
-         $isXen++;
-         last;
-      }
-   }
-   close(XEN);
-   if ($isXen == 0) {
-      return 0;
-   }
-
-   # Must be a xen system.
-   return 1;
-}
-
-### Does the user have permission to write to this directory?
-sub check_dir_writeable {
-  my $dstDir = shift;
-
-  # Before we can check the permission, $dst must exist. Walk up the directory path
-  # until we find something that exists.
-  while (! -d $dstDir) {
-    $dstDir = internal_dirname($dstDir);
-  }
-
-  # Return whether this directory is writeable.
-  return (-w $dstDir);
-}
 
 #
 #  Check to see that the product architecture is a mismatch for this os.
@@ -7589,7 +5567,6 @@ sub product_os_match {
 #
 sub init_product_arch_hash {
   $multi_arch_products{'ws'} = 1;
-  $multi_arch_products{'wgs'} = 1;
   $multi_arch_products{'vix'} = 1;
   $multi_arch_products{'api'} = 1;
   $multi_arch_products{'vicli'} = 1;
@@ -7615,10 +5592,126 @@ sub alt_db_get_answer  {
   }
   return $answer;
 }
+
+
+# match the output of 'uname -s' to the product. These are compared without
+# case sensitivity.
+sub DoesOSMatchProduct {
+
+ my %osProductHash = (
+    'tools-for-linux'   => 'linux',
+    'tools-for-solaris' => 'sunos',
+    'tools-for-freebsd' => 'freebsd'
+ );
+
+ my $OS = `uname -s`;
+ chomp($OS);
+
+ return ($osProductHash{vmware_product()} =~ m/$OS/i) ? 1 : 0;
+
+}
+
+
+##
+# Checks to see if any of the package names in a given list
+# are currently installed by RPM on the system.
+# @param - A list of RPM packages to check for.
+# @returns - A list of the installed RPM packages that this
+#            function checked for and found (if any).
+#
+sub checkRPMForPackages {
+   my @pkgList = @_;
+   my @instPkgs;
+   my $bin = internal_which('rpm');
+   my $cmd = join(' ', $bin, '-qa --queryformat \'%{NAME}\n\'');
+
+   if (-x $bin) {
+      open(OUTPUT, "$cmd |");
+      foreach my $instPkgName (<OUTPUT>) {
+    chomp $instPkgName;
+    foreach my $pkgName (@pkgList) {
+       if ($pkgName eq $instPkgName) {
+          push @instPkgs, $instPkgName;
+       }
+    }
+      }
+      close(OUTPUT);
+   }
+   return @instPkgs
+}
+
+##
+# Checks to see if any of the package names in a given list
+# are currently installed by dpkg on the system.
+# @param - A list of deb packages to check for.
+# @returns - A list of the installed deb packages that this
+#            function checked for and found (if any).
+#
+sub checkDPKGForPackages {
+   my @pkgList = @_;
+   my @instPkgs;
+   my $bin = internal_which('dpkg-query');
+   my $cmd = join(' ', $bin, '--show --showformat=\'${Package}\n\'');
+
+   if (-x $bin) {
+      open(OUTPUT, "$cmd |");
+      foreach my $instPkgName (<OUTPUT>) {
+    chomp $instPkgName;
+    foreach my $pkgName (@pkgList) {
+       if ($pkgName eq $instPkgName) {
+          push @instPkgs, $instPkgName;
+       }
+    }
+      }
+      close(OUTPUT);
+   }
+   return @instPkgs
+}
+
+
+##
+# Attempts to remove the given list of RPM packages
+# @param - List of rpm packages to remove
+# @returns - -1 if there was an internal error, otherwise
+#            the return value of RPM
+#
+sub removeRPMPackages {
+   my @pkgList = @_;
+   my $bin = internal_which('rpm');
+   my @cmd = (("$bin", '-e'), @pkgList);
+
+   if (-x $bin) {
+      return system(@cmd);
+   } else {
+      return -1;
+   }
+}
+
+
+##
+# Attempts to remove the given list of DEB packages
+# @param - List of deb packages to remove
+# @returns - -1 if there was an internal error, otherwise
+#            the return value of dpkg
+#
+sub removeDEBPackages {
+   my @pkgList = @_;
+   my $bin = internal_which('dpkg');
+   my @cmd = (("$bin", '-r'), @pkgList);
+
+   if (-x $bin) {
+      return system(@cmd);
+   } else {
+      return -1;
+   }
+}
+
+
 # Program entry point
 sub main {
    my (@setOption, $opt);
    my $chk_msg;
+   my $originalPath;
    my $progpath = $0;
    my $scriptname = internal_basename($progpath);
 
@@ -7637,13 +5730,14 @@ sub main {
      error($chk_msg);
    }
 
-   if (vmware_product() ne 'acevm' && !is_root()) {
+   if (!is_root()) {
      error('Please re-run this program as the super user.' . "\n\n");
    }
 
    # Force the path to reduce the risk of using "modified" external helpers
    # If the user has a special system setup, he will will prompted for the
    # proper location anyway
+   $originalPath = $ENV{'PATH'};
    $ENV{'PATH'} = '/bin:/usr/bin:/sbin:/usr/sbin';
 
    initialize_globals(internal_dirname($0));
@@ -7665,8 +5759,6 @@ sub main {
            $gOption{'default'} = 1;
          } elsif (lc($arg) =~ /^--clobber-kernel-modules=([\w,]+)$/) {
            $gOption{'clobberKernelModules'} = "$1";
-	 } elsif (lc($arg) =~ /^(-)?(-)?nested$/) {
-           $gOption{'nested'} = 1;
          } elsif (lc($arg) =~ /^-?-?prefix=(.+)/) {
            $gOption{'prefix'} = $1;
          } elsif ($arg =~ /=yes/ || $arg =~ /=no/) {
@@ -7674,13 +5766,13 @@ sub main {
          } elsif (lc($arg) =~ /^(-)?(-)?(no-create-shortcuts)$/) {
            $gOption{'create_shortcuts'} = 0;
          } else {
+           send_rpc('toolinstall.end 0');
            install_usage();
          }
        }
      }
 
-    if (-e '/etc/vmware/database' && (vmware_product() eq 'ws' ||
-                                      vmware_product() eq 'wgs')) {
+    if (-e '/etc/vmware/database' && (vmware_product() eq 'ws')) {
          error("An incompatible VMware product is already installed on this " .
                "machine.  You must uninstall it by running vmware-uninstall.\n\n");
     } elsif (-e '/etc/vmware-vix/database' && vmware_product() eq 'vix') {
@@ -7715,38 +5807,28 @@ sub main {
        my @rpmPkgs = checkRPMForPackages(@cOpenVMToolsRPMPackages);
 
        if (@debPkgs or @rpmPkgs) {
-	  print "The installer found the following conflicting packages " .
-		"installed on the system and will now remove them:\n\n" .
-		join("\n", @debPkgs, @rpmPkgs) .
-	        "\n\n";
 
-          if (@rpmPkgs and removeRPMPackages(@rpmPkgs) ne 0) {
-	     error("Failed to remove the following packages:\n\n" .
-		   join("\n", @rpmPkgs) .
-		   "\n\nPlease manually remove them before " .
-		   "installing VMware Tools.\n\n");
-	  }
+          my $ans = get_answer('The installer has detected an existing ' .
+                               'installation of open-vm-tools on this system ' .
+                               'and will not attempt to remove and replace ' .
+                               'these user-space applications. It is recommended ' .
+                               'to use the open-vm-tools packages provided by ' .
+                               'the operating system. If you do not want to use ' .
+                               'the existing installation of open-vm-tools and ' .
+                               'attempt to install VMware Tools, you must ' .
+                               'uninstall the open-vm-tools packages and re-run ' .
+                               'this installer.' . "\n" .
+                               'The installer will next check if there are ' .
+                               'any missing kernel drivers. Type yes if you want ' .
+                               'to do this, otherwise type no', 'yesno', 'yes');
 
-          if (@debPkgs and removeDEBPackages(@debPkgs) ne 0) {
-	     error("Failed to remove the following packages:\n\n" .
-		   join("\n", @debPkgs) .
-		   "\n\nPlease manually remove them before " .
-		   "installing VMware Tools.\n\n");
-	  }
-
-
-	  # The open-vm tools don't always unload the modules properly.
-	  # The init script won't unload them either because the modules
-	  # havent been configured yet when the vmware-tools service
-	  # stops.  Hence we need to unload them all manually now so our
-	  # service will start properly after running config.pl for
-	  # the first time.
-	  foreach my $mod (@cKernelModules) {
-	     foreach my $modDep ($cKernelModuleDeps{"$mod"}) {
-		kmod_unload($modDep, 0) if defined $modDep;
-	     }
-	     kmod_unload($mod, 0);
-	  }
+          if ($ans ne 'yes') {
+            error(
+                    "\n\nPlease manually remove open-vm-tools before " .
+                    "installing VMware Tools.\n\n");
+          } else {
+            $open_vm_compat = 1;
+          }
        }
     }
 
@@ -7809,84 +5891,23 @@ sub main {
       chdir($1);
     }
 
-    # The acevm install puts all files for a given install, including the installdb,
-    # under a single directory.
-    if (vmware_product() eq 'acevm') {
-      my $answer = undef;
-      my $home = get_home_dir() ||
-                 error("Can't find home directory, unable to continue.\n\n");
-
-      #
-      # Check valid range for this package
-      #
-      if (!acevm_check_valid_date()) {
-         error('This setup program cannot continue. This ACE can only be ' .
-               'installed during its valid time period.' . "\n\n");
-      }
-
-      $gHelper{'vmware-acetool'} = acevm_find_acetool();
-      if ($gHelper{'vmware-acetool'} eq '' || acevm_included_player_newer()) {
-         print STDERR wrap('This setup program requires that the included VMware ' .
-                           'Player must be installed with this ACE.' . "\n\n", 0);
-         if (acevm_install_vmplayer()) {
-           load_config(); # reload /etc/vmware/config
-           $gHelper{'vmware-acetool'} = acevm_find_acetool();
-         }
-         else {
-            error('VMware Player installation failed.  Please install manually then '.
-                  'run setup again.');
-         }
-      }
-
-      $gHelper{'vmware-config.pl'} = internal_dirname($gHelper{'vmware-acetool'}) .
-                                                     '/vmware-config.pl';
-      if (acevm_package_has_host_policies()) {
-         if (!is_root()) {
-            error ('This package specifies host policies and must be installed by a ' .
-                   'system administrator. Try running this setup program with sudo or ' .
-                   'contact your system administrator for help.' . "\n\n");
-      } elsif (!acevm_can_install_host_policies()) {
-            error('This package contains a host policies file, but there is already ' .
-                  'a host policies file from another package installed. ' .
-                  'Unable to continue' . "\n\n");
-         }
-      }
-      my $rootdir = $home . '/vmware-ace/' . $gManifest{'acename'};
-      if ($gACEVMUpdate) {
-        $answer = acevm_get_updatedir($rootdir);
-      } else {
-        $answer = acevm_get_dir($rootdir);
-      }
-
-      if ($answer eq '') {
-        error ('Cannot get install directory. Unable to contine.' . "\n\n");
-      }
-      $gRegistryDir= $answer;
-      $gStateDir = $gRegistryDir . '/state';
-      $gInstallerMainDB = $gRegistryDir . '/locations';
-      $gInstallerObject = $gRegistryDir . '/installer.sh';
-      $gConfFlag = $gRegistryDir . '/not_configured';
-    }
-    if (vmware_product() eq 'acevm' && file_name_exist($gInstallerMainDB)) {
-      db_load();
-      db_append();
-    } else {
-      # if a nested install, it is the responsibility of the parent to
-      # make sure no conflicting products are installed
-      if ($gOption{'nested'} != 1) {
-       # prompt_and_uninstall_conflicting_products();
-      }
-      my $dstDir = $gRegistryDir;
+    my $dstDir = $gRegistryDir;
+    $gFirstCreatedDir = $dstDir;
+    while (!-d $dstDir) {
       $gFirstCreatedDir = $dstDir;
-      while (!-d $dstDir) {
-        $gFirstCreatedDir = $dstDir;
-        $dstDir = internal_dirname($dstDir);
-      }
-      get_initial_database();
-      # Binary wrappers can be run by any user and need to read the
-      # database.
-      safe_chmod(0644, $gInstallerMainDB);
+      $dstDir = internal_dirname($dstDir);
     }
+    get_initial_database();
+
+    if($open_vm_compat) {
+      db_add_answer('OPEN_VM_COMPAT', 'yes');
+    } else {
+      db_add_answer('OPEN_VM_COMPAT', 'no');
+    }
+
+    # Binary wrappers can be run by any user and need to read the
+    # database.
+    safe_chmod(0644, $gInstallerMainDB);
 
     db_add_answer('INSTALL_CYCLE', 'yes');
 
@@ -7920,7 +5941,7 @@ sub main {
       exit 0;
     }
 
-    if (vmware_product() ne 'api' && vmware_product() ne 'acevm' &&
+    if (vmware_product() ne 'api' &&
         vmware_product() ne 'nvdk' &&
         vmware_product() ne 'vix-disklib') {
       if (file_name_exist($gConfFlag)) {
@@ -7949,7 +5970,7 @@ sub main {
 
     my $configResult;
 
-    if ((vmware_product() ne 'api') && (vmware_product() ne 'acevm') &&
+    if ((vmware_product() ne 'api') &&
         (vmware_product() ne 'nvdk') &&
         ((vmware_product() ne 'vix-disklib')) &&
         ($answer eq 'yes')) {
@@ -7971,6 +5992,9 @@ sub main {
 		    ' --rpc-on-end' : '';
 
       my $shortcutOpt = $gOption{'create_shortcuts'} ? '' : ' --no-create-shortcuts';
+
+      # restore the user's original PATH before running the configurator
+      $ENV{'PATH'} = $originalPath;
 
       # Catch error result to see if configurator died abnormally.
       $configResult = system(shell_string(db_get_answer('BINDIR') .
@@ -8026,7 +6050,7 @@ sub main {
     $installed_version = get_installed_version();
     $installed_kind = get_installed_kind();
 
-    if (not (($installed_version eq '9.2.3') and
+    if (not (($installed_version eq '9.9.3') and
              ($installed_kind eq 'tar'))) {
       error('This ' . vmware_product_name()
             . ' Kernel Modules package is intended to be used in conjunction '
@@ -8074,12 +6098,8 @@ sub main {
   }
 
   if (internal_basename($0) eq $gUninstallerFileName) {
-    if (vmware_product() eq 'acevm') {
-       print wrap("Uninstalling VMware ACE $gManifest{'acename'}...\n\n", 0);
-    } else {
        print wrap('Uninstalling the tar installation of ' .
        vmware_product_name() . '.' . "\n\n", 0);
-    }
 
     if ($#ARGV > -1) {
       @setOption = ();
@@ -8111,29 +6131,10 @@ sub main {
       db_add_answer($key, $val);
     }
 
-    if (vmware_product() eq 'acevm') {
-      # Check to see if it has been moved by seeing if BINDIR exists
-      if (! -e db_get_answer('BINDIR')) {
-         error('Cannot uninstall because this ACE has been moved from ' .
-               "its original location.\n\n");
-      }
-      # Check to see if this instance has been copied
-      # by comparing the device and inode of the BINDIR against
-      # the directory this uninstaller is in.
-      my ($aDev, $aIno) = stat(internal_dirname($progpath));
-      my ($bDev, $bIno) = stat(db_get_answer('BINDIR'));
-      if ($aIno != $bIno || $aDev != $bDev) {
-         error ('Cannot uninstall because this ACE has been copied.' . "\n\n");
-      } elsif (acevm_is_instance_running()) {
-         error ('Cannot uninstall because this ACE appears to be running. ' .
-                'Please close the running ACE and run this uninstaller again.' .
-                "\n\n");
-      } else {
-         uninstall('/acevm');
-      }
-    } elsif (vmware_product() eq 'tools-for-linux' ||
-             vmware_product() eq 'tools-for-freebsd' ||
-             vmware_product() eq 'tools-for-solaris') {
+    if (vmware_product() eq 'tools-for-linux' ||
+         vmware_product() eq 'tools-for-freebsd' ||
+         vmware_product() eq 'tools-for-solaris') {
+
       my %fileToRestore;
 
       # Clean up the module loader config file from vmxnet.
@@ -8166,12 +6167,16 @@ sub main {
 
       filter_out_bkp_changed_files(\%fileToRestore);
 
+      if (db_get_answer('OPEN_VM_COMPAT') eq 'yes') {
+        $open_vm_compat = 1
+      }
+
       # Do the bulk of the file uninstallation. Pass in the (slightly)
       # different name for FreeBSD Tools so that they get stopped correctly.
       if (vmware_product() eq 'tools-for-freebsd') {
-	uninstall('/vmware-tools.sh');
+         uninstall('/vmware-tools.sh');
       } else {
-	uninstall('/vmware-tools');
+         uninstall('/vmware-tools');
       }
 
       # Clean up drivers with rem_drv(1M) (corresponds to add_drv(1M) calls in
@@ -8291,18 +6296,14 @@ sub main {
     }
 
     db_save();
-    if (vmware_product() eq 'acevm') {
-      print wrap("The removal of VMware ACE $gManifest{'acename'}" .
-                 " completed successfully.\n\n", 0);
-    } else {
-       my $msg = 'The removal of ' . vmware_longname() . ' completed '
-                 . 'successfully.';
-       if (!defined($gOption{'upgrade'}) || $gOption{'upgrade'} == 0) {
-          $msg .= "  Thank you for having tried this software.";
-       }
-       $msg .= "\n\n";
-       print wrap($msg, 0);
+
+    my $msg = 'The removal of ' . vmware_longname() . ' completed '
+              . 'successfully.';
+    if (!defined($gOption{'upgrade'}) || $gOption{'upgrade'} == 0) {
+       $msg .= "  Thank you for having tried this software.";
     }
+    $msg .= "\n\n";
+    print wrap($msg, 0);
 
     exit 0;
   }

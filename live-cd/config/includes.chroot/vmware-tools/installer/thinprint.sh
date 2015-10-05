@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 1998-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 1998-2015 VMware, Inc.  All rights reserved.
 #
 # This script manages the services needed to run VMware software
 
@@ -15,7 +15,14 @@ vmware_etc_dir=/etc/vmware-tools
 vmdbScript="/usr/lib/vmware-tools/moduleScripts/${MODNAME}/vmware-db.pl @@OSTAG@@"
 
 vmdb_answer_SBINDIR=`$vmdbScript --dbGetAnswer SBINDIR`
+vmdb_answer_OPEN_VM_COMPAT=`$vmdbScript --dbGetAnswer OPEN_VM_COMPAT`
 SYSTEM_DAEMON=vmtoolsd
+
+if [ "$vmdb_answer_OPEN_VM_COMPAT" = 'yes' ] ; then
+   SYSTEM_DAEMON_PATH=/usr/bin/${SYSTEM_DAEMON}
+else
+   SYSTEM_DAEMON_PATH=${vmdb_answer_SBINDIR}/${SYSTEM_DAEMON}
+fi
 
 # Make sure the ESC byte is literal: Ash does not support echo -e
 rc_done='[71G done'
@@ -24,7 +31,7 @@ rc_failed='[71Gfailed'
 # BEGINNING_OF_UTIL_DOT_SH
 #!/bin/sh
 #
-# Copyright (c) 2005-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2005-2015 VMware, Inc.  All rights reserved.
 #
 # A few utility functions used by our shell scripts.  Some expect the settings
 # database to already be loaded and evaluated.
@@ -515,7 +522,7 @@ vmware_stop_thinprint() {
 }
 
 vmware_thinprint_get_tty() {
-   "$vmdb_answer_SBINDIR"/$SYSTEM_DAEMON --cmd 'info-get guestinfo.vprint.thinprintBackend' | \
+   ${SYSTEM_DAEMON_PATH} --cmd 'info-get guestinfo.vprint.thinprintBackend' | \
 	   sed -e s/serial/ttyS/
 }
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2007-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2007-2015 VMware, Inc.  All rights reserved.
 #
 # This script is run in two instances:
 #   1.  It was hooked into XDM via twiddling xdm-config.

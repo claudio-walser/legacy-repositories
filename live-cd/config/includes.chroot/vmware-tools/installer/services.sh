@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 1998-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 1998-2015 VMware, Inc.  All rights reserved.
 #
 # This script manages the services needed to run VMware software
 
@@ -10,13 +10,23 @@
 # BEGINNING_OF_UTIL_DOT_SH
 #!/bin/sh
 #
-# Copyright (c) 2005-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2005-2015 VMware, Inc.  All rights reserved.
 #
 # A few utility functions used by our shell scripts.  Some expect the settings
 # database to already be loaded and evaluated.
 
 vmblockmntpt="/proc/fs/vmblock/mountPoint"
 vmblockfusemntpt="/var/run/vmblock-fuse"
+
+have_vgauth=no
+
+vmware_warn_failure() {
+  if [ "`type -t 'echo_warning' 2>/dev/null`" = 'function' ]; then
+    echo_warning
+  else
+    echo -n "$rc_failed"
+  fi
+}
 
 vmware_failed() {
   if [ "`type -t 'echo_failure' 2>/dev/null`" = 'function' ]; then
@@ -54,6 +64,31 @@ vmware_exec() {
   fi
   if [ "$?" -gt 0 ]; then
     vmware_failed
+    echo
+    return 1
+  fi
+
+  vmware_success
+  echo
+  return 0
+}
+
+
+# Execute a macro, report warning on failure
+vmware_exec_warn() {
+  local msg="$1"  # IN
+  local func="$2" # IN
+  shift 2
+
+  echo -n '   '"$msg"
+
+  if [ "$VMWARE_DEBUG" = 'yes' ]; then
+    (trap '' HUP; "$func" "$@")
+  else
+    (trap '' HUP; "$func" "$@") >/dev/null 2>&1
+  fi
+  if [ "$?" -gt 0 ]; then
+    vmware_warn_failure
     echo
     return 1
   fi
@@ -351,13 +386,44 @@ vmware_delay_for_node() {
    done
 }
 
+vmware_real_modname() {
+   # modprobe might be old and not understand the --resolve-alias option, or
+   # there might not be an alias. In both cases we assume
+   # that the module is not upstreamed.
+   mod=$1
+   mod_alias=$2
+
+   modname=$(/sbin/modprobe --resolve-alias ${mod_alias} 2>/dev/null)
+   if [ $? = 0 -a "$modname" != "" ] ; then
+        echo $modname
+   else
+        echo $mod
+   fi
+}
+
+vmware_is_upstream() {
+   modname=$1
+   vmware_exec_selinux "$vmdb_answer_LIBDIR/sbin/vmware-modconfig-console \
+                           --install-status" | grep -q "${modname}: other"
+   if [ $? = 0 ]; then
+      echo "yes"
+   else
+      echo 'no'
+   fi
+}
+
 # starts after vmci is loaded
 vmware_start_vsock() {
-  if [ "`isLoaded "$vmci"`" = 'no' ]; then
+  real_vmci=$(vmware_real_modname $vmci $vmci_alias)
+
+  if [ "`isLoaded "$real_vmci"`" = 'no' ]; then
     # vsock depends on vmci
     return 1
   fi
-  vmware_load_module $vsock
+
+  real_vsock=$(vmware_real_modname $vsock $vsock_alias)
+
+  vmware_load_module $real_vsock
   vmware_rm_stale_node vsock
   # Give udev 5 seconds to create our node
   vmware_delay_for_node "/dev/vsock" 5
@@ -373,16 +439,22 @@ vmware_start_vsock() {
 
 # unloads before vmci
 vmware_stop_vsock() {
-  vmware_unload_module $vsock
+  # Nothing to do if module is upstream
+  if [ "`vmware_is_upstream $vsock`" = 'yes' ]; then
+    return 0
+  fi
+
+  real_vsock=$(vmware_real_modname $vsock $vsock_alias)
+  vmware_unload_module $real_vsock
   rm -f /dev/vsock
 }
 
 is_ESX_running() {
-  if [ ! -f "$vmdb_answer_SBINDIR"/vmware-checkvm ] ; then
+  if [ ! -f "$vmdb_answer_LIBDIR"/sbin/vmware-checkvm ] ; then
     echo no
     return
   fi
-  if "$vmdb_answer_SBINDIR"/vmware-checkvm -p | grep -q ESX; then
+  if "$vmdb_answer_LIBDIR"/sbin/vmware-checkvm -p | grep -q ESX; then
     echo yes
   else
     echo no
@@ -392,9 +464,10 @@ is_ESX_running() {
 #
 # Start vmblock only if ESX is not running and the config script
 # built/loaded it (kernel is >= 2.4.0 and  product is tools-for-linux).
+# Also don't start when in open-vm compat mode
 #
 is_vmblock_needed() {
-  if [ "`is_ESX_running`" = 'yes' ]; then
+  if [ "`is_ESX_running`" = 'yes' -o "$vmdb_answer_OPEN_VM_COMPAT" = 'yes' ]; then
     echo no
   else
     if [ "$vmdb_answer_VMBLOCK_CONFED" = 'yes' ]; then
@@ -417,8 +490,9 @@ vmware_signal_vmware_user() {
 # A USR1 causes vmware-user to release any references to vmblock or
 # /proc/fs/vmblock/mountPoint, allowing vmblock to unload, but vmware-user
 # to continue running. This preserves the user context vmware-user is
-# running within.
-vmware_unblock_vmware_user() {
+# running within. We also shutdown rpc connections to release usage of
+# vmci/vsocket.
+vmware_user_request_release_resources() {
   vmware_signal_vmware_user 'USR1'
 }
 
@@ -714,7 +788,9 @@ vmhgfs="vmhgfs"
 subsys="vmware-tools"
 vmblock="vmblock"
 vmci="vmci"
+vmci_alias='pci:v000015ADd00000740sv*sd*bc*sc*i*'
 vsock="vsock"
+vsock_alias="vmware_vsock"
 vmsync="vmsync"
 acpi="acpiphp"
 pvscsi="pvscsi"
@@ -803,11 +879,11 @@ fi
 
 # Are we running in a VM?
 vmware_inVM() {
-  "$vmdb_answer_SBINDIR"/vmware-checkvm >/dev/null 2>&1
+  "$vmdb_answer_LIBDIR"/sbin/vmware-checkvm >/dev/null 2>&1
 }
 
 vmware_hwVersion() {
-  "$vmdb_answer_SBINDIR"/vmware-checkvm -h | grep hw | cut -d ' ' -f 5
+  "$vmdb_answer_LIBDIR"/sbin/vmware-checkvm -h | grep hw | cut -d ' ' -f 5
 }
 
 # Is a given module loaded?
@@ -827,25 +903,24 @@ kernel_version_integer() {
 
 # Get the running kernel integer version
 get_version_integer() {
-  local version_uts
-  local v1
-  local v2
-  local v3
+   local IFS
+   local v1
+   local v2
+   local v3
 
-  version_uts=`uname -r`
+   # Split uname -r output, trimming version annotations.
+   #    3.2.0-53-generic -> 3 2 0
+   #    3.10-1 -> 3 10 0
+   #
+   # POSIX shell uses '!' for negation during bracket expansion.
+   # See http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html.
+   IFS=.
+   set -- `uname -r`
+   v1=${1%%[!0-9]*}; [ -z "$v1" ] && v1=0
+   v2=${2%%[!0-9]*}; [ -z "$v2" ] && v2=0
+   v3=${3%%[!0-9]*}; [ -z "$v3" ] && v3=0
 
-  # There is no double quote around the back-quoted expression on purpose
-  # There is no double quote around $version_uts on purpose
-  set `IFS='.'; echo $version_uts`
-  v1="$1"
-  v2="$2"
-  v3="$3"
-  # There is no double quote around the back-quoted expression on purpose
-  # There is no double quote around $v3 on purpose
-  set `IFS='-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz'; echo $v3`
-  v3="$1"
-
-  kernel_version_integer "$v1" "$v2" "$v3"
+   kernel_version_integer "$v1" "$v2" "$v3"
 }
 
 #
@@ -867,7 +942,9 @@ vmware_load_module() {
 vmware_insmod() {
    local module_path="`vmware_getModPath $1`"
    local module_name="`vmware_getModName $1`"
-   /sbin/insmod -s -f "$module_path" >/dev/null 2>&1 || \
+
+   /sbin/modprobe $module_name >/dev/null 2>&1 || \
+       /sbin/insmod -s -f "$module_path" >/dev/null 2>&1 || \
        /sbin/insmod -s -f "$module_name" >/dev/null 2>&1 || exit 1
    return 0
 }
@@ -876,7 +953,8 @@ vmware_unload_module() {
    local module="$1"
    local module_name="`vmware_getModName $1`"
    if [ "`isLoaded "$1"`" = 'yes' ]; then
-      /sbin/rmmod "$module" >/dev/null 2>&1 || \
+      /sbin/modprobe -r $module_name >/dev/null 2>&1 || \
+         /sbin/rmmod "$module" >/dev/null 2>&1 || \
          /sbin/rmmod "$module_name" >/dev/null 2>&1 || exit 1
    fi
    return 0
@@ -903,6 +981,23 @@ vmware_stop_daemon() {
    if vmware_stop_pidfile $pidfile; then
      rm -f $pidfile
    fi
+}
+
+vmware_start_vgauth()
+{
+  [ -d /var/run/vmware ] || mkdir -p /var/run/vmware
+  vgauthdir=$(dirname $vmdb_answer_LIBDIR)/vmware-vgauth
+  command="$vgauthdir/VGAuthService -b"
+  vmware_exec_selinux "$command"
+}
+
+vmware_stop_vgauth() {
+   local pidfile="/var/run/vmware/vgauthsvclog_pid.txt"
+   vmware_stop_pidfile $pidfile && rm -f $pidfile
+}
+
+vmware_vgauth_enabled() {
+  echo "$vmdb_answer_ENABLE_VGAUTH"
 }
 
 vmware_daemon_status() {
@@ -947,9 +1042,11 @@ vmware_stop_vmmemctl() {
 
 # Start the guest vmci driver
 vmware_start_vmci() {
+  real_vmci=$(vmware_real_modname $vmci $vmci_alias)
+
   # only load vmci if it's not already loaded
-  if [ "`isLoaded "$vmci"`" = 'no' ]; then
-    vmware_load_module $vmci
+  if [ "`isLoaded "$real_vmci"`" = 'no' ]; then
+    vmware_load_module $real_vmci
   fi
   # Give udev 5 seconds to create our node
   vmware_delay_for_node "/dev/vmci" 5
@@ -971,11 +1068,19 @@ vmware_start_vmci() {
 
 # unmount it
 vmware_stop_vmci() {
-  if [ "`isLoaded "$vsock"`" = 'yes' ]; then
+  real_vsock=$(vmware_real_modname $vsock $vsock_alias)
+  if [ "`isLoaded "$real_vsock"`" = 'yes' ]; then
     vmware_stop_vsock
   fi
 
-  vmware_unload_module $vmci
+  # Nothing to do if module is upstream
+  if [ "`vmware_is_upstream $vmci`" = 'yes' ]; then
+    return 0
+  fi
+
+  real_vmci=$(vmware_real_modname $vmci $vmci_alias)
+  vmware_unload_module $real_vmci
+
   rm -f /dev/vmci
 }
 
@@ -1001,7 +1106,7 @@ vmware_mount_vmhgfs() {
 # Start the guest filesystem driver and mount it
 vmware_start_vmhgfs() {
   # only load vmhgfs if it's not already loaded
-  if [ "`isLoaded "$vmhgfs"`" = 'no' -a "`isLoaded "$vmci"`" = 'yes' ]; then
+  if [ "`isLoaded "$vmhgfs"`" = 'no' ]; then
     vmware_load_module $vmhgfs
   fi
 }
@@ -1072,6 +1177,14 @@ vmware_start_pvscsi() {
 
 vmware_stop_pvscsi() {
    vmware_unload_module $pvscsi
+}
+
+is_vmtoolsd_needed() {
+   if [ "$vmdb_answer_OPEN_VM_COMPAT" = 'yes' ] ; then
+      echo no
+   else
+      echo yes
+   fi
 }
 
 is_vmhgfs_needed() {
@@ -1155,7 +1268,7 @@ is_vmxnet3_needed() {
 }
 
 is_vmci_needed() {
-   if [ "`is_vsock_needed`" = 'yes' -o "`is_vmhgfs_needed`" = 'yes' \
+   if [ "`is_vsock_needed`" = 'yes' \
         -o "$vmdb_answer_VMCI_CONFED" = 'yes' ]; then
       echo yes
    else
@@ -1201,6 +1314,7 @@ vmware_start_vmblock_fuse() {
       true;
    else
       mkdir -p $vmblockfusemntpt
+
       vmware_exec_selinux "$vmdb_answer_SBINDIR/vmware-vmblock-fuse \
          -o subtype=vmware-vmblock,default_permissions,allow_other \
          $vmblockfusemntpt"
@@ -1259,6 +1373,9 @@ main()
             if [ "`vmware_auto_kmods_enabled`" = 'yes' ] &&
                 ! grep -q "vmw_no_akmod" /proc/cmdline; then
                 vmware_exec 'VMware Automatic Kmods:' vmware_auto_kmods
+
+                # After doing this reload the database as its contents will have changed
+                db_load 'vmdb' "$vmware_db"
             fi
 
             if [ "`is_pvscsi_needed`" = 'yes' ]; then
@@ -1291,7 +1408,6 @@ main()
                exitcode=$(($exitcode + $?))
             fi
 
-         # vmhgfs needs vmci started first
             if [ "`is_vmhgfs_needed`" = 'yes' -a "`is_ESX_running`" = 'no' ]; then
                vmware_exec 'Guest filesystem driver:' vmware_start_vmhgfs
                exitcode=$(($exitcode + $?))
@@ -1317,8 +1433,14 @@ main()
                exitcode=$(($exitcode + $?))
             fi
 
-            vmware_exec 'Guest operating system daemon:' vmware_start_daemon $SYSTEM_DAEMON
-            exitcode=$(($exitcode + $?))
+            if [ "`is_vmtoolsd_needed`" = 'yes' ] ; then
+              vmware_exec 'Guest operating system daemon:' vmware_start_daemon $SYSTEM_DAEMON
+            fi
+
+            if [ "$have_vgauth" = "yes" -a "`vmware_vgauth_enabled`" = "yes" ]; then
+              vmware_exec 'VGAuthService:' vmware_start_vgauth
+              exitcode=$(($exitcode + $?))
+            fi
 
          else
             echo 'Starting VMware Tools services on the host:'
@@ -1338,17 +1460,27 @@ main()
          exitcode='0'
 
          if vmware_inVM; then
+
             echo 'Stopping VMware Tools services in the virtual machine:'
-            vmware_exec 'Guest operating system daemon:' vmware_stop_daemon $SYSTEM_DAEMON
-            exitcode=$(($exitcode + $?))
+
+            if [ "`is_vmtoolsd_needed`" = 'yes' ] ; then
+              vmware_exec 'Guest operating system daemon:' vmware_stop_daemon $SYSTEM_DAEMON
+              exitcode=$(($exitcode + $?))
+            fi
+
+            if [  "$have_vgauth" = "yes" -a "`vmware_vgauth_enabled`" = "yes" ]; then
+              vmware_exec 'VGAuthService:' vmware_stop_vgauth
+              exitcode=$(($exitcode + $?))
+            fi
+
+            # Signal vmware-user to release any contact with the blocking fs, closing rpc connections etc.
+            vmware_exec 'VMware User Agent (vmware-user):' vmware_user_request_release_resources
+            rv=$?
+            exitcode=$(($exitcode + $rv))
 
             if [ "`is_vmblock_needed`" = 'yes' ] ; then
-            # Signal vmware-user to release any contact with the blocking fs.
-               vmware_exec 'VMware User Agent (vmware-user):' vmware_unblock_vmware_user
-               rv=$?
-               exitcode=$(($exitcode + $rv))
-           # If unblocking vmware-user fails then stopping and unloading vmblock
-           # probably will also fail.
+               # If unblocking vmware-user fails then stopping and unloading vmblock
+               # probably will also fail.
                if [ $rv -eq 0 ]; then
                   vmware_exec 'Blocking file system:' vmware_stop_vmblock
                   exitcode=$(($exitcode + $?))
@@ -1370,12 +1502,12 @@ main()
 
          # vsock requires vmci to work so it must be unloaded before vmci
             if [ "`is_vsock_needed`" = 'yes' ]; then
-               vmware_exec 'VM communication interface socket family:' vmware_stop_vsock
+               vmware_exec_warn 'VM communication interface socket family:' vmware_stop_vsock
                exitcode=$(($exitcode + $?))
             fi
 
             if [ "`is_vmci_needed`" = 'yes' ]; then
-               vmware_exec 'VM communication interface:' vmware_stop_vmci
+               vmware_exec_warn 'VM communication interface:' vmware_stop_vmci
                exitcode=$(($exitcode + $?))
             fi
 

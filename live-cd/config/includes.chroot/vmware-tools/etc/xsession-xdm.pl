@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# Copyright (c) 2007-2013 VMware, Inc.  All rights reserved.
+# Copyright (c) 2007-2015 VMware, Inc.  All rights reserved.
 #
 
 use strict;
