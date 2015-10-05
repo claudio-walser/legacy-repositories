@@ -18,7 +18,7 @@ if [ "$1" == "--noreboot" ]; then
 fi
 
 DEBIAN_APT_MIRROR="http://cdn.debian.net/debian"
-DEBIAN_DISTRIBUTION="wheezy"
+DEBIAN_DISTRIBUTION="jessie"
 DEBIAN_COMPONENTS="main contrib non-free"
 DEBIAN_EXTRA_PACKAGES="grub-pc lvm2 mdadm e2tools pwgen openssh-server vim less kbd ntp tzdata locales"
 

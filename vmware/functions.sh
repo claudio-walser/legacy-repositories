@@ -108,6 +108,6 @@ writeVmx() {
     
 
     fi
-
+    cp $VM_PATH/$FQDN.vmx $VM_PATH/$FQDN.vmx.copy
     return 1;
 }

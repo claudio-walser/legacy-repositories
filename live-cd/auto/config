@@ -8,7 +8,7 @@ lb config noauto \
   --binary-images iso-hybrid \
   --bootstrap debootstrap \
   --debian-installer false \
-  --distribution wheezy \
+  --distribution jessie \
   --memtest memtest86+ \
   --system live \
   --security true \
