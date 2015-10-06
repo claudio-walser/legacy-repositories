@@ -8,19 +8,8 @@ usage() {
     This script creates a new virtual machine on vmware workstation
 
     OPTIONS:
-       -h      Show this message
-       -f      Pass a config file for the following configs
-       -p      Base path to the virtual machines folder
-
-       // Hostname settings
-       -n      Name of the VirtualMachine
-       -e      Environment of the VirtualMachine (development|acceptance|production)
-       -d      Domain of the VirtualMachine
-
-       // Hardware settings
-       -m      Memory size
-       -c      CPU amount
-       -s      Disk size";
+       -a      Action, default is 'provision', possible are [install,install-vmware-tools,basic-provision,provision]
+       -f      Pass a config file for vm settings";
 
     exit;
 }

@@ -8,31 +8,12 @@ SCRIPT_BASEDIR=$(dirname $0)
 . $SCRIPT_BASEDIR/defaults.cfg;
 
 ACTION='provision'
-while getopts “n:e:d:m:c:s:f:p:h:b” OPTION
+
+while getopts “a:f:” OPTION
 do
      case $OPTION in
-        n)
-            NAME=$OPTARG;
-            ;;
-        e)
-            ENVIRONMENT=$OPTARG;
-            ;;
-        d)
-            DOMAIN=$OPTARG;
-            ;;
-
-        m)
-            MEMORY=$OPTARG;
-            ;;
-        c)
-            CPU=$OPTARG;
-            ;;
-        s)
-            SIZE=$OPTARG;
-            ;;
-
-        p)
-            VM_BASE_PATH=$OPTARG;
+        a)
+            ACTION=$OPTARG
             ;;
         f)
             if [ -r $OPTARG ]; then
@@ -41,15 +22,11 @@ do
                 echo "Could not find config file $OPTARG";
             fi
             ;;
-        b)
-            ACTION='boot';
-            ;;
         ?)
             usage;
             ;;
      esac
 done
-
 
 
 FULL_DOMAIN="$ENVIRONMENT.$DOMAIN";
@@ -115,9 +92,10 @@ done
 IFS=$OLD_IFS;
 
 
-echo $ACTION
 # debian installation process 
-if [ "$ACTION" == 'boot' ]; then
+if [ "$ACTION" == 'install' ]; then
+
+  echo 'Installing debian now'
   # create virtual disk if it does not already exists
   if [ ! -r $VM_PATH/$FQDN.vmdk ]; then
     echo "";
@@ -135,7 +113,15 @@ if [ "$ACTION" == 'boot' ]; then
   # downloading and installing debian seriously takes some time
   echo "You should now have a look at your vmware and whenever the box is ready, run this script wihtout -b again to provision"
 
-else
+elif [ "$ACTION" == 'install-vmware-tools' ]; then
+
+  echo 'Install vmware-tools now';
+  #vmrun  -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" /bin/bash /mnt/hgfs/provisioning/hosts.sh -h$NAME -d$DOMAIN -p$PUPPET_MASTER_HOSTNAME -i$PUPPET_MASTER_IP
+  SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/vmware-tools/vmware-install.pl -d");
+  echo $SCRIPT_OUTPUT;
+
+elif [ "$ACTION" == 'basic-provision' ]; then
+
   # start autoinstallation of debian wheezy
   echo "Starting installation";
 
@@ -201,13 +187,12 @@ else
       fi
   done
 
+elif [ "$ACTION" == 'provision' ]; then
+
   echo 'Running puppet agent now';
   #vmrun  -gu root -gp $DEFAULT_ROOT_PASSWORD runScriptInGuest "$VM_PATH/$FQDN.vmx" /bin/bash /mnt/hgfs/provisioning/hosts.sh -h$NAME -d$DOMAIN -p$PUPPET_MASTER_HOSTNAME -i$PUPPET_MASTER_IP
   SCRIPT_OUTPUT=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/usr/bin/puppet" "agent -t");
   echo $SCRIPT_OUTPUT;
-
-
-
 fi
 
 exit 0;
