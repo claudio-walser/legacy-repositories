@@ -210,7 +210,7 @@ if [ $? -ne 0 ] || [ ! -d "$target_dir/boot" ]; then
 fi
 
 ### In wheezy getty cleans the tty, which we do not want to happen...
-sed -ri 's|^(1:[0-9]+:respawn:/sbin/getty) (38400 tty1$)|\1 --noclear \2|' $target_dir/etc/inittab
+#sed -ri 's|^(1:[0-9]+:respawn:/sbin/getty) (38400 tty1$)|\1 --noclear \2|' $target_dir/etc/inittab
 
 ### Write an initial fstab
 echo "# /etc/fstab: static file system information." >> $target_dir/etc/fstab
@@ -352,9 +352,10 @@ chmod 755 $target_dir/etc/rc.local
 ### install vmware-tools and delete installation folder afterwards
 cp -r /vmware-tools $target_dir/vmware-tools;
 chroot_exec apt-get --yes install gcc cpp make automake autoconf binutils psmisc;
-chroot_exec apt-get --yes install linux-headers-$(uname -r)
+# use regex to install the right linux headers, uname hack doesent work for me in jessie
+chroot_exec apt-get --yes install linux-headers-.*-all-amd64
 chroot_exec /vmware-tools/vmware-install.pl -d;
-chroot_exec rm -rf /vmware-tools
+#chroot_exec rm -rf /vmware-tools
 
 ### Release the chroot
 ymc_unprepare_chroot
