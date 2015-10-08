@@ -21,7 +21,8 @@ def main():
   dispatch(arguments.action, arguments.box)
 
 def dispatch(action, box):
-  methodToCall = getattr(Thingy, action)
+  thingy = Thingy()
+  methodToCall = getattr(thingy, action)
   result = methodToCall(box)
 
 if __name__ == '__main__':
