@@ -2,7 +2,7 @@ custom:
   puppet_master_ip: 10.20.0.2
   puppet_master_hostname: puppet-master-01
 
-thingy:
+knack:
   hypervisor: vmware
   user: root
   pass: 1234

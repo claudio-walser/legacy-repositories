@@ -9,12 +9,12 @@ class ConfigParser:
   yaml = {}
 
   def load(self):
-    # raise exception if no .Thingyfile in current working dir
-    if not os.path.isfile("./.Thingyfile"):
-      raise Exception('No .Thingyfile found in ' + os.getcwd())
+    # raise exception if no .Knackfile in current working dir
+    if not os.path.isfile("./.Knackfile"):
+      raise Exception('No .Knackfile found in ' + os.getcwd())
 
-    # open and load .Thingyfile
-    with open("./.Thingyfile", 'r') as stream:
+    # open and load .Knackfile
+    with open("./.Knackfile", 'r') as stream:
       self.yaml = yaml.safe_load(stream)
       stream.close()
 

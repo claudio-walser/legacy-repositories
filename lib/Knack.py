@@ -3,7 +3,7 @@
 from lib.ConfigParser import ConfigParser
 from pprint import pprint
 
-class Thingy(object):
+class Knack(object):
   
   box = '*'
 

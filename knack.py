@@ -2,7 +2,7 @@
 
 import sys
 import argparse
-from lib.Thingy import Thingy
+from lib.Knack import Knack
 
 
 def main():
@@ -21,7 +21,7 @@ def main():
   dispatch(arguments.action, arguments.box)
 
 def dispatch(action, box):
-  thingy = Thingy(box)
+  thingy = Knack(box)
   methodToCall = getattr(thingy, action)
   result = methodToCall()
 
