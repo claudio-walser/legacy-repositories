@@ -40,7 +40,11 @@ class ConfigParser:
 
   def applyVariables(self, boxConfig):
     # loop through box config
+    i = 0;
     for key in boxConfig:
+      # if its a list take alphanumeric keys
+      if type(boxConfig) is list:
+        key = i
       # replace placeholders with real values for strings
       if type(boxConfig[key]) is str:
         boxConfig[key] = self.applyVariablesToString(boxConfig[key])
@@ -50,6 +54,7 @@ class ConfigParser:
       # todo: fix lists
       elif type(boxConfig[key]) is list:
         boxConfig[key] = self.applyVariables(boxConfig[key])
+      i += 1
 
     return boxConfig
 
