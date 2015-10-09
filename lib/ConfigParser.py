@@ -5,7 +5,7 @@ import yaml
 
 class ConfigParser:
 
-  yml = {}
+  yaml = {}
 
   def load(self):
     if not os.path.isfile("./.Thingyfile"):
@@ -15,11 +15,18 @@ class ConfigParser:
       self.yaml = yaml.safe_load(stream)
       stream.close()
 
+
+
   def getConfigForBox(self, box):
-    config = self.yaml
-    
-    if not box in config:
+    boxConfig = self.yaml["vm-defaults"]
+    defaultSharedFolders = boxConfig["shared_folders"]
+
+    if not box in self.yaml["boxes"]:
       raise Exception('ConfigException', 'No box found with name ' + box)
     
-    print(config[box])
-    print('Load config for ' + box)
+    boxConfig.update(self.yaml["boxes"][box])
+    
+    for sharedFolder in defaultSharedFolders:
+      boxConfig["shared_folders"].append(sharedFolder)
+
+    return boxConfig
