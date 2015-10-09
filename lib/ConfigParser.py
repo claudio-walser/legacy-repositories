@@ -18,7 +18,7 @@ class ConfigParser:
   def getConfigForBox(self, box):
     config = self.yaml
     
-    if not config.has_key(box):
+    if not box in config:
       raise Exception('ConfigException', 'No box found with name ' + box)
     
     print(config[box])
