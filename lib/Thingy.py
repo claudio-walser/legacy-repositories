@@ -2,30 +2,37 @@
 
 from lib.ConfigParser import ConfigParser
 
-class Thingy(object):
-  def __init__(self):
-    print('înit')
-    self.loadConfigFile()
 
-  def loadConfigFile(self, ):
-    ConfigParser.parse()
+class Thingy(object):
+  
+  box = '*'
+
+  def __init__(self, box):
+    print('init')
+    self.box = box
+    self.loadConfigFile()   
+
+  def loadConfigFile(self):
+    parser = ConfigParser()
+    parser.load()
+    boxConfig = parser.getConfigForBox(self.box)
 
   #start|stop|restart|ssh|destroy|status
-  def start(self, box):
-    print("Start or even install box " + box)
+  def start(self):
+    print("Start or even install box " + self.box)
 
-  def stop(self, box):
-    print("stop box " + box)
+  def stop(self):
+    print("stop box " + self.box)
 
-  def restart(self, box):
-    print("restart box " + box)
+  def restart(self):
+    print("restart box " + self.box)
 
-  def ssh(self, box):
-    print("ssh into box " + box)	
+  def ssh(self):
+    print("ssh into box " + self.box)	
 
-  def destroy(self, box):
-    print("destroy box " + box)
+  def destroy(self):
+    print("destroy box " + self.box)
 
-  def status(self, box):
-    print("status of box " + box)
+  def status(self):
+    print("status of box " + self.box)
 
