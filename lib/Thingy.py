@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
 from lib.ConfigParser import ConfigParser
-
+from pprint import pprint
 
 class Thingy(object):
   
   box = '*'
 
   def __init__(self, box):
-    print('init')
     self.box = box
     self.loadConfigFile()   
 
@@ -16,6 +15,7 @@ class Thingy(object):
     parser = ConfigParser()
     parser.load()
     boxConfig = parser.getConfigForBox(self.box)
+    pprint(boxConfig)
 
   #start|stop|restart|ssh|destroy|status
   def start(self):
