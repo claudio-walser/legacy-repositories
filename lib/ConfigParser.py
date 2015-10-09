@@ -30,3 +30,9 @@ class ConfigParser:
       boxConfig["shared_folders"].append(sharedFolder)
 
     return boxConfig
+
+  def applyVariables(self, boxConfig):
+
+    for config in boxConfig:
+      print(type(config))
+      print(config)
