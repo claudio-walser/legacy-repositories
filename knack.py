@@ -21,8 +21,8 @@ def main():
   dispatch(arguments.action, arguments.box)
 
 def dispatch(action, box):
-  thingy = Knack(box)
-  methodToCall = getattr(thingy, action)
+  knack = Knack(box)
+  methodToCall = getattr(knack, action)
   result = methodToCall()
 
 if __name__ == '__main__':
