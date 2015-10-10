@@ -41,7 +41,22 @@ class VmwareWorkstation(DefaultHypervisor):
 
   def createDisk(self, box):
     if not self.hasDisk(box):
-      print('write vmdk Disk file')
+      # /usr/bin/vmware-vdiskmanager -c -t 0 -s $SIZE -a ide $VM_PATH/$FQDN.vmdk;
+      command = [
+        "vmware-vdiskmanager",
+        "-c",
+        "-t",
+        "0",
+        "-s",
+        box.getHardwareDisk(),
+        "-a",
+        "ide",
+        self.__getDiskPath(box)
+      ]
+
+      processOutput = subprocess.check_output(command)
+
+
 
   def isRegistered(self, box):
     raise NotImplementedError("Not able to fetch registered vm's in vmware-workstation")
