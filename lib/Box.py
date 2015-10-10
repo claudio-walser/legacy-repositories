@@ -23,7 +23,7 @@ class Box(object):
     return self.config['base_path']
 
   def getInstallMedium(self):
-    return self.config['install_medium']
+    return os.path.expanduser(self.config['install_medium'])
 
   def getHostname(self):
     return self.config['hostname']
@@ -45,6 +45,9 @@ class Box(object):
 
   def getHardwareMemory(self):
     return self.config['hardware']['memory']
+
+  def getNetworkInterfaces(self):
+    return self.config['network']
 
   def getNetwork(self, eth='eth0'):
     if eth not in self.config['network']:
