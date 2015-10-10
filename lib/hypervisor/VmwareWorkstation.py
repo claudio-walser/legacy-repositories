@@ -173,15 +173,22 @@ ethernet$i.pciSlotNumber = "3$i"
 
   def stop(self, box):
     if self.isRunning(box):
-      print('stop vm')
+      command = [
+        "vmrun",
+        "stop",
+        self.__getConfigPath(box),
+        "hard"
+      ]
+
+      processOutput = subprocess.check_output(command)
     else:
-      print('vm already stopped')
+      print('vm not running, so nothing to stop')
 
   def restart(self, box):
-    if self.isRunning():
-      self.stop()
+    if self.isRunning(box):
+      self.stop(box)
 
-    self.start()
+    self.start(box)
 
 
   # private methods

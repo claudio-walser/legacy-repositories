@@ -52,17 +52,10 @@ class Knack(object):
     self.hypervisor.start(self.box)
 
   def stop(self):
-    # check if box is created
-    # check if box is registered
-    # check if box is started
-    # if yes, stop it now
-    print("stop box " + self.box)
+    self.hypervisor.stop(self.box)
 
   def restart(self):
-    # check if box is created, if not throw an error to start it first
-    # check if box is registered, if not throw an error to start it first
-    # just restart box since hypervisor takes care of stop it if its running
-    print("restart box " + self.box)
+    self.hypervisor.restart(self.box)
 
   def ssh(self):
     # check if box is created, if not throw an error to start it first
