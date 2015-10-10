@@ -71,24 +71,33 @@ class ConfigParser:
       # get match groups
       toReplace = matches.group(1)
       toSplit = matches.group(2)
-      
-      # split placeholder and search in config for its value
-      keys = toSplit.split(".")
-      config = self.yaml
-      foundAll = False
-      for key in keys:
-        if key in config:
-          foundAll = True
-          config = config[key]
-        else:
-          foundAll = False
+      config = self.getConfigByNamespace(toSplit)
 
       # if the whole namespace found, replace the real value
-      if foundAll:
+      if config:
+        if not type(config) is str:
+          raise Exception('ConfigException', 'You are trying to reuse a list in config, which is not supported')
         string = string.replace(toReplace, config)
 
     return string
 
-
   def getHypervisor(self):
-    return self.yaml['knack']['hypervisor']
+    return self.yaml['hypervisor']
+
+  def getConfigByNamespace(self, namespace):
+    keys = namespace.split(".")
+    returnValue = False
+    config = self.yaml
+    foundAll = False
+    for key in keys:
+      if key in config:
+        foundAll = True
+        config = config[key]
+      else:
+        foundAll = False
+
+    # if the whole namespace found, replace the real value
+    if foundAll:
+      returnValue = config
+
+    return returnValue
