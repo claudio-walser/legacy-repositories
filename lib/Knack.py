@@ -9,7 +9,7 @@ from pprint import pprint
 
 class Knack(object):
   
-  box = '*'
+  box = False
   hypervisor = False
   allowedHypervisors = {'vmware-workstation': 'lib.hypervisor.VmwareWorkstation'}
   parser = False
@@ -24,9 +24,9 @@ class Knack(object):
     self.parser.load()
     boxConfig = self.parser.getConfigForBox(boxName)
 
-    box = Box(boxConfig)
+    self.box = Box(boxConfig)
     self.hypervisor = self.__instantiateHypervisor()
-    self.hypervisor.setBox(box)
+    #self.hypervisor.setBox(self.box)
 
 
   def __instantiateHypervisor(self):
@@ -36,11 +36,12 @@ class Knack(object):
   # accessible knack actions
   #start|stop|restart|ssh|destroy|status
   def start(self):
+    self.hypervisor.create(self.box)
     # check if box is created
     # check if box is registered
     # check if box is started
     # if not, start it now
-    print("Start or even install box " + self.box)
+    print("Start or even install box " + self.box.getHostname())
 
   def stop(self):
     # check if box is created
