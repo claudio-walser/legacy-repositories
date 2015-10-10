@@ -13,6 +13,12 @@ class Box(object):
     # todo: check if there is a trailing slash on basePath
     return os.path.expanduser(self.getBasePath() + "/" + self.getDomain() + "/" + self.getEnvironment() + "/" + self.getHostname() + "/")
 
+  def getUser(self):
+    return self.config['user']
+
+  def getPass(self):
+    return self.config['pass']
+
   def getFullDomain(self):
     return self.getEnvironment() + "." + self.getDomain()
 
