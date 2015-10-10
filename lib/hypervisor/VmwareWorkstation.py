@@ -133,7 +133,7 @@ ethernet$i.pciSlotNumber = "3$i"
         self.__getDiskPath(box)
       ]
 
-      processOutput = subprocess.check_output(command)
+      print(subprocess.check_output(command))
 
   def isRegistered(self, box):
     raise NotImplementedError("Not able to fetch registered vm's in vmware-workstation")
@@ -144,7 +144,8 @@ ethernet$i.pciSlotNumber = "3$i"
   def isRunning(self, box):
     command = [
       "vmrun",
-      "list" 
+      "list",
+      "nogui"
     ]
 
     processOutput = subprocess.check_output(command)
@@ -167,7 +168,7 @@ ethernet$i.pciSlotNumber = "3$i"
         self.__getConfigPath(box)
       ]
 
-      processOutput = subprocess.check_output(command)
+      print(subprocess.check_output(command))
     else:
       print('vm already started')
 
@@ -177,10 +178,11 @@ ethernet$i.pciSlotNumber = "3$i"
         "vmrun",
         "stop",
         self.__getConfigPath(box),
-        "hard"
+        "hard",
+        "nogui"
       ]
 
-      processOutput = subprocess.check_output(command)
+      print(subprocess.check_output(command))
     else:
       print('vm not running, so nothing to stop')
 
@@ -198,10 +200,11 @@ ethernet$i.pciSlotNumber = "3$i"
       command = [
         "vmrun",
         "deleteVM",
-        self.__getConfigPath(box)
+        self.__getConfigPath(box),
+        "nogui"
       ]
 
-      processOutput = subprocess.check_output(command)
+      print(subprocess.check_output(command))
     else:
       print('vm not created, so nothing to destroy')
 
