@@ -1,2 +1,3 @@
 # vmware-api-client
 Its a try to create my own vmware managing script, since the vagrant adapter has ridicolous prices...
+And because i dont like ruby and i dont want to destroy vagrants business model, i did not wrote a vagrant extension for vmware
