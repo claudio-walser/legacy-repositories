@@ -22,8 +22,6 @@ class Knack(object):
     self.__loadConfigFile(boxName)   
 
   def __createVmBasePath(self):
-    print(self.box.getVmPath())
-
     try:
       os.makedirs(self.box.getVmPath())
     except OSError as exc: # Python >2.5
