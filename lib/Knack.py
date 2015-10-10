@@ -36,12 +36,7 @@ class Knack(object):
   # accessible knack actions
   #start|stop|restart|ssh|destroy|status
   def start(self):
-    self.hypervisor.create(self.box)
-    # check if box is created
-    # check if box is registered
-    # check if box is started
-    # if not, start it now
-    print("Start or even install box " + self.box.getHostname())
+    self.hypervisor.start(self.box)
 
   def stop(self):
     # check if box is created

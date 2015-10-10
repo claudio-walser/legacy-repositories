@@ -4,11 +4,17 @@ class DefaultHypervisor(object):
 
 
   # abstract methods to be overwritten in concrete hypervisors
-  def isCreated(self, box):
+  def hasConfigFile(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def create(self, box):
+  def createConfigFile(self, box):
    raise NotImplementedError( "Should have implemented this" )
+
+  def hasDisk(self, box):
+    raise NotImplementedError( "Should have implemented this" )
+
+  def createDisk(self, box):
+    raise NotImplementedError( "Should have implemented this" )
 
   def isRegistered(self, box):
     raise NotImplementedError( "Should have implemented this" )
@@ -16,11 +22,14 @@ class DefaultHypervisor(object):
   def register(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def isStarted(self, box):
+  def isRunning(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
   def start(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
   def stop(self, box):
+    raise NotImplementedError( "Should have implemented this" )
+
+  def restart(self, box):
     raise NotImplementedError( "Should have implemented this" )

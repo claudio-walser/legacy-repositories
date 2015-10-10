@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import subprocess
 from lib.hypervisor.DefaultHypervisor import DefaultHypervisor
 
 class VmwareWorkstation(DefaultHypervisor):
@@ -27,46 +28,71 @@ class VmwareWorkstation(DefaultHypervisor):
   #vmware-vprobe
   #vmware-wssc-adminTool
 
-  def isCreated(self, box):
-    hasConfig = os.path.isfile(self.__getConfigPath(box))
-    hasDisk = os.path.isfile(self.__getDiskPath(box))
+  # abstract methods to be overwritten in concrete hypervisors
+  def hasConfigFile(self, box):
+    return os.path.isfile(self.__getConfigPath(box))
 
-    return hasConfig and hasDisk
+  def createConfigFile(self, box):
+    if not self.hasConfigFile(box):
+      print('write vmx Config file')
 
-  def create(self, box):
-    if not self.isCreated(box):
-      print('config not found: ' + self.__getConfigPath(box))
-      print('disk not found: ' + self.__getDiskPath(box))
-      print('creates box')
-    else:
-      print('already created')
-    # /usr/bin/vmware-vdiskmanager
-    # write configs into .vmx file
+  def hasDisk(self, box):
+    return os.path.isfile(self.__getDiskPath(box))
+
+  def createDisk(self, box):
+    if not self.hasDisk(box):
+      print('write vmdk Disk file')
 
   def isRegistered(self, box):
-    print('checks if box is registered in vmwware workstation')
-    # not quite sure yet
+    raise NotImplementedError("Not able to fetch registered vm's in vmware-workstation")
 
   def register(self, box):
-    print('register box in vmware workstation')
+    raise NotImplementedError("Not able to register vm in vmware-workstation")
 
-  def isStarted(self, box):
-    print('check if box is running')
+  def isRunning(self, box):
+    command = [
+      "vmrun",
+      "list" 
+    ]
+
+    processOutput = subprocess.check_output(command)
+    if type(processOutput) is bytes:
+      processOutputString = processOutput.decode("utf-8")
+      runningVms = processOutputString.split("\n")
+      return self.__getConfigPath(box) in runningVms
+    return False
 
   def start(self, box):
-    print('start box')
+    if not self.isRunning(box):
+      self.createConfigFile(box)
+      self.createDisk(box)
+      
+      # vmrun start wont register a box and registering a box with vmrun register wont work
+      # vmware -x registers and starts a box properly
+      command = [
+        "vmware",
+        "-x",
+        self.__getConfigPath(box)
+      ]
+
+      processOutput = subprocess.check_output(command)
+    else:
+      print('vm already started')
 
   def stop(self, box):
-    print('stop box')
+    if self.isRunning(box):
+      print('stop vm')
+    else:
+      print('vm already stopped')
 
   def restart(self, box):
-    if self.isStarted():
+    if self.isRunning():
       self.stop()
 
     self.start()
 
 
-
+  # private methods
   def __getConfigPath(self, box):
     # expand ~ with current user directory
     return os.path.expanduser(box.getVmPath() + box.getFQDN() + ".vmx")
@@ -74,16 +100,3 @@ class VmwareWorkstation(DefaultHypervisor):
   def __getDiskPath(self, box):
     # expand ~ with current user directory
     return os.path.expanduser(box.getVmPath() + box.getFQDN() + ".vmdk")
-
-
-  def ssh(self):
-    print('ssh')
-    # not quite sure yet
-
-  def createDisk(self):
-    print('createDisk')
-    #/usr/bin/vmware-vdiskmanager start $VM_PATH/$FQDN.vmx
-
-  def register(self):
-    print('register')
-    #/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;
