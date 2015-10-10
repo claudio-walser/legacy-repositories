@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-class Vmware:
+class VmwareWorkstation(object):
 
   #vmware
   #vmwarectrl
@@ -25,18 +25,23 @@ class Vmware:
   #vmware-wssc-adminTool
 
 
-  def install():
+  def install(self):
+    print('install')
     # /usr/bin/vmware-vdiskmanager
     # write configs into .vmx file
 
-  def ssh():
+  def ssh(self):
+    print('ssh')
     # not quite sure yet
 
-  def isRegistered():
+  def isRegistered(self):
+    print('isRegistered')
     # not quite sure yet
 
-  def createDisk():
+  def createDisk(self):
+    print('createDisk')
     #/usr/bin/vmware-vdiskmanager start $VM_PATH/$FQDN.vmx
 
-  def register():
+  def register(self):
+    print('register')
     #/usr/bin/vmware -x $VM_PATH/$FQDN.vmx;

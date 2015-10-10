@@ -9,6 +9,7 @@ class ConfigParser:
   yaml = {}
 
   def load(self):
+    # todo: check for mandatory configs
     # raise exception if no .Knackfile in current working dir
     if not os.path.isfile("./.Knackfile"):
       raise Exception('No .Knackfile found in ' + os.getcwd())
@@ -83,3 +84,7 @@ class ConfigParser:
         string = string.replace(toReplace, config)
 
     return string
+
+
+  def getHypervisor(self):
+    return self.yaml['knack']['hypervisor']

@@ -3,7 +3,7 @@ custom:
   puppet_master_hostname: puppet-master-01
 
 knack:
-  hypervisor: vmware
+  hypervisor: vmware-workstation
   user: root
   pass: 1234
 
