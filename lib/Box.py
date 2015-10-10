@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+
 class Box(object):
   
   config = {}
@@ -9,7 +11,7 @@ class Box(object):
   
   def getVmPath(self):
     # todo: check if there is a trailing slash on basePath
-    return self.getBasePath() + "/" + self.getDomain() + "/" + self.getEnvironment() + "/" + self.getHostname() + "/"
+    return os.path.expanduser(self.getBasePath() + "/" + self.getDomain() + "/" + self.getEnvironment() + "/" + self.getHostname() + "/")
 
   def getFullDomain(self):
     return self.getEnvironment() + "." + self.getDomain()

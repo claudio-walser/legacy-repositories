@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import importlib
+import os
+import errno
 
 from lib.ConfigParser import ConfigParser
 from lib.hypervisor.VmwareWorkstation import VmwareWorkstation
@@ -17,7 +19,18 @@ class Knack(object):
 
 
   def __init__(self, boxName):
-   self.__loadConfigFile(boxName)   
+    self.__loadConfigFile(boxName)   
+
+  def __createVmBasePath(self):
+    print(self.box.getVmPath())
+
+    try:
+      os.makedirs(self.box.getVmPath())
+    except OSError as exc: # Python >2.5
+      if exc.errno == errno.EEXIST and os.path.isdir(self.box.getVmPath()):
+        pass
+      else: 
+        raise
 
   def __loadConfigFile(self, boxName):
     self.parser = ConfigParser()
@@ -26,8 +39,8 @@ class Knack(object):
 
     self.box = Box(boxConfig)
     self.hypervisor = self.__instantiateHypervisor()
-    #self.hypervisor.setBox(self.box)
-
+    self.__createVmBasePath()
+    
 
   def __instantiateHypervisor(self):
     return VmwareWorkstation()

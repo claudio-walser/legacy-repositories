@@ -95,8 +95,8 @@ class VmwareWorkstation(DefaultHypervisor):
   # private methods
   def __getConfigPath(self, box):
     # expand ~ with current user directory
-    return os.path.expanduser(box.getVmPath() + box.getFQDN() + ".vmx")
+    return box.getVmPath() + box.getFQDN() + ".vmx"
 
   def __getDiskPath(self, box):
     # expand ~ with current user directory
-    return os.path.expanduser(box.getVmPath() + box.getFQDN() + ".vmdk")
+    return box.getVmPath() + box.getFQDN() + ".vmdk"
