@@ -65,6 +65,7 @@ class Knack(object):
     print("ssh into box " + self.box)	
 
   def destroy(self):
+    self.hypervisor.destroy(self.box)
     # check if started, if yes stop
     # check if registered, if yes unregister
     # check if created, if yes destroy

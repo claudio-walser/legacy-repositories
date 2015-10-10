@@ -190,6 +190,20 @@ ethernet$i.pciSlotNumber = "3$i"
 
     self.start(box)
 
+  def destroy(self, box):
+    if self.hasConfigFile(box):
+      if self.isRunning(box):
+        self.stop(box)
+
+      command = [
+        "vmrun",
+        "deleteVM",
+        self.__getConfigPath(box)
+      ]
+
+      processOutput = subprocess.check_output(command)
+    else:
+      print('vm not created, so nothing to destroy')
 
   # private methods
   def __getConfigPath(self, box):
@@ -199,3 +213,4 @@ ethernet$i.pciSlotNumber = "3$i"
   def __getDiskPath(self, box):
     # expand ~ with current user directory
     return box.getVmPath() + box.getFQDN() + ".vmdk"
+
