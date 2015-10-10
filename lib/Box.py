@@ -7,6 +7,16 @@ class Box(object):
   def __init__(self, config):
     self.config = config
   
+  def getVmPath(self):
+    # todo: check if there is a trailing slash on basePath
+    return self.getBasePath() + "/" + self.getDomain() + "/" + self.getEnvironment() + "/" + self.getHostname() + "/"
+
+  def getFullDomain(self):
+    return self.getEnvironment() + "." + self.getDomain()
+
+  def getFQDN(self):
+    return self.getHostname() + "." + self.getFullDomain();
+
   def getBasePath(self):
     return self.config['base_path']
 
