@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from lib.hypervisor.DefaultHypervisor import DefaultHypervisor
 
 class VmwareWorkstation(DefaultHypervisor):
@@ -26,35 +27,39 @@ class VmwareWorkstation(DefaultHypervisor):
   #vmware-vprobe
   #vmware-wssc-adminTool
 
-  def isCreated(self):
-    print(os.path.isfile("./.Knackfile"))
-    print(self.__getVmxPath())
-    print(self.__getDiskPath())
+  def isCreated(self, box):
+    hasConfig = os.path.isfile(self.__getConfigPath(box))
+    hasDisk = os.path.isfile(self.__getDiskPath(box))
 
-    print('check if box is physicly created on disk')
+    return hasConfig and hasDisk
 
-  def create(self):
-    print('creates box')
+  def create(self, box):
+    if not self.isCreated(box):
+      print('config not found: ' + self.__getConfigPath(box))
+      print('disk not found: ' + self.__getDiskPath(box))
+      print('creates box')
+    else:
+      print('already created')
     # /usr/bin/vmware-vdiskmanager
     # write configs into .vmx file
 
-  def isRegistered(self):
+  def isRegistered(self, box):
     print('checks if box is registered in vmwware workstation')
     # not quite sure yet
 
-  def register(self):
+  def register(self, box):
     print('register box in vmware workstation')
 
-  def isStarted(self):
+  def isStarted(self, box):
     print('check if box is running')
 
-  def start(self):
+  def start(self, box):
     print('start box')
 
-  def stop(self):
+  def stop(self, box):
     print('stop box')
 
-  def restart(self):
+  def restart(self, box):
     if self.isStarted():
       self.stop()
 
@@ -62,13 +67,13 @@ class VmwareWorkstation(DefaultHypervisor):
 
 
 
-  def __getVmxPath(self):
-    return 'hui buh'
+  def __getConfigPath(self, box):
+    # expand ~ with current user directory
+    return os.path.expanduser(box.getVmPath() + box.getFQDN() + ".vmx")
 
-  def __getDiskPath(self):
-    return 'hui hui buh'
-
-
+  def __getDiskPath(self, box):
+    # expand ~ with current user directory
+    return os.path.expanduser(box.getVmPath() + box.getFQDN() + ".vmdk")
 
 
   def ssh(self):

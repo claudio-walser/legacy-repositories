@@ -1,32 +1,26 @@
 #!/usr/bin/env python3
-import os
 
 class DefaultHypervisor(object):
 
-  box = False
-
-  def setBox(self, box):
-    self.box = box
-
 
   # abstract methods to be overwritten in concrete hypervisors
-  def isCreated(self):
+  def isCreated(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def create(self):
+  def create(self, box):
    raise NotImplementedError( "Should have implemented this" )
 
-  def isRegistered(self):
+  def isRegistered(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def register(self):
+  def register(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def isStarted(self):
+  def isStarted(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def start(self):
+  def start(self, box):
     raise NotImplementedError( "Should have implemented this" )
 
-  def stop(self):
+  def stop(self, box):
     raise NotImplementedError( "Should have implemented this" )
