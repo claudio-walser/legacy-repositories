@@ -18,24 +18,25 @@ class ConfigParser:
       self.yaml = yaml.safe_load(stream)
       stream.close()
 
+  def deepMerge(dict1, dict2):
+    if isinstance(dict1, list) and isinstance(dict2, list):
+      for element in dict2:
+        dict1.append(element)
+        return dict1
+    if not isinstance(dict1, dict) or not isinstance(dict2, dict):
+        return dict2
+    for k in dict2:
+        if k in dict1:
+            dict1[k] = ConfigParser.deepMerge(dict1[k], dict2[k])
+        else:
+            dict1[k] = dict2[k]
+    return dict1
+
   def getConfigForBox(self, box):
     # get default vm config
-    boxConfig = self.yaml["vm-defaults"]
-    # extract shared_folders, because lists wont merge
-    defaultSharedFolders = boxConfig["shared_folders"]
-
-    #raise exception if no config found for this box
-    if not box in self.yaml["boxes"]:
-      raise Exception('ConfigException', 'No box found with name ' + box)
-    
-    # apply box config onto default config
-    boxConfig.update(self.yaml["boxes"][box])
-    # merge in default shared folders
-    for sharedFolder in defaultSharedFolders:
-      boxConfig["shared_folders"].append(sharedFolder)
-    # replace variables placed in config
+    defaultConfig = self.yaml["vm-defaults"]
+    boxConfig = ConfigParser.deepMerge(defaultConfig, self.yaml["boxes"][box])
     boxConfig = self.applyVariables(boxConfig)
-
     return boxConfig
 
   def applyVariables(self, boxConfig):
