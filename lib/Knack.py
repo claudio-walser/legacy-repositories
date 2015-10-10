@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import importlib
+
 from lib.ConfigParser import ConfigParser
 from lib.hypervisor.VmwareWorkstation import VmwareWorkstation
 from lib.Box import Box
@@ -9,58 +10,65 @@ from pprint import pprint
 class Knack(object):
   
   box = '*'
+  hypervisor = False
   allowedHypervisors = {'vmware-workstation': 'lib.hypervisor.VmwareWorkstation'}
   parser = False
   knackConfig = {}
 
 
   def __init__(self, boxName):
-   self.loadConfigFile(boxName)   
+   self.__loadConfigFile(boxName)   
 
-  def loadConfigFile(self, boxName):
+  def __loadConfigFile(self, boxName):
     self.parser = ConfigParser()
     self.parser.load()
     boxConfig = self.parser.getConfigForBox(boxName)
 
     box = Box(boxConfig)
-    hypervisor = self.instantiateHypervisor()
-    # so far so good
-    print(box.getHostname())
-    print(box.getNetwork('eth0'))
-    print(box.getNetwork('eth1'))
+    self.hypervisor = self.__instantiateHypervisor()
+    self.hypervisor.setBox(box)
 
-  def instantiateHypervisor(self):
+
+  def __instantiateHypervisor(self):
     return VmwareWorkstation()
-    #if not self.parser.getHypervisor() in self.allowedHypervisors:
-    #  raise Exception('ConfigException', 'Hypervisor ' + self.parser.getHypervisor() + ' is not available')
-    
-    #hypervisorClass = self.allowedHypervisors[self.parser.getHypervisor()]
-    #module_name, class_name = hypervisorClass.rsplit(".", 1)
-
-    #print(importlib.import_module(module_name))
-
-    #HypervisorClass = getattr(importlib.import_module(module_name), class_name)
-    #instance = HypervisorClass()
-    #print('dafuuq')
-    #pprint(lib.hypervisor.VmwareWorkstation())
 
 
+  # accessible knack actions
   #start|stop|restart|ssh|destroy|status
   def start(self):
+    # check if box is created
+    # check if box is registered
+    # check if box is started
+    # if not, start it now
     print("Start or even install box " + self.box)
 
   def stop(self):
+    # check if box is created
+    # check if box is registered
+    # check if box is started
+    # if yes, stop it now
     print("stop box " + self.box)
 
   def restart(self):
+    # check if box is created, if not throw an error to start it first
+    # check if box is registered, if not throw an error to start it first
+    # just restart box since hypervisor takes care of stop it if its running
     print("restart box " + self.box)
 
   def ssh(self):
+    # check if box is created, if not throw an error to start it first
+    # check if box is registered, if not throw an error to start it first
+    # check if box is started, if not throw an error to start it first
+    # if yes ssh into it
     print("ssh into box " + self.box)	
 
   def destroy(self):
+    # check if started, if yes stop
+    # check if registered, if yes unregister
+    # check if created, if yes destroy
     print("destroy box " + self.box)
 
   def status(self):
+    # just read the status
     print("status of box " + self.box)
 

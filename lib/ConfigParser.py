@@ -20,17 +20,21 @@ class ConfigParser:
       stream.close()
 
   def deepMerge(dict1, dict2):
+    # append for lists
     if isinstance(dict1, list) and isinstance(dict2, list):
       for element in dict2:
         dict1.append(element)
         return dict1
+    # return dict2 value for everything which is not a list or a dict
     if not isinstance(dict1, dict) or not isinstance(dict2, dict):
         return dict2
+    # loop through dicts and call recursive
     for k in dict2:
         if k in dict1:
             dict1[k] = ConfigParser.deepMerge(dict1[k], dict2[k])
         else:
             dict1[k] = dict2[k]
+            
     return dict1
 
   def getConfigForBox(self, box):

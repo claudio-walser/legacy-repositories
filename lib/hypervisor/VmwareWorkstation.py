@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-class VmwareWorkstation(object):
+from lib.hypervisor.DefaultHypervisor import DefaultHypervisor
+
+class VmwareWorkstation(DefaultHypervisor):
 
   #vmware
   #vmwarectrl
@@ -24,18 +26,53 @@ class VmwareWorkstation(object):
   #vmware-vprobe
   #vmware-wssc-adminTool
 
+  def isCreated(self):
+    print(os.path.isfile("./.Knackfile"))
+    print(self.__getVmxPath())
+    print(self.__getDiskPath())
 
-  def install(self):
-    print('install')
+    print('check if box is physicly created on disk')
+
+  def create(self):
+    print('creates box')
     # /usr/bin/vmware-vdiskmanager
     # write configs into .vmx file
 
-  def ssh(self):
-    print('ssh')
+  def isRegistered(self):
+    print('checks if box is registered in vmwware workstation')
     # not quite sure yet
 
-  def isRegistered(self):
-    print('isRegistered')
+  def register(self):
+    print('register box in vmware workstation')
+
+  def isStarted(self):
+    print('check if box is running')
+
+  def start(self):
+    print('start box')
+
+  def stop(self):
+    print('stop box')
+
+  def restart(self):
+    if self.isStarted():
+      self.stop()
+
+    self.start()
+
+
+
+  def __getVmxPath(self):
+    return 'hui buh'
+
+  def __getDiskPath(self):
+    return 'hui hui buh'
+
+
+
+
+  def ssh(self):
+    print('ssh')
     # not quite sure yet
 
   def createDisk(self):
