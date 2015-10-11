@@ -5,7 +5,7 @@ import os
 import errno
 
 from lib.ConfigParser import ConfigParser
-from lib.hypervisor.VmwareWorkstation import VmwareWorkstation
+from lib.Hypervisor.VmwareWorkstation import VmwareWorkstation
 from lib.Box import Box
 from pprint import pprint
 
@@ -13,7 +13,7 @@ class Knack(object):
   
   box = False
   hypervisor = False
-  allowedHypervisors = {'vmware-workstation': 'lib.hypervisor.VmwareWorkstation'}
+  allowedHypervisors = {'vmware-workstation': 'lib.Hypervisor.VmwareWorkstation'}
   parser = False
   knackConfig = {}
 
@@ -73,11 +73,14 @@ class Knack(object):
   def status(self):
     status = "Not created"
     if self.hypervisor.isCreated(self.box):
-      status = "Created"
+      status = "Stopped"
     if self.hypervisor.isRunning(self.box):
       status = "Running but no VMWareTools installed"
     if self.hypervisor.isInstalled(self.box):
       status = "Running and VMWareTools installed"
     # just read the status
     print(self.box.getHostname() + " is in state: " + status)
+
+  def installVmWareTools(self):
+    self.hypervisor.installVmWareTools(self.box)
 
