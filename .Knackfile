@@ -4,17 +4,10 @@ globals:
   puppet_master_ip: 10.20.0.2
   puppet_master_hostname: puppet-master-01
 
-holy:
-  moly:
-    shizzle:
-      dizzle:
-        - fuck
-        - you
-        - hard
-
 vm-defaults:
   user: root
   pass: 1234
+  guest_os: debian7-64
   hostname: debian-01
   environment: development
   domain: claudio.dev

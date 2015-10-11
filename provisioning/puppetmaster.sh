@@ -30,16 +30,16 @@ mv /etc/puppet/puppet.conf /etc/puppet/puppet.conf.bu;
 
 # write puppetlabs apt list
 echo "# Puppetlabs products" > /etc/apt/sources.list.d/puppetlabs.list;
-echo "deb http://apt.puppetlabs.com wheezy main" >> /etc/apt/sources.list.d/puppetlabs.list;
-echo "deb-src http://apt.puppetlabs.com wheezy main" >> /etc/apt/sources.list.d/puppetlabs.list;
+echo "deb http://apt.puppetlabs.com jessie main" >> /etc/apt/sources.list.d/puppetlabs.list;
+echo "deb-src http://apt.puppetlabs.com jessie main" >> /etc/apt/sources.list.d/puppetlabs.list;
 echo "" >> /etc/apt/sources.list.d/puppetlabs.list;
 echo "# Puppetlabs dependencies" >> /etc/apt/sources.list.d/puppetlabs.list;
-echo "deb http://apt.puppetlabs.com wheezy dependencies" >> /etc/apt/sources.list.d/puppetlabs.list;
-echo "deb-src http://apt.puppetlabs.com wheezy dependencies" >> /etc/apt/sources.list.d/puppetlabs.list;
+echo "deb http://apt.puppetlabs.com jessie dependencies" >> /etc/apt/sources.list.d/puppetlabs.list;
+echo "deb-src http://apt.puppetlabs.com jessie dependencies" >> /etc/apt/sources.list.d/puppetlabs.list;
 echo "" >> /etc/apt/sources.list.d/puppetlabs.list;
 echo "# Puppetlabs devel (uncomment to activate)" >> /etc/apt/sources.list.d/puppetlabs.list;
-echo "# deb http://apt.puppetlabs.com wheezy devel" >> /etc/apt/sources.list.d/puppetlabs.list;
-echo "# deb-src http://apt.puppetlabs.com wheezy devel" >> /etc/apt/sources.list.d/puppetlabs.list;
+echo "# deb http://apt.puppetlabs.com jessie devel" >> /etc/apt/sources.list.d/puppetlabs.list;
+echo "# deb-src http://apt.puppetlabs.com jessie devel" >> /etc/apt/sources.list.d/puppetlabs.list;
 echo "" >> /etc/apt/sources.list.d/puppetlabs.list;
 
 # add puppetlabs gpg
@@ -61,14 +61,39 @@ rm /etc/puppet/puppet.conf;
 mv /etc/puppet/puppet.conf.bu /etc/puppet/puppet.conf;
 echo "" >> /etc/puppet/puppet.conf;
 echo "[master]" >> /etc/puppet/puppet.conf;
-echo "# These are needed when the puppetmaster is run by passenger" >> /etc/puppet/puppet.conf;
-echo "# and can safely be removed if webrick is used." >> /etc/puppet/puppet.conf;
-echo "ssl_client_header = SSL_CLIENT_S_DN " >> /etc/puppet/puppet.conf;
-echo "ssl_client_verify_header = SSL_CLIENT_VERIFY" >> /etc/puppet/puppet.conf;
+echo "  # These are needed when the puppetmaster is run by passenger" >> /etc/puppet/puppet.conf;
+echo "  # and can safely be removed if webrick is used." >> /etc/puppet/puppet.conf;
+echo "  ssl_client_header = SSL_CLIENT_S_DN " >> /etc/puppet/puppet.conf;
+echo "  ssl_client_verify_header = SSL_CLIENT_VERIFY" >> /etc/puppet/puppet.conf;
 echo "" >> /etc/puppet/puppet.conf;
-echo "# my module paths" >> /etc/puppet/puppet.conf;
-echo "manifestdir=/etc/puppet/manifests" >> /etc/puppet/puppet.conf;
-echo "modulepath=/etc/puppet/modules/roles:/etc/puppet/modules/profiles:/etc/puppet/modules/services:/etc/puppet/modules/forge" >> /etc/puppet/puppet.conf;
+echo "  # my module paths" >> /etc/puppet/puppet.conf;
+echo '  environmentpath = $confdir/environments' >> /etc/puppet/puppet.conf;
+echo "  basemodulepath=/etc/puppet/modules/roles:/etc/puppet/modules/profiles:/etc/puppet/modules/services:/etc/puppet/modules/forge" >> /etc/puppet/puppet.conf;
+[master]
+    certname = puppet
+    autosign = true
+    environmentpath = $confdir/environments
+    basemodulepath = /etc/puppet/modules/role:/etc/puppet/modules/profile:/etc/puppet/modules/module:/etc/puppet/modules/forge:/etc/puppet/modules/platform-services
+    environment_timeout = unlimited
+    reports = puppetdb
+    storeconfigs = true
+    storeconfigs_backend = puppetdb
+
+[agent]
+runinterval = 30m
+splay = true
+configtimeout = 5m
+usecacheonfailure = true
+report = true
+
+[main]
+ssldir = /var/lib/puppet/ssl
+
+
+
+
+
+
 
 # remove default puppet files
 rm -rf /etc/puppet/manifests;

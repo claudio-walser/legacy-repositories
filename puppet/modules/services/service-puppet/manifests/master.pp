@@ -12,7 +12,8 @@ class service-puppet::master {
 
 	# Configure puppetdb and its underlying database
 	class { 'puppetdb': 
-		listen_address => $::fqdn
+		listen_address => '0.0.0.0',
+		disable_ssl => true
 	}
 	
 	# Configure the puppet master to use puppetdb
