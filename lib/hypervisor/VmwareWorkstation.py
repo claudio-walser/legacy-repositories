@@ -20,7 +20,7 @@ class VmwareWorkstation(DefaultHypervisor):
 .encoding = "UTF-8"
 
 msg.autoAnswer = "true"
-guestOS = "debian7-64"
+guestOS = "$guestOs"
 config.version = "8"
 virtualHW.version = "9"
 machine.id = "$fqdn"
@@ -50,6 +50,7 @@ isolation.tools.hgfs.disable = "false"
       )
   
       substitutedConfig = s.substitute(
+        guestOs =box.getGuestOs(),
         fqdn =box.getFQDN(),
         cpu = box.getHardwareCpu(),
         memory = box.getHardwareMemory(),
