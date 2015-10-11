@@ -155,6 +155,12 @@ ethernet$i.pciSlotNumber = "3$i"
       return self.__getConfigPath(box) in runningVms
     return False
 
+  def isCreated(self, box):
+    return os.path.isfile(self.__getConfigPath(box))
+
+  def isInstalled(self, box):
+    return False
+
   def start(self, box):
     if not self.isRunning(box):
       self.createConfigFile(box)
@@ -163,9 +169,10 @@ ethernet$i.pciSlotNumber = "3$i"
       # vmrun start wont register a box and registering a box with vmrun register wont work
       # vmware -x registers and starts a box properly
       command = [
-        "vmware",
-        "-x",
-        self.__getConfigPath(box)
+        "vmrun",
+        "start",
+        self.__getConfigPath(box),
+        "nogui"
       ]
 
       print(subprocess.check_output(command))
@@ -178,8 +185,7 @@ ethernet$i.pciSlotNumber = "3$i"
         "vmrun",
         "stop",
         self.__getConfigPath(box),
-        "hard",
-        "nogui"
+        "hard"
       ]
 
       print(subprocess.check_output(command))

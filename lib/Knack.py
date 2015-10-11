@@ -41,6 +41,7 @@ class Knack(object):
     
 
   def __instantiateHypervisor(self):
+    # get it dynamicly from allowedHypervisors
     return VmwareWorkstation()
 
 
@@ -60,16 +61,23 @@ class Knack(object):
     # check if box is registered, if not throw an error to start it first
     # check if box is started, if not throw an error to start it first
     # if yes ssh into it
-    print("ssh into box " + self.box)	
+    print("ssh into box " + self.box.getHostname())	
 
   def destroy(self):
     self.hypervisor.destroy(self.box)
     # check if started, if yes stop
     # check if registered, if yes unregister
     # check if created, if yes destroy
-    print("destroy box " + self.box)
+    print("destroy box " + self.box.getHostname())
 
   def status(self):
+    status = "Not created"
+    if self.hypervisor.isCreated(self.box):
+      status = "Created"
+    if self.hypervisor.isRunning(self.box):
+      status = "Running but no VMWareTools installed"
+    if self.hypervisor.isInstalled(self.box):
+      status = "Running and VMWareTools installed"
     # just read the status
-    print("status of box " + self.box)
+    print(self.box.getHostname() + " is in state: " + status)
 
