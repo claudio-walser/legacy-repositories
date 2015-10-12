@@ -20,7 +20,7 @@ class Box(object):
     return self.config['user']
 
   def getPass(self):
-    return self.config['pass']
+    return str(self.config['pass'])
 
   def getFullDomain(self):
     return self.getEnvironment() + "." + self.getDomain()

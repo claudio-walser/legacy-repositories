@@ -6,15 +6,18 @@ from lib.Hypervisor.DefaultHypervisor import DefaultHypervisor
 # import worker classes
 from lib.Hypervisor.VmwareWorkstationWorker.Vmx import Vmx
 from lib.Hypervisor.VmwareWorkstationWorker.Disk import Disk
+from lib.Hypervisor.VmwareWorkstationWorker.VmwareTools import VmwareTools
 
 class VmwareWorkstation(DefaultHypervisor):
 
   vmx = False
   disk = False
+  vmwareTools = False
 
   def __init__(self):
     self.vmx = Vmx(self)
     self.disk = Disk(self)
+    self.vmwareTools = VmwareTools(self)
 
   def createConfigFile(self, box):
     self.vmx.write(box)
@@ -47,23 +50,9 @@ class VmwareWorkstation(DefaultHypervisor):
 
   def isInstalled(self, box):
     if self.isRunning(box):
-      command = [
-        "vmrun",
-        "checkToolsState",
-        self.vmx.getPath(box)
-      ]
-
-      try:
-        processOutput = subprocess.check_output(command)
-      except:
-        return False
-        
-      if type(processOutput) is bytes:
-        processOutputString = processOutput.decode("utf-8")
-        toolsState = processOutputString.split("\n")
-        return "running" in toolsState
+      return self.vmwareTools.hasRealVmwareToolsInstalled(box)
     return False
-
+  
   def start(self, box):
     if not self.isRunning(box):
       self.createConfigFile(box)
@@ -102,28 +91,20 @@ class VmwareWorkstation(DefaultHypervisor):
     self.start(box)
 
   def destroy(self, box):
-    if self.isRunning(box):
-      self.stop(box)
+    if self.isCreated(box):
+      if self.isRunning(box):
+        self.stop(box)
 
-      command = [
-        "vmrun",
-        "deleteVM",
-        self.vmx.getPath(box),
-        "nogui"
-      ]
+        command = [
+          "vmrun",
+          "deleteVM",
+          self.vmx.getPath(box),
+          "nogui"
+        ]
 
-      print(subprocess.check_output(command))
+        print(subprocess.check_output(command))
     else:
       print('vm not created, so nothing to destroy')
 
   def installVmWareTools(self, box):
-    print(box.getHostname() + " is going to receive vmware-tools")
-    if self.isRunning(box):
-      command = [
-        "vmrun",
-        "installTools",
-        self.vmx.getPath(box)
-      ]
-
-      print(subprocess.check_output(command)) 
-
+    self.vmwareTools.installVmWareTools(box)

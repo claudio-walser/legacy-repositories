@@ -77,8 +77,9 @@ class Knack(object):
     if self.hypervisor.isRunning(self.box):
       status = "Running but no VMWareTools installed"
     if self.hypervisor.isInstalled(self.box):
-      status = "Running and VMWareTools installed"
-    # just read the status
+      status = "Running and vmware-tools installed"
+
+    # just print the status
     print(self.box.getHostname() + " is in state: " + status)
 
   def installVmWareTools(self):
