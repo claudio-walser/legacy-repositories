@@ -12,13 +12,13 @@ https://github.com/claudio-walser/knack-debian-7-live-cd/blob/master/config/incl
 # how to build the iso #
 On debian systems install live-bild, clone the repo and build the iso:
 
-sudo apt-get install live-build
-git clone https://github.com/claudio-walser/knack-debian-7-live-cd
-cd knack-debian-7-live-cd
-lb config
-lb clean
-sudo lb build
-
-ls -hal ./*.iso
-
-
+     
+    sudo apt-get install live-build
+    git clone https://github.com/claudio-walser/knack-debian-7-live-cd
+    cd knack-debian-7-live-cd
+    lb config
+    lb clean
+    sudo lb build
+    
+    ls -hal ./*.iso
+     
