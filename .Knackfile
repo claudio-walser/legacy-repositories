@@ -1,31 +1,33 @@
-custom:
+hypervisor: vmware-workstation
+
+globals:
   puppet_master_ip: 10.20.0.2
   puppet_master_hostname: puppet-master-01
 
-knack:
-  hypervisor: vmware-workstation
+vm-defaults:
   user: root
   pass: 1234
-
-vm-defaults:
-    hostname: debian-01
-    environment: development
-    domain: claudio.dev
-    base_path: ~/Development/VMWare/VirtualMachines
-    install_medium: ~/Development/VMWare/Isos/binary.hybrid.iso
-    shared_folders:
-      - ./provisioning
-    hardware:
-      cpu: 1
-      memory: 1024
-      disk: 10GB
-    network:
-      eth0: dhcp
-      eth1: dhcp
+  guest_os: debian8-64
+  hostname: debian-01
+  environment: development
+  domain: claudio.dev
+  base_path: ~/Development/VMWare/VirtualMachines
+  install_medium: ~/Development/VMWare/Isos/live-image-amd64.hybrid.iso
+  shared_folders:
+    - ./provisioning
+  hardware:
+    cpu: 1
+    memory: 1024
+    disk: 10GB
+  network:
+    eth0: dhcp
+    eth1: dhcp
 
 boxes:
   puppet:
-    hostname: <% custom.puppet_master_hostname %>
+    hostname: <% globals.puppet_master_hostname %>
+    install_medium: ~/Development/VMWare/Isos/live-image-amd64.hybrid-wheezy.iso
+    guest_os: debian7-64
     shared_folders:
       - ./puppet
     hardware:
@@ -34,7 +36,19 @@ boxes:
       disk: 10GB
     network:
       eth0:
-        ip: <% custom.puppet_master_ip %>
+        ip: <% globals.puppet_master_ip %>
+        netmask: 255.255.255.0
+        gateway: 10.20.0.1
+
+  dns:
+    hostname: dns-01
+    hardware:
+      cpu: 2
+      memory: 512
+      disk: 10GB
+    network:
+      eth0:
+        ip: 10.20.0.11
         netmask: 255.255.255.0
         gateway: 10.20.0.1
 
