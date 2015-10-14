@@ -19,19 +19,19 @@ class VmwareWorkstation(DefaultHypervisor):
     self.disk = Disk(self)
     self.vmwareTools = VmwareTools(self)
 
-  def createConfigFile(self, box):
-    self.vmx.write(box)
+  def createConfigFile(self, guest):
+    self.vmx.write(guest)
 
-  def createDisk(self, box):
-    self.disk.create(box)
+  def createDisk(self, guest):
+    self.disk.create(guest)
 
-  def isRegistered(self, box):
+  def isRegistered(self, guest):
     raise NotImplementedError("Not able to fetch registered vm's in vmware-workstation")
 
-  def register(self, box):
+  def register(self, guest):
     raise NotImplementedError("Not able to register a vm in vmware-workstation")
 
-  def isRunning(self, box):
+  def isRunning(self, guest):
     command = [
       "vmrun",
       "list",
@@ -42,28 +42,28 @@ class VmwareWorkstation(DefaultHypervisor):
     if type(processOutput) is bytes:
       processOutputString = processOutput.decode("utf-8")
       runningVms = processOutputString.split("\n")
-      return self.vmx.getPath(box) in runningVms
+      return self.vmx.getPath(guest) in runningVms
     return False
 
-  def isCreated(self, box):
-    return os.path.isfile(self.vmx.getPath(box))
+  def isCreated(self, guest):
+    return os.path.isfile(self.vmx.getPath(guest))
 
-  def isInstalled(self, box):
-    if self.isRunning(box):
-      return self.vmwareTools.hasRealVmwareToolsInstalled(box)
+  def isInstalled(self, guest):
+    if self.isRunning(guest):
+      return self.vmwareTools.hasRealVmwareToolsInstalled(guest)
     return False
   
-  def start(self, box):
-    if not self.isRunning(box):
-      self.createConfigFile(box)
-      self.createDisk(box)
+  def start(self, guest):
+    if not self.isRunning(guest):
+      self.createConfigFile(guest)
+      self.createDisk(guest)
       
       # vmrun start wont register a box and registering a box with vmrun register wont work
       # vmware -x registers and starts a box properly
       command = [
         "vmrun",
         "start",
-        self.vmx.getPath(box),
+        self.vmx.getPath(guest),
         "nogui"
       ]
 
@@ -71,12 +71,12 @@ class VmwareWorkstation(DefaultHypervisor):
     else:
       print('vm already started')
 
-  def stop(self, box):
-    if self.isRunning(box):
+  def stop(self, guest):
+    if self.isRunning(guest):
       command = [
         "vmrun",
         "stop",
-        self.vmx.getPath(box),
+        self.vmx.getPath(guest),
         "hard"
       ]
 
@@ -84,21 +84,21 @@ class VmwareWorkstation(DefaultHypervisor):
     else:
       print('vm not running, so nothing to stop')
 
-  def restart(self, box):
-    if self.isRunning(box):
-      self.stop(box)
+  def restart(self, guest):
+    if self.isRunning(guest):
+      self.stop(guest)
 
-    self.start(box)
+    self.start(guest)
 
-  def destroy(self, box):
-    if self.isCreated(box):
-      if self.isRunning(box):
-        self.stop(box)
+  def destroy(self, guest):
+    if self.isCreated(guest):
+      if self.isRunning(guest):
+        self.stop(guest)
 
         command = [
           "vmrun",
           "deleteVM",
-          self.vmx.getPath(box),
+          self.vmx.getPath(guest),
           "nogui"
         ]
 
@@ -106,5 +106,5 @@ class VmwareWorkstation(DefaultHypervisor):
     else:
       print('vm not created, so nothing to destroy')
 
-  def installVmWareTools(self, box):
-    self.vmwareTools.installVmWareTools(box)
+  def installVmWareTools(self, guest):
+    self.vmwareTools.installVmWareTools(guest)

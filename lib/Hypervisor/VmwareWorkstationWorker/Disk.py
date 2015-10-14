@@ -9,14 +9,14 @@ class Disk(object):
   def __init__(self, hypervisor):
     self.hypervisor = hypervisor
 
-  def getPath(self, box):
-    return box.getVmPath() + box.getFQDN() + ".vmdk"
+  def getPath(self, guest):
+    return guest.getConfig().getVmPath() + guest.getConfig().getFQDN() + ".vmdk"
 
-  def has(self, box):
-    return os.path.isfile(self.getPath(box))
+  def has(self, guest):
+    return os.path.isfile(self.getPath(guest))
 
-  def create(self, box):
-    if not self.has(box):
+  def create(self, guest):
+    if not self.has(guest):
       # /usr/bin/vmware-vdiskmanager -c -t 0 -s $SIZE -a ide $VM_PATH/$FQDN.vmdk;
       command = [
         "vmware-vdiskmanager",
@@ -24,10 +24,10 @@ class Disk(object):
         "-t",
         "0",
         "-s",
-        box.getHardwareDisk(),
+        guest.getConfig().getHardwareDisk(),
         "-a",
         "ide",
-        self.getPath(box)
+        self.getPath(guest)
       ]
 
       print(subprocess.check_output(command))

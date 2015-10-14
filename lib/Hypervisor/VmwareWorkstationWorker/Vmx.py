@@ -9,15 +9,15 @@ class Vmx(object):
   def __init__(self, hypervisor):
     self.hypervisor = hypervisor
 
-  def getPath(self, box):
+  def getPath(self, guest):
     # expand ~ with current user directory
-    return box.getVmPath() + box.getFQDN() + ".vmx"
+    return guest.getConfig().getVmPath() + guest.getConfig().getFQDN() + ".vmx"
 
-  def isWritten(self, box):
-    return os.path.isfile(self.getPath(box))
+  def isWritten(self, guest):
+    return os.path.isfile(self.getPath(guest))
 
-  def write(self, box):
-    if not self.isWritten(box):
+  def write(self, guest):
+    if not self.isWritten(guest):
       # need to beautify this
       s = Template("""#!/usr/bin/vmware
 .encoding = "UTF-8"
@@ -53,20 +53,20 @@ isolation.tools.hgfs.disable = "false"
       )
   
       substitutedConfig = s.substitute(
-        guestOs =box.getGuestOs(),
-        fqdn =box.getFQDN(),
-        cpu = box.getHardwareCpu(),
-        memory = box.getHardwareMemory(),
-        extendedConfigFile = self.getPath(box) + "f",
-        diskFile = self.hypervisor.disk.getPath(box),
-        installMedium = box.getInstallMedium(),
-        numSharedFolders = len(box.getSharedFolders())
+        guestOs =guest.getConfig().getGuestOs(),
+        fqdn =guest.getConfig().getFQDN(),
+        cpu = guest.getConfig().getHardwareCpu(),
+        memory = guest.getConfig().getHardwareMemory(),
+        extendedConfigFile = self.getPath(guest) + "f",
+        diskFile = self.hypervisor.disk.getPath(guest),
+        installMedium = guest.getConfig().getInstallMedium(),
+        numSharedFolders = len(guest.getConfig().getSharedFolders())
       )
 
       # find out how to do this in string.Template
       # append shared folders
       i = 0
-      for sharedFolder in box.getSharedFolders():
+      for sharedFolder in guest.getConfig().getSharedFolders():
         if sharedFolder[:1] == '.':
           sharedFolder = os.getcwd() + sharedFolder[1:]
           guestName = sharedFolder.split("/").pop()
@@ -94,7 +94,7 @@ sharedFolder$i.expiration = "never"
 
       #substitutedConfig += "\n# network interfaces"
       i = 0
-      for interface in box.getNetworkInterfaces():
+      for interface in guest.getConfig().getNetworkInterfaces():
         
         networkTemplate = Template("""
 ethernet$i.present = "true"
@@ -114,7 +114,7 @@ ethernet$i.pciSlotNumber = "3$i"
         i += 1
         substitutedConfig += networkConfig
 
-      with open(self.getPath(box), "w") as configFile:
+      with open(self.getPath(guest), "w") as configFile:
         configFile.write("%s" % substitutedConfig)
       
       print('write vmx Config file')

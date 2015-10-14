@@ -1,5 +1,6 @@
 
 import subprocess
+import pprint
 
 class VmwareTools(object):
 
@@ -8,12 +9,12 @@ class VmwareTools(object):
   def __init__(self, hypervisor):
     self.hypervisor = hypervisor
 
-  def __hasOpenVmTools(self, box):
-    if self.hypervisor.isRunning(box):
+  def __hasOpenVmTools(self, guest):
+    if self.hypervisor.isRunning(guest):
       command = [
         "vmrun",
         "checkToolsState",
-        self.hypervisor.vmx.getPath(box)
+        self.hypervisor.vmx.getPath(guest)
       ]
 
       try:
@@ -27,21 +28,22 @@ class VmwareTools(object):
         return "running" in toolsState
     return False
 
+
   # sloooooooowww
-  def hasRealVmwareToolsInstalled(self, box):
+  def hasRealVmwareToolsInstalled(self, guest):
     # FOLDER=$(vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD directoryExistsInGuest $VM_PATH/$FQDN.vmx '/mnt/hgfs/provisioning');
-    if not self.__hasOpenVmTools(box):
+    if not self.__hasOpenVmTools(guest):
       raise Exception('VmwareToolsException', 'No open-vm-tools installed, installation aborted')
 
-    if self.hypervisor.isRunning(box):
+    if self.hypervisor.isRunning(guest):
       command = [
         "vmrun",
         "-gu",
-        box.getUser(),
+        guest.getConfig().getUser(),
         "-gp",
-        box.getPass(),
+        guest.getConfig().getPass(),
         "directoryExistsInGuest",
-        self.hypervisor.vmx.getPath(box),
+        self.hypervisor.vmx.getPath(guest),
         "/mnt/hgfs"
       ]
       
@@ -57,35 +59,49 @@ class VmwareTools(object):
     return False
 
 
-  def installVmWareTools(self, box):
-    print(box.getHostname() + " is going to receive vmware-tools")
+  def installVmWareTools(self, guest):
+    print(guest.getConfig().getHostname() + " is going to receive vmware-tools")
     
-    #apt-get --yes install eject
-    #eject
-
-    if self.isRunning(box):
+    if self.hypervisor.isRunning(guest):
+      
+      #vmrun -gu root -gp $DEFAULT_ROOT_PASSWORD runProgramInGuest "$VM_PATH/$FQDN.vmx" "/vmware-tools/vmware-install.pl -d
+      
       command = [
         "vmrun",
-        "installTools",
-        self.vmx.getPath(box)
-      ]
+         "-gu",
+        guest.getConfig().getUser(),
+        "-gp",
+        guest.getConfig().getPass(),
+        "runScriptInGuest",
+        self.hypervisor.vmx.getPath(guest),
+        guest.getCommandBinary(),
+        guest.ejectMediaCommand(self)
+      ] 
+      processOutput = subprocess.check_output(command)
+      print(processOutput.decode("utf-8"))
+
       try:
-        subprocess.check_output(command)
-        #mkdir /tmp/cdrom
-        #mkdir /tmp/vmware-tools
-        #mount /dev/cdrom /tmp/cdrom
-        #cp /tmp/cdrom/VM*tar.gz /tmp/vmware-tools/vmware-tools.tar.gz
-        #cd /tmp/vmware-tools/
-        #tar -xvzf vmware-tools.tar.gz
-        #cd vmware-tools-distrib
-        #chmod +x vmware-install.pl
-        #./vmware-install.pl -d
-        #command = [
-        #  "vmrun",
-        #  "runScriptInGuest",
-        #  self.vmx.getPath(box),
-        #  "mkdir /tmp/cdrom \
-        #  mount /dev/cdrom /tmp/cdrom "
-        #]
+        command = [
+          "vmrun",
+          "installTools",
+          self.hypervisor.vmx.getPath(guest)
+        ]        
+        
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       except:
+        pass
         raise Exception('VmwareToolsException', 'Unable to install vmware-tools, installation aborted')
+      
+      command = [
+        "vmrun",
+         "-gu",
+        guest.getConfig().getUser(),
+        "-gp",
+        guest.getConfig().getPass(),
+        "runScriptInGuest",
+        self.hypervisor.vmx.getPath(guest),
+        guest.getCommandBinary(),
+        guest.installVmWareToolsCommand(self)
+      ] 
+      processOutput = subprocess.check_output(command)
+      print(processOutput.decode("utf-8"))

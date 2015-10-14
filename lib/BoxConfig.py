@@ -2,7 +2,7 @@
 
 import os
 
-class Box(object):
+class BoxConfig(object):
   
   config = {}
 

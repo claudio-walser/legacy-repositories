@@ -3,23 +3,23 @@
 class DefaultHypervisor(object):
 
   # abstract methods to be overwritten in concrete hypervisors
-  def start(self, box):
+  def start(self, guest):
     raise NotImplementedError( "Should have implemented this" )
 
-  def stop(self, box):
+  def stop(self, guest):
     raise NotImplementedError( "Should have implemented this" )
 
-  def restart(self, box):
+  def restart(self, guest):
     raise NotImplementedError( "Should have implemented this" )
 
-  def destroy(self, box):
+  def destroy(self, guest):
     raise NotImplementedError( "Should have implemented this" )
 
-  def isCreated(self, box):
+  def isCreated(self, guest):
    raise NotImplementedError( "Should have implemented this" )
 
-  def isRunning(self, box):
+  def isRunning(self, guest):
     raise NotImplementedError( "Should have implemented this" )
 
-  def isInstalled(self, box):
+  def isInstalled(self, guest):
     raise NotImplementedError( "Should have implemented this" )
