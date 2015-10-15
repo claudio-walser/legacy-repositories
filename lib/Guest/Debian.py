@@ -6,16 +6,28 @@ class Debian(DefaultGuest):
 
   def getCommandBinary(self):
     return "/bin/bash"
+  
+  def setHostnameCommand(self):
+    shellCode = """
+    echo """ + self.getConfig().getHostname() + """ > /etc/hostname
 
-  def ejectMediaCommand(self, hypervisor):
-    return "/usr/bin/apt-get --yes install eject && /usr/bin/eject || exit 0"
+    """
+    return shellCode
+
+  def ejectMediaCommand(self):
+    shellCode = """
+    /usr/bin/apt-get --yes install eject &&
+    /usr/bin/eject || 
+    exit 0
+    """
+    return shellCode
 
 
   # only used from vmware hypervisor, dont like that dependency but i dont have a better idea yet
-  def installVmWareToolsCommand(self, hypervisor):
-    return "/tmp/cd-mount.sh"
-    
-    shellCode = """/bin/mkdir -p /tmp/cdrom;
+  def installVmWareToolsCommand(self):
+    shellCode = """
+    /usr/bin/apt-get --yes purge open-vm-tools
+    /bin/mkdir -p /tmp/cdrom;
     /bin/mkdir -p /tmp/vmware-tools;
     /bin/umount /tmp/cdrom;
     /bin/mount /dev/cdrom /tmp/cdrom;
@@ -27,12 +39,5 @@ class Debian(DefaultGuest):
     ./vmware-install.pl -d;
     exit 0
     """
-
-    #return shellCode
-
-    return "/bin/echo '#!/bin/bash' > /tmp/cd-mount.sh; \
-    /bin/echo '" + shellCode + "' >> /tmp/cd-mount.sh; \
-    /bin/chmod +x /tmp/cd-mount.sh; \
-    bash /tmp/cd-mount.sh; \
-    "
+    return shellCode
     

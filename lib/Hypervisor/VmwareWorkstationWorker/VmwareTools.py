@@ -44,7 +44,8 @@ class VmwareTools(object):
         guest.getConfig().getPass(),
         "directoryExistsInGuest",
         self.hypervisor.vmx.getPath(guest),
-        "/mnt/hgfs"
+        "/mnt/hgfs",
+        "nogui"
       ]
       
       try:
@@ -75,11 +76,11 @@ class VmwareTools(object):
         "runScriptInGuest",
         self.hypervisor.vmx.getPath(guest),
         guest.getCommandBinary(),
-        guest.ejectMediaCommand(self)
+        guest.ejectMediaCommand()
       ] 
       processOutput = subprocess.check_output(command)
       print(processOutput.decode("utf-8"))
-
+      
       try:
         command = [
           "vmrun",
@@ -101,7 +102,7 @@ class VmwareTools(object):
         "runScriptInGuest",
         self.hypervisor.vmx.getPath(guest),
         guest.getCommandBinary(),
-        guest.installVmWareToolsCommand(self)
+        guest.installVmWareToolsCommand()
       ] 
       processOutput = subprocess.check_output(command)
       print(processOutput.decode("utf-8"))
