@@ -48,6 +48,15 @@ class AbstractKnack(object):
 
 
   """
+  getActions: Returns a list of all implemented actions.
+
+    @return list          List of all implemented actions
+  """
+  def getActions(self):
+    return ["status", "start", "stop", "restart", "ssh", "provision", "destroy"]
+
+
+  """
   getBoxList: Makes a list of a given box-param. Displays an error if the box does not exist,
               fetches all possible boxes from config in case of wildcard <*> is given.
 
