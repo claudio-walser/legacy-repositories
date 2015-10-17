@@ -13,13 +13,12 @@ class AbstractInterface(object):
   error: Displays the error message on command line
 
     @arg msg:str    Message to display before exit
-    @arg code:int   (Non-Zero)Exit Code - default to 1
-    @void
+    @return bool    Returns True
   """ 
-  def error(self, msg: str, code: int = 1):
-    print(msg)    
-       
-    sys.exit(code)
+  def error(self, msg: str):
+    print(msg)
+
+    return True
 
   """
   warning: Displays a message as header
@@ -39,7 +38,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def header(self, msg: str):
-    print(self.HEADER + msg + self.ENDC)
+    print(msg)
     
     return True
 
@@ -50,7 +49,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def info(self, msg: str):
-    print(self.OKBLUE + msg + self.ENDC)
+    print(msg)
 
     return True
 
@@ -61,6 +60,6 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def ok(self, msg: str):
-    print(self.OKGREEN + msg + self.ENDC)
+    print(msg)
 
     return True

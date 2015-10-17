@@ -22,6 +22,10 @@ class Knackfile:
   """
   yaml = {}
 
+  """
+  loaded: bool Indicates if config has been loaded successfully
+  """
+  loaded = False
 
   """
   load: Tries to load .Knackfile in cwd
@@ -37,7 +41,7 @@ class Knackfile:
     # open and load .Knackfile
     with open("./.Knackfile", 'r') as stream:
       self.yaml = yaml.safe_load(stream)
-
+      self.loaded = True
     return True
 
 
@@ -74,6 +78,9 @@ class Knackfile:
     @return bool
   """
   def hasBox(self, box: str):
+    if self.loaded == False:
+      return False
+
     return box in self.yaml["boxes"]
 
   """
@@ -82,6 +89,9 @@ class Knackfile:
     @return list             Returns a list of all box names
   """
   def getAllBoxNames(self):
+    if self.loaded == False:
+      return []
+
     return self.yaml["boxes"].keys()
 
 
@@ -93,6 +103,9 @@ class Knackfile:
     @return dict                            Returns the deep merged dict
   """
   def getConfigForBox(self, box: str):
+    if self.loaded == False:
+      return {}
+
     # get default vm config
     defaultConfig = self.yaml["vm-defaults"]
     if not self.hasBox(box):

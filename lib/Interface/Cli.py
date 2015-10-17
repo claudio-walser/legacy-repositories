@@ -33,15 +33,14 @@ class Cli(AbstractInterface):
   error: Displays the error message on command line
 
     @arg msg:str    Message to display before exit
-    @arg code:int   (Non-Zero)Exit Code - default to 1
-    @void
+    @return bool    Returns True
   """ 
-  def error(self, msg: str, code: int = 1):
+  def error(self, msg: str):
     # some cli colors
     print(self.FAIL + "Error: " + self.ENDC)
-    print(msg)    
-       
-    sys.exit(code)
+    print(msg)
+
+    return True
 
   """
   warning: Displays a message as header

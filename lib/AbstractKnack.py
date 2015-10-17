@@ -35,16 +35,27 @@ class AbstractKnack(object):
   """
   Constructor: Instantiate Knackfile and load yaml config
 
+    @arg interface:str        The Interface type you currently work with, default "cli"
     @void
   """ 
   def __init__(self, interface: str = "cli"):
     if not self.__setInterface(interface):
       self.interface.error("Interface Type not found, possible interfaces are: " + "|".join(self.interfaces))
 
+    self.loadConfig()
+    
+  """
+  loadConfig: Load yaml config
+
+    @return bool    Returns true or false, whether the file has been loaded or not
+  """ 
+  def loadConfig(self):
     try:
       self.knackfile.load()
     except KnackfileNotFoundException:
       self.interface.error("No .Knackfile found. Aborting!")
+      return False
+    return True
 
 
   """
@@ -78,8 +89,8 @@ class AbstractKnack(object):
   __setInterface: Sets a given interface if it exists
 
     @private 
-    @arg interface:str    Interface you want to work with
-    @return bool          True if given interface can be used, False otherwise
+    @arg interface:str        Interface you want to work with
+    @return bool              True if given interface can be used, False otherwise
   """
   def __setInterface(self, interface: str):
     if not interface in self.interfaces:
