@@ -111,8 +111,7 @@ class Cli(AbstractInterface):
     # given options completer
     if type(options) == list:
       print(self.BOLD + "Possibilities: " + self.ENDC + "[" + ", ".join(options) +  "]")
-
-      completer.setPossibilities(options)
+      completer.setOptions(options)
       readline.set_completer(completer.completeOptions)
 
     # directory completer
@@ -123,13 +122,12 @@ class Cli(AbstractInterface):
     # if no options set, use an empty completer as default
     if options == False:
       readline.set_completer(completer.completeNothing)
-     
     if default != False:
       print(self.BOLD + "Default: " + self.ENDC + default)
-      
 
     value = input("")
-    # reset all completers first
+
+    # reset all completers after user input is happen
     readline.set_completer()
 
     if type(value) == str:
@@ -144,45 +142,64 @@ class Cli(AbstractInterface):
     return value
 
 
-
-
-
-
-
-
-
-
-
+"""
+Cli tab completion class.
+"""
 class InputCompleter(object):
 
-    possibilities = []
-    re = re.compile('.*\s+$', re.M)
-    
-    def setPossibilities(self, possibilities: list):
-      self.possibilities = possibilities
+    """
+    Options list to complete with.
+    """
+    options = []
 
+    """
+    Regex for split user input by space.
+    """
+    re = re.compile('.*\s+$', re.M)
+
+    """
+    setOptions: Set list to complete with.
+
+      @arg optoions:list List with possible options
+      @arg default:str    Default string
+      @return bool        Returns True
+    """
+    def setOptions(self, options: list):
+      self.options = options
+      return True
+
+    """
+    completeNothing: Empty completer
+
+      @return bool        Returns False
+    """
     def completeNothing(self, text, state):
       return False
 
+    """
+    completeOptions: Complete options
+
+      @return bool        Returns True or False for tab completion with an options list
+    """
     def completeOptions(self, text, state):
         # need to simplify this much more,l sure there is a lot to much
         buffer = readline.get_line_buffer()
         line = readline.get_line_buffer().split()
         # show all commands
         if not line:
-            return [c + ' ' for c in self.possibilities][state]
+            return [c + ' ' for c in self.options][state]
 
         # account for last argument ending in a space
         if self.re.match(buffer):
             line.append('')
+        
         # resolve command to the implementation function
         cmd = line[0].strip()
-        if cmd in self.possibilities:
-            impl = getattr(self, 'complete_%s' % cmd)
+        if cmd in self.options:
             args = line[1:]
             if args:
-                return (impl(args) + [None])[state]
+                return False
             return [cmd + ' '][state]
-        results = [c + ' ' for c in self.possibilities if c.startswith(cmd)] + [None]
+        results = [c + ' ' for c in self.options if c.startswith(cmd)] + [None]
         return results[state]
 
