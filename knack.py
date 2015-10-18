@@ -53,8 +53,14 @@ dispatch: Calls desired action with box in Knack
 def main(action: str, box: str):
   # abort if not initialize and still no config
   if knack.knackfile.loaded == False and action != "init":
+    knack.interface.error("No .Knackfile exists. Aborting!")
     sys.exit(1)
 
+  # on the other hand if you like to create one and it already exists
+  if knack.knackfile.loaded == True and action == "init":
+    knack.interface.error(".Knackfile already exists. Aborting!")
+    sys.exit(1)
+      
   methodToCall = getattr(knack, action)
   result = methodToCall(box)
 
