@@ -90,3 +90,29 @@ class Cli(AbstractInterface):
     print(self.OKGREEN + msg + self.ENDC)
 
     return True
+
+  """
+  askFor: Ask for user input, reask if invalid answer given.
+
+    @arg msg:str        Question to ask
+    @arg optoions:list  List with possible options
+    @arg default:str    Default string 
+    @return bool        Returns True
+  """ 
+  def askFor(self, prompt: str, options: list = False, default: str = False):
+    self.info(prompt + ":")
+    if type(options) == list:
+      print(self.BOLD + "Possibilities: " + self.ENDC + "[" + ", ".join(options) +  "]")
+     
+    if default != False:
+      print(self.BOLD + "Default: " + self.ENDC + default)
+
+    value = input("")
+
+    if value == "" and default != False:
+      value = default
+
+    if type(options) == list and value not in options:
+      self.error("Value <" + value + "> not allowed! Choose one of " + ", ".join(options))
+      return self.askFor(prompt, options, default)
+    return value

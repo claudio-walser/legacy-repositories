@@ -63,3 +63,14 @@ class AbstractInterface(object):
     print(msg)
 
     return True
+
+  """
+  askFor: Ask for user input
+
+    @arg msg:str        Question to ask
+    @arg optoions:list  List with possible options
+    @arg default:str    Default string 
+    @return bool        Returns True
+  """ 
+  def askFor(self, prompt: str, options: list = False, default: str = False):
+    raise Exception("Not implemented in abstract class lib.Interface.AbstractInterface.AbstractInterface")
