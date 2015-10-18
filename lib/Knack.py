@@ -22,7 +22,7 @@ class Knack(AbstractKnack):
   def init(self, boxes):
     boxList = self.getBoxList(boxes)
     self.interface.header("Initialize")
-    
+    print("")
     initialize = InitializeKnack()
     initialize.askDefaults(self.interface)
     

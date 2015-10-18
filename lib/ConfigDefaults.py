@@ -20,3 +20,19 @@ class ConfigDefaults(object):
   """ 
   def getDefaultHypervisor(self):
     return self.getHypervisors()[0]
+
+  """
+  getHypervisors: Get possible guest systems
+
+    @return list  List of all possible guest systems
+  """ 
+  def getGuests(self):
+    return ["debian-7", "debian-8"]
+
+  """
+  getDefaultHypervisor: Get the default guest
+
+    @return str  Default hypervisor as string
+  """ 
+  def getDefaultGuest(self):
+    return self.getGuests()[0]

@@ -43,7 +43,7 @@ boxes:
         netmask: 255.255.255.0
         gateway: 10.20.0.1
 
-  dns:
+  dns-bleichmuus:
     hostname: dns-01
     hardware:
       cpu: 2
