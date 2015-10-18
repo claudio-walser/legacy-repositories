@@ -5,8 +5,6 @@ import sys
 
 from lib.Knackfile import Knackfile
 from lib.Interface.Cli import Cli
-from lib.Exceptions import KnackfileNotFoundException
-
 
 """
 This is the AbstractKnack class, trying to load .Knackfile
@@ -52,10 +50,9 @@ class AbstractKnack(object):
   def loadConfig(self):
     try:
       self.knackfile.load()
-    except KnackfileNotFoundException:
-      self.interface.error("No .Knackfile found. Aborting!")
+      return True
+    except:
       return False
-    return True
 
 
   """
@@ -64,7 +61,7 @@ class AbstractKnack(object):
     @return list          List of all implemented actions
   """
   def getActions(self):
-    return ["status", "start", "stop", "restart", "ssh", "provision", "destroy"]
+    return ["init", "status", "start", "stop", "restart", "ssh", "provision", "destroy"]
 
 
   """

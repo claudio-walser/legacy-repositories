@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-
 from lib.AbstractKnack import AbstractKnack
+from lib.InitializeKnack import InitializeKnack
 
 
 """
@@ -15,6 +15,19 @@ class Knack(AbstractKnack):
 
 
   """
+  Initialize a new config file.
+
+    @void
+  """ 
+  def init(self, boxes):
+    boxList = self.getBoxList(boxes)
+    self.interface.header("Initialize")
+    
+    initialize = InitializeKnack()
+    initialize.askDefaults(self.interface)
+    
+
+  """
   Show box status
 
     @void
@@ -23,7 +36,6 @@ class Knack(AbstractKnack):
     boxList = self.getBoxList(boxes)
     self.interface.header("Status")
     print("lib.Knack.status of " + ", ".join(boxList)) 
-
 
 
   """
