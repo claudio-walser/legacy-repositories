@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-
-import sys
-
 from lib.Knackfile import Knackfile
 from lib.Interface.Cli import Cli
 
@@ -25,10 +22,9 @@ class AbstractKnack(object):
   interfaces = ["cli"]
 
   """
-  interface: str Default Interface - default first list-entry of self.interfaces
+  interface: lib.Interface.AbstractInterface.AbstractInterface Default Interface - default Cli
   """ 
   interface = Cli()
-
 
   """
   Constructor: Instantiate Knackfile and load yaml config

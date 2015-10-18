@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-
-import sys
-
 from lib.Interface.AbstractInterface import AbstractInterface
 
 """
