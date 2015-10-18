@@ -39,8 +39,24 @@ class Knackfile:
     if os.path.isfile("./.Knackfile"):
       raise KnackfileAlreadyFoundException('.Knackfile already found in ' + os.getcwd())
 
+
+    #split config for odering
+    hypervisorConfig = {
+      'hypervisor': configToWrite["hypervisor"]
+    }
+    vmDefaultConfig = {
+      'vm-defaults': configToWrite["vm-defaults"]
+    }
+    boxesConfig = {
+      'boxes': configToWrite["boxes"]
+    }
+
     with open("./.Knackfile", "w") as outfile:
-      outfile.write( yaml.dump(configToWrite, default_flow_style=False) )
+      outfile.write(yaml.dump(hypervisorConfig, default_flow_style=False))
+      outfile.write("\n")
+      outfile.write(yaml.dump(vmDefaultConfig, default_flow_style=False))
+      outfile.write("\n")
+      outfile.write(yaml.dump(boxesConfig, default_flow_style=False))
       return True
 
     return False
