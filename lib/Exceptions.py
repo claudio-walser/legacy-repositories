@@ -6,7 +6,7 @@ Some (hopefully) meaningful exception names
 class KnackException(Exception):
   pass
 
-class InitializeKnackfileAlreadyFoundException(Exception):
+class KnackfileAlreadyFoundException(Exception):
   pass
 
 class KnackfileNotFoundException(Exception):

@@ -8,6 +8,7 @@ import re
 from lib.Exceptions import KnackfileNotFoundException
 from lib.Exceptions import KnackfileBoxNotFoundException
 from lib.Exceptions import KnackfileReusableConfigException
+from lib.Exceptions import KnackfileAlreadyFoundException
 
 
 """
@@ -26,6 +27,23 @@ class Knackfile:
   loaded: bool Indicates if config has been loaded successfully
   """
   loaded = False
+
+  """
+  write: Writes a new .Knackfile in current working directory by given config.
+
+    @arg configToWrite:dict   Config to write into .Knackfile
+    @raises KnackfileAlreadyFoundException    .Knackfile already found in cwd
+    @return bool              True or False, whether the file has been written or not
+  """
+  def write(self, configToWrite):
+    if os.path.isfile("./.Knackfile"):
+      raise KnackfileAlreadyFoundException('.Knackfile already found in ' + os.getcwd())
+
+    with open("./.Knackfile", "w") as outfile:
+      outfile.write( yaml.dump(configToWrite, default_flow_style=False) )
+      return True
+
+    return False
 
   """
   load: Tries to load .Knackfile in cwd

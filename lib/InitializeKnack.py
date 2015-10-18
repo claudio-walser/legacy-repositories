@@ -3,8 +3,10 @@
 import os
 
 from lib.ConfigDefaults import ConfigDefaults
-from lib.Exceptions import InitializeKnackfileAlreadyFoundException
+from lib.Exceptions import KnackfileAlreadyFoundException
 from lib.Interface.AbstractInterface import AbstractInterface
+
+from lib.Knackfile import Knackfile
 
 """
 This is the AbstractKnack class, trying to load .Knackfile
@@ -59,7 +61,7 @@ class InitializeKnack(object):
   """ 
   def __init__(self):
     if os.path.isfile("./.Knackfile"):
-      raise InitializeKnackfileAlreadyFoundException(".Knackfile already exists")
+      raise KnackfileAlreadyFoundException(".Knackfile already exists")
 
   """
   askDefaults: Start asking default values with interface object
@@ -81,19 +83,40 @@ class InitializeKnack(object):
     boxMemory = interface.askFor("What memory size you want to use?", False, "1024")
     boxDiskSize = interface.askFor("What disk size you want to use?", False, "10GB")
 
+    # put minimal config dict together
+    configToWrite = {
+      'hypervisor': hypervisor,
+      'vm-defaults': {
+        'guest_os': guest,
+        'hostname': 'default',
+        'environment': boxEnvironment,
+        'domain': boxDomain,
+        'base_path': basePath,
+        'install_medium': installMedium,
+        'hardware': {
+          'cpu': boxCpu,
+          'memory': boxMemory,
+          'disk': boxDiskSize
+        },
+        'network': {
+          'eth0': 'dhcp'
+        }
+      },
 
+      'boxes': {
+        boxName: {
+          'hostname': boxName
+        }
+      }
+    }
 
-    interface.ok("Given answers: ")
-    print("hypervisor: " + hypervisor)
-    print("basePath: " + basePath)
-    print("guest os: " + guest)
-    print("install medium: " + installMedium)
- 
+    # write .Knackfile
+    knackfile = Knackfile()
+    written = knackfile.write(configToWrite)
 
-    print("box name: " + boxName)
-    print("box domain: " + boxDomain)
-    print("box environment: " + boxEnvironment)
+    if written == True:
+      interface.ok('.Knackfile successfully written')
+    else:
+      interface.error('Could not write .Knackfile. Check folder permissions in ' + os.getcwd())
 
-    print("box cpu: " + boxCpu)
-    print("box memory: " + boxMemory)
-    print("box disk size: " + boxDiskSize)
+   
