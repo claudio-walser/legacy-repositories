@@ -6,6 +6,18 @@ Abstract interface class
 """
 class AbstractInterface(object):
 
+
+  """
+  writeOut: Prints message
+
+    @arg msg:str    Message to display before exit
+    @return bool    Returns True
+  """
+  def writeOut(self, msg: str):
+    print(msg)
+
+    return True
+
   """
   error: Displays the error message on command line
 
@@ -13,9 +25,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def error(self, msg: str):
-    print(msg)
-
-    return True
+    return self.writeOut(msg)
 
   """
   warning: Displays a message as header
@@ -24,9 +34,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def warning(self, msg: str):
-    print(msg)  
-
-    return True
+    return self.writeOut(msg)
 
   """
   header: Displays a message as header
@@ -35,9 +43,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def header(self, msg: str):
-    print(msg)
-    
-    return True
+    return self.writeOut(msg)
 
   """
   info: Displays a message as info
@@ -46,9 +52,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def info(self, msg: str):
-    print(msg)
-
-    return True
+    return self.writeOut(msg)
 
   """
   ok: Displays a message as ok
@@ -57,9 +61,7 @@ class AbstractInterface(object):
     @return bool    Returns True
   """ 
   def ok(self, msg: str):
-    print(msg)
-
-    return True
+    return self.writeOut(msg)
 
   """
   askFor: Ask for user input

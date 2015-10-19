@@ -36,50 +36,42 @@ class Cli(AbstractInterface):
 
     @arg msg:str    Message to display before exit
     @return bool    Returns True
-  """ 
+  """
   def error(self, msg: str):
     # some cli colors
-    print(self.FAIL + "Error: " + self.ENDC)
-    print(msg)
-
-    return True
+    self.writeOut(self.FAIL + "Error: " + self.ENDC)
+    return self.writeOut(msg)
 
   """
   warning: Displays a message as header
 
     @arg msg:str    Message to display
     @return bool    Returns True
-  """ 
+  """
   def warning(self, msg: str):
     # some cli colors
-    print(self.WARNING + "Error: " + self.ENDC)
-    print(msg)  
-
-    return True
+    self.writeOut(self.WARNING + "Warning: " + self.ENDC)
+    return self.writeOut(msg)
 
   """
   header: Displays a message as header
 
     @arg msg:str    Message to display
     @return bool    Returns True
-  """ 
+  """
   def header(self, msg: str):
     # some cli colors
-    print(self.HEADER + msg + self.ENDC)
-
-    return True
+    return self.writeOut(self.HEADER + msg + self.ENDC)
 
   """
   info: Displays a message as info
 
     @arg msg:str    Message to display
     @return bool    Returns True
-  """ 
+  """
   def info(self, msg: str):
     # some cli colors
-    print(self.OKBLUE + msg + self.ENDC)
-
-    return True
+    return self.writeOut(self.OKBLUE + msg + self.ENDC)
 
   """
   ok: Displays a message as ok
@@ -89,9 +81,7 @@ class Cli(AbstractInterface):
   """ 
   def ok(self, msg: str):
     # some cli colors
-    print(self.OKGREEN + msg + self.ENDC)
-
-    return True
+    return self.writeOut(self.OKGREEN + msg + self.ENDC)
 
   """
   askFor: Ask for user input, reask if invalid answer given.
@@ -110,7 +100,7 @@ class Cli(AbstractInterface):
 
     # given options completer
     if type(options) == list:
-      print(self.BOLD + "Possibilities: " + self.ENDC + "[" + ", ".join(options) +  "]")
+      self.writeOut(self.BOLD + "Possibilities: " + self.ENDC + "[" + ", ".join(options) +  "]")
       completer.setOptions(options)
       readline.set_completer(completer.completeOptions)
 
@@ -123,7 +113,7 @@ class Cli(AbstractInterface):
     if options == False:
       readline.set_completer(completer.completeNothing)
     if default != False:
-      print(self.BOLD + "Default: " + self.ENDC + default)
+      self.writeOut(self.BOLD + "Default: " + self.ENDC + default)
 
     value = input("")
 
