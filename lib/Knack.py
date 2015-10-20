@@ -24,6 +24,10 @@ class Knack(AbstractKnack):
     self.interface.writeOut("")
     initialize = InitializeKnack()
     initialize.askDefaults(self.interface)
+    if initialize.writeConfig():
+      self.interface.ok('.Knackfile successfully written')
+    else:
+      self.interface.error('Could not write .Knackfile. Check folder permissions in ' + os.getcwd())
     
 
   """

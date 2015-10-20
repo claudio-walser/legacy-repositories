@@ -98,6 +98,9 @@ class GuestConfig(object):
     return self.config['environment']
 
   def getSharedFolders(self):
+    if not "shared_folders" in self.config:
+      return []
+      
     return self.config['shared_folders']
 
   def getHardwareCpu(self):

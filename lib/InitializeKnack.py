@@ -16,33 +16,6 @@ and providing other main functionality of the program.
 """
 class InitializeKnack(object):
   
-  '''
-  vm-defaults:
-  user: root
-  pass: 1234
-  guest_os: debian8-64
-  hostname: debian-01
-  environment: development
-  domain: claudio.dev
-  base_path: ~/Development/VMWare/VirtualMachines
-  install_medium: ~/Development/VMWare/Isos/live-image-amd64.hybrid.iso
-  shared_folders:
-    - ./provisioning
-  copyFiles:
-    authorized_keys:
-      source: ~/Development/VMWare/Authentication/authorized_keys
-      target: /root/.ssh/authorized_keys
-  hardware:
-    cpu: 1
-    memory: 1024
-    disk: 10GB
-  network:
-    eth0: dhcp
-    eth1: dhcp
-  '''
-
-
-
   """
   Config to write
   """ 
@@ -84,7 +57,7 @@ class InitializeKnack(object):
     boxDiskSize = interface.askFor("What disk size you want to use?", False, "10GB")
 
     # put minimal config dict together
-    configToWrite = {
+    self.config = {
       'hypervisor': hypervisor,
       'vm-defaults': {
         'guest_os': guest,
@@ -110,13 +83,15 @@ class InitializeKnack(object):
       }
     }
 
+  """
+  writeConfig: Writes config object to yaml file
+
+    @return   bool  True if file has been written otherwise False
+  """ 
+  def writeConfig(self):
     # write .Knackfile
     knackfile = Knackfile()
-    written = knackfile.write(configToWrite)
+    written = knackfile.write(self.config)
 
-    if written == True:
-      interface.ok('.Knackfile successfully written')
-    else:
-      interface.error('Could not write .Knackfile. Check folder permissions in ' + os.getcwd())
-
+    return written
    

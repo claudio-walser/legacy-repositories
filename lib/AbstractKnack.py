@@ -45,7 +45,10 @@ class AbstractKnack(object):
       self.interface.error("Interface Type not found, possible interfaces are: " + "|".join(self.interfaces))
 
     self.loadConfig()
-    self.loadHypervisor()
+    try:
+      self.loadHypervisor()
+    except:
+      pass
 
   """
   loadHypervisor: Load Hypervisor object defined in config
