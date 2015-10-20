@@ -27,7 +27,7 @@ class ConfigDefaults(object):
     @return list  List of all possible guest systems
   """ 
   def getGuests(self):
-    return ["debian-7", "debian-8"]
+    return ["debian7-64", "debian8-64"]
 
   """
   getDefaultHypervisor: Get the default guest

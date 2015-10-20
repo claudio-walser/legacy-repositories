@@ -9,8 +9,8 @@ class Debian(AbstractGuest):
 
 
   """
-  whatever
+  status: Read status of this box
   """ 
-  def start(self, boxConfig):
-  
+  def status(self):
+    print(self.getHostname() + "mother fucker")
     return False

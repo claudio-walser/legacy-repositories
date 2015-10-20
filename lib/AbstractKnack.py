@@ -2,6 +2,7 @@
 
 from lib.Knackfile import Knackfile
 from lib.Interface.Cli import Cli
+from lib.HypervisorFactory import HypervisorFactory
 
 """
 This is the AbstractKnack class, trying to load .Knackfile
@@ -27,6 +28,10 @@ class AbstractKnack(object):
   interface = Cli()
 
   """
+  hypervisor: lib.Hypervisor.AbstractHypervisor.AbstractHypervisor Hypervisor object to work with
+  """
+  hypervisor = False
+  """
   Constructor: Instantiate Knackfile and load yaml config
 
     @arg interface:str        The Interface type you currently work with, default "cli"
@@ -37,6 +42,23 @@ class AbstractKnack(object):
       self.interface.error("Interface Type not found, possible interfaces are: " + "|".join(self.interfaces))
 
     self.loadConfig()
+    self.loadHypervisor()
+  """
+  loadHypervisor: Load Hypervisor object defined in config
+
+    @raise  Exception   Raises an exception if no config loaded yet
+    @raise  Exception   Raises an exception if no hypervisor found in config
+    @return bool        Returns true
+  """ 
+  def loadHypervisor(self):
+    if not self.knackfile.loaded:
+      raise Exception("No config loaded yet.")
+
+    if not self.knackfile.getConfigByNamespace("hypervisor"):
+      raise Exception("No hypervisor found in config")
+
+    self.hypervisor =  HypervisorFactory.create(self.knackfile.getConfigByNamespace("hypervisor"))
+    return True
     
   """
   loadConfig: Load yaml config
