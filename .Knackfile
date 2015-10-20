@@ -5,8 +5,6 @@ globals:
   puppet_master_hostname: puppet-master-01
 
 vm-defaults:
-  user: root
-  pass: 1234
   guest_os: debian8-64
   hostname: debian-01
   environment: development
