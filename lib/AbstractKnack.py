@@ -117,6 +117,7 @@ class AbstractKnack(object):
       raise Exception("Boxname " + box + " not found in .Knackfile")
     
     guest = GuestFactory.create(boxConfig)
+    guest.setName(box)
     guest.setHypervisor(self.hypervisor)
     guest.setInterface(self.interface)
     

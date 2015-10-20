@@ -12,7 +12,7 @@ vm-defaults:
   environment: development
   domain: claudio.dev
   base_path: ~/Development/VMWare/VirtualMachines
-  install_medium: ~/Development/VMWare/Isos/live-image-amd64.hybrid.iso
+  install_medium: ~/Development/VMWare/Isos/wheezy-vmware-tools.iso
   shared_folders:
     - ./provisioning
   copyFiles:
@@ -30,7 +30,6 @@ vm-defaults:
 boxes:
   puppet:
     hostname: <% globals.puppet_master_hostname %>
-    install_medium: ~/Development/VMWare/Isos/wheezy-vmware-tools.iso
     shared_folders:
       - ./puppet
     hardware:

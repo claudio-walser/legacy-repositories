@@ -23,7 +23,7 @@ class Debian(AbstractGuest):
       status = "Running and vmware-tools installed"
 
     # just print the status
-    self.interface.writeOut(self.getHostname().ljust(30) + status)
+    self.interface.writeOut(self.getName().ljust(30) + status)
 
     return True
 
@@ -44,7 +44,7 @@ class Debian(AbstractGuest):
     @void
   """ 
   def stop(self):
-    raise Exception("Not implemented")
+    self.hypervisor.stop(self)
 
   """
   Restart box
@@ -52,7 +52,7 @@ class Debian(AbstractGuest):
     @void
   """ 
   def restart(self):
-    raise Exception("Not implemented")
+    self.hypervisor.restart(self)
 
   """
   Ssh into box
@@ -60,7 +60,7 @@ class Debian(AbstractGuest):
     @void
   """ 
   def ssh(self):
-    raise Exception("Not implemented")
+    print("ssh into box " + self.getHostname())
 
   """
   Provision box
@@ -68,7 +68,7 @@ class Debian(AbstractGuest):
     @void
   """ 
   def provision(self):
-    raise Exception("Not implemented")
+    print("provision box " + self.getHostname())
 
   """
   Destroy box
@@ -76,5 +76,5 @@ class Debian(AbstractGuest):
     @void
   """ 
   def destroy(self):
-    raise Exception("Not implemented")
+        self.hypervisor.destroy(self)
 

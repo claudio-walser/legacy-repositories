@@ -61,9 +61,11 @@ class Knack(AbstractKnack):
     @void
   """ 
   def stop(self, boxes):
-    boxList = self.getBoxList(boxes)
+    boxes = self.getBoxList(boxes)
     self.interface.header("Stop")
-    print("lib.Knack.stop " + ", ".join(boxList)) 
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      guest.stop()
 
 
   """
@@ -72,9 +74,12 @@ class Knack(AbstractKnack):
     @void
   """ 
   def restart(self, boxes):
-    boxList = self.getBoxList(boxes)
+    boxes = self.getBoxList(boxes)
     self.interface.header("Restart")
-    print("lib.Knack.restart " + ", ".join(boxList)) 
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      guest.restart()
+
 
 
   """
@@ -83,9 +88,12 @@ class Knack(AbstractKnack):
     @void
   """ 
   def ssh(self, boxes):
-    boxList = self.getBoxList(boxes)
+    boxes = self.getBoxList(boxes)
     self.interface.header("Ssh")
-    print("lib.Knack.ssh " + ", ".join(boxList)) 
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      guest.ssh()
+
 
 
   """
@@ -94,9 +102,12 @@ class Knack(AbstractKnack):
     @void
   """ 
   def provision(self, boxes):
-    boxList = self.getBoxList(boxes)
+    boxes = self.getBoxList(boxes)
     self.interface.header("Provision")
-    print("lib.Knack.provision " + ", ".join(boxList)) 
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      guest.provision()
+
 
 
   """
@@ -105,7 +116,10 @@ class Knack(AbstractKnack):
     @void
   """ 
   def destroy(self, boxes):
-    boxList = self.getBoxList(boxes)
-    self.interface.header("Provision")
-    print("lib.Knack.destroy " + ", ".join(boxList)) 
+    boxes = self.getBoxList(boxes)
+    self.interface.header("Destroy")
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      guest.destroy()
+
 
