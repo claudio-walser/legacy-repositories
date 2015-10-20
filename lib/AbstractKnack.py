@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+import pprint
+
 from lib.Knackfile import Knackfile
 from lib.Interface.Cli import Cli
 from lib.HypervisorFactory import HypervisorFactory
+from lib.GuestFactory import GuestFactory
 
 """
 This is the AbstractKnack class, trying to load .Knackfile
@@ -43,6 +46,7 @@ class AbstractKnack(object):
 
     self.loadConfig()
     self.loadHypervisor()
+
   """
   loadHypervisor: Load Hypervisor object defined in config
 
@@ -59,7 +63,7 @@ class AbstractKnack(object):
 
     self.hypervisor =  HypervisorFactory.create(self.knackfile.getConfigByNamespace("hypervisor"))
     return True
-    
+
   """
   loadConfig: Load yaml config
 
@@ -99,6 +103,24 @@ class AbstractKnack(object):
 
     return boxes 
 
+  """
+  getGuestObjectDict: Instantiates a Guest object from given boxname.
+
+    @arg box:str                      The box you want to create a guest object from
+    @raise Exception                  Raises an exception if boxname could not be found in .Knackfile
+    @return lib.Guest.AbstractGuest   Finalized guest object
+  """
+  def getGuestObject(self, box: str):
+    if self.knackfile.hasBox(box):
+      boxConfig = self.knackfile.getConfigForBox(box)
+    else:
+      raise Exception("Boxname " + box + " not found in .Knackfile")
+    
+    guest = GuestFactory.create(boxConfig)
+    guest.setHypervisor(self.hypervisor)
+    guest.setInterface(self.interface)
+    
+    return guest
 
   """
   __setInterface: Sets a given interface if it exists

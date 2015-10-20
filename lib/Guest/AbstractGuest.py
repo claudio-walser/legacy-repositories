@@ -33,6 +33,15 @@ class AbstractGuest(object):
     self.hypervisor = hypervisor
     return True
 
+  def createVmBasePath(self):
+    try:
+      os.makedirs(self.getVmPath())
+    except OSError as exc: # Python >2.5
+      if exc.errno == errno.EEXIST and os.path.isdir(self.getVmPath()):
+        pass
+      else: 
+        raise
+
   def checkConfig(self, boxConfig):
     if not "guest_os" in boxConfig:
       raise Exception("Mandatory entry 'guest_os' not found in config")
@@ -80,12 +89,6 @@ class AbstractGuest(object):
   def getGuestOs(self):
     return self.config['guest_os']
 
-  #def getUser(self):
-  #  return self.config['user']
-
-  #def getPass(self):
-  #  return str(self.config['pass'])
-
   def getFullDomain(self):
     return self.getEnvironment() + "." + self.getDomain()
 
@@ -127,3 +130,63 @@ class AbstractGuest(object):
       raise Exception('ParameterException', 'You requesting an interface which is not defined in your config: ' + eth)
 
     return self.config['network'][eth]
+
+
+
+
+  """
+  Show box status
+
+    @void
+  """ 
+  def status(self):
+    raise Exception("Not implemented")
+ 
+  """
+  Start box
+
+    @void
+  """ 
+  def start(self):
+    raise Exception("Not implemented") 
+
+  """
+  Stop box
+
+    @void
+  """ 
+  def stop(self):
+    raise Exception("Not implemented")
+
+  """
+  Restart box
+
+    @void
+  """ 
+  def restart(self):
+    raise Exception("Not implemented")
+
+  """
+  Ssh into box
+
+    @void
+  """ 
+  def ssh(self):
+    raise Exception("Not implemented")
+
+  """
+  Provision box
+
+    @void
+  """ 
+  def provision(self):
+    raise Exception("Not implemented")
+
+  """
+  Destroy box
+
+    @void
+  """ 
+  def destroy(self):
+    raise Exception("Not implemented")
+

@@ -2,7 +2,6 @@
 
 from lib.AbstractKnack import AbstractKnack
 from lib.InitializeKnack import InitializeKnack
-from lib.GuestFactory import GuestFactory
 
 
 """
@@ -21,7 +20,6 @@ class Knack(AbstractKnack):
     @void
   """ 
   def init(self, boxes):
-    boxList = self.getBoxList(boxes)
     self.interface.header("Initialize")
     self.interface.writeOut("")
     initialize = InitializeKnack()
@@ -36,17 +34,10 @@ class Knack(AbstractKnack):
   def status(self, boxes):
     self.interface.header("Status")
 
-    boxList = self.getBoxList(boxes)
-
-    for box in boxList:
-      if self.knackfile.hasBox(box):
-        boxConfig = self.knackfile.getConfigForBox(box)
-      else:
-        self.interface.error("Boxname " + box + " not found in .Knackfile")
-      
-      guest = GuestFactory.create(boxConfig)
-      guest.setHypervisor(self.hypervisor)
-      guest.setInterface(self.interface)
+    boxes = self.getBoxList(boxes)
+    
+    for box in boxes:
+      guest = self.getGuestObject(box)
       guest.status()
  
 
@@ -57,9 +48,11 @@ class Knack(AbstractKnack):
     @void
   """ 
   def start(self, boxes):
-    boxList = self.getBoxList(boxes)
+    boxes = self.getBoxList(boxes)
     self.interface.header("Start")
-    print("lib.Knack.start " + ", ".join(boxList)) 
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      guest.start()
 
 
   """
