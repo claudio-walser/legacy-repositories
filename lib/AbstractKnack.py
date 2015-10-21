@@ -121,6 +121,8 @@ class AbstractKnack(object):
     
     guest = GuestFactory.create(boxConfig)
     guest.setName(box)
+    guest.setUsername(self.knackfile.getConfigByNamespace("user"))
+    guest.setPublicKey(self.knackfile.getConfigByNamespace("public_key"))
     guest.setHypervisor(self.hypervisor)
     guest.setInterface(self.interface)
     

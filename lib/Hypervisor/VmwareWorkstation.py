@@ -111,5 +111,53 @@ class VmwareWorkstation(AbstractHypervisor):
     else:
       print('vm not created, so nothing to destroy')
 
-  def installVmWareTools(self, guest):
-    self.vmwareTools.installVmWareTools(guest)
+  def getGuestIPAddress(self, guest):
+    if self.isRunning(guest):
+      command = [
+        "vmrun",
+        "getGuestIPAddress",
+        self.vmx.getPath(guest)
+      ]
+
+      return subprocess.check_output(command).decode("utf-8").strip()
+    else:
+      return False
+
+  def ensureDirectory(self, guest, directory):
+    if self.isRunning(guest):
+      command = [
+        "vmrun",
+        "-gu",
+        "root",
+        "-gp",
+        "1234",
+        "createDirectoryInGuest",
+        self.vmx.getPath(guest),
+        directory
+      ]
+
+      return subprocess.check_output(command).decode("utf-8").strip()
+    else:
+      return False
+
+
+  def copyFile(self, guest, source, target):
+    if self.isRunning(guest):
+      command = [
+        "vmrun",
+        "-gu",
+        "root",
+        "-gp",
+        "1234",
+        "CopyFileFromHostToGuest",
+        self.vmx.getPath(guest),
+        source,
+        target
+      ]
+
+      return subprocess.check_output(command).decode("utf-8").strip()
+    else:
+      return False
+
+    #CopyFileFromHostToGuest  Path to vmx file     Copy a file from host OS to guest OS
+    #  4616-Path on host             Path in guest

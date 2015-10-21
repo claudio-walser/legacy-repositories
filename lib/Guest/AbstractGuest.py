@@ -14,6 +14,16 @@ class AbstractGuest(GuestConfig):
 
   interface = False
   hypervisor = False
+  username = "root"
+  publicKey = "~/.ssh/id_rsa.pub"
+
+  def setUsername(self, username: str):
+    self.username = username
+    return True
+
+  def setPublicKey(self, publicKey: str):
+    self.publicKey = publicKey
+    return True
 
   def setInterface(self, interface: AbstractInterface):
     self.interface = interface

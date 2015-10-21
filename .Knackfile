@@ -1,4 +1,6 @@
 hypervisor: vmware-workstation
+user: root
+public_key: ~/.ssh/id_rsa.pub
 
 globals:
   puppet_master_ip: 10.20.0.2
