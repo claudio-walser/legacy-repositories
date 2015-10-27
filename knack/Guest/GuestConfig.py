@@ -70,7 +70,6 @@ class GuestConfig(object):
 
     return True
 
-  
   def getVmPath(self):
     # todo: check if there is a trailing slash on basePath
     return os.path.expanduser(self.getBasePath() + "/" + self.getDomain() + "/" + self.getEnvironment() + "/" + self.getHostname() + "/")
