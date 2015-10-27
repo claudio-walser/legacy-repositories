@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.Guest.Debian import Debian
+from knack.Guest.Debian import Debian
 
 """
 Guest Factory, creates the right guest object from

@@ -10,7 +10,7 @@ class GuestConfig(object):
   config = {}
   name = ""
   username = "root"
-  publicKey = "~/.ssh/id_rsa.pub"s
+  publicKey = "~/.ssh/id_rsa.pub"
 
   """
   Constructor: Store config in a class property

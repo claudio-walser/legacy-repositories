@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.Hypervisor.VmwareWorkstation import VmwareWorkstation
+from knack.Hypervisor.VmwareWorkstation import VmwareWorkstation
 
 """
 Hypervisor Factory, creates the right hypervisor object.

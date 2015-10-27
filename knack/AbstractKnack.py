@@ -2,11 +2,11 @@
 
 import pprint
 
-from lib.Knackfile.File import File as Knackfile
-from lib.Interface.AbstractInterface import AbstractInterface
-from lib.Interface.Cli import Cli
-from lib.Hypervisor.Factory import Factory as HypervisorFactory
-from lib.Guest.Factory import Factory as GuestFactory
+from knack.Knackfile.File import File as Knackfile
+from knack.Interface.AbstractInterface import AbstractInterface
+from knack.Interface.Cli import Cli
+from knack.Hypervisor.Factory import Factory as HypervisorFactory
+from knack.Guest.Factory import Factory as GuestFactory
 
 
 """
@@ -18,24 +18,24 @@ and providing other main functionality of the program.
 class AbstractKnack(object):
   
   """
-  knackfile: lib.Knackfile.Knackfile Instance for easy yaml loading
+  knackfile: knack.Knackfile.Knackfile Instance for easy yaml loading
   """ 
   knackfile = Knackfile()
 
   """
-  interface: lib.Interface.AbstractInterface.AbstractInterface 
+  interface: knack.Interface.AbstractInterface.AbstractInterface 
   """ 
   interface = False
 
   """
-  hypervisor: lib.Hypervisor.AbstractHypervisor.AbstractHypervisor
+  hypervisor: knack.Hypervisor.AbstractHypervisor.AbstractHypervisor
   """
   hypervisor = False
   
   """
   Constructor: Instantiate Knackfile and load yaml config
 
-    @arg interface:lib.Interface.AbstractInterface        The Interface you currently work with"
+    @arg interface:knack.Interface.AbstractInterface        The Interface you currently work with"
     @void
   """ 
   def __init__(self, interface: AbstractInterface):
@@ -108,7 +108,7 @@ class AbstractKnack(object):
 
     @arg box:str                      The box you want to create a guest object from
     @raise Exception                  Raises an exception if boxname could not be found in .Knackfile
-    @return lib.Guest.AbstractGuest   Finalized guest object
+    @return knack.Guest.AbstractGuest   Finalized guest object
   """
   def getGuestObject(self, box: str):
     if self.knackfile.hasBox(box):

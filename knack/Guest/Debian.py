@@ -3,7 +3,7 @@
 import os
 import subprocess
 
-from lib.Guest.AbstractGuest import AbstractGuest
+from knack.Guest.AbstractGuest import AbstractGuest
 
 """
 Debian Guest

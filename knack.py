@@ -5,8 +5,8 @@ import sys
 import argcomplete
 import argparse
 
-from lib.Knack import Knack
-from lib.Interface.Cli import Cli
+from knack.Knack import Knack
+from knack.Interface.Cli import Cli
 
 """
 This is the main cli script for Knack.

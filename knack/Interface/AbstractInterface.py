@@ -72,4 +72,4 @@ class AbstractInterface(object):
     @return bool        Returns True
   """ 
   def askFor(self, prompt: str, options: list = False, default: str = False):
-    raise Exception("Not implemented in abstract class lib.Interface.AbstractInterface.AbstractInterface")
+    raise Exception("Not implemented in abstract class knack.Interface.AbstractInterface.AbstractInterface")

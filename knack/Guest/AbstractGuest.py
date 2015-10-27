@@ -3,8 +3,8 @@
 import os
 import errno
 
-from lib.Guest.GuestConfig import GuestConfig
-from lib.Hypervisor.AbstractHypervisor import AbstractHypervisor
+from knack.Guest.GuestConfig import GuestConfig
+from knack.Hypervisor.AbstractHypervisor import AbstractHypervisor
 
 """
 Abstract base Guest

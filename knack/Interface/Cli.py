@@ -4,7 +4,7 @@ import os
 import re
 import readline
 
-from lib.Interface.AbstractInterface import AbstractInterface
+from knack.Interface.AbstractInterface import AbstractInterface
 
 """
 Cli interface class, currently just used to mojo-fy the output with some colors.

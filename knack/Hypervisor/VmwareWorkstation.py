@@ -3,11 +3,11 @@
 import os
 import subprocess
 
-from lib.Hypervisor.AbstractHypervisor import AbstractHypervisor
+from knack.Hypervisor.AbstractHypervisor import AbstractHypervisor
 
-from lib.Hypervisor.VmwareWorkstationHelper.Vmx import Vmx
-from lib.Hypervisor.VmwareWorkstationHelper.Disk import Disk
-from lib.Hypervisor.VmwareWorkstationHelper.VmwareTools import VmwareTools
+from knack.Hypervisor.VmwareWorkstationHelper.Vmx import Vmx
+from knack.Hypervisor.VmwareWorkstationHelper.Disk import Disk
+from knack.Hypervisor.VmwareWorkstationHelper.VmwareTools import VmwareTools
 
 """
 VmwareWorkstation Hypervisor

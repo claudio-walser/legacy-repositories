@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from lib.AbstractKnack import AbstractKnack
-from lib.Knackfile.Initialize import Initialize
+from knack.AbstractKnack import AbstractKnack
+from knack.Knackfile.Initialize import Initialize
 
 
 """
@@ -9,7 +9,7 @@ Concrete Knack implementation.
 In best case, this class should only contain callable actions.
 Main functionality is coming from AbstractKnack.
 
-@extends lib.AbstractKnack.AbstractKnack
+@extends knack.AbstractKnack.AbstractKnack
 """
 class Knack(AbstractKnack):
 
