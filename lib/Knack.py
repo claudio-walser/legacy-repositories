@@ -42,8 +42,7 @@ class Knack(AbstractKnack):
     
     for box in boxes:
       guest = self.getGuestObject(box)
-      guest.status()
- 
+      self.interface.writeOut(guest.getName().ljust(30) + guest.status())
 
 
   """
@@ -56,6 +55,7 @@ class Knack(AbstractKnack):
     self.interface.header("Start")
     for box in boxes:
       guest = self.getGuestObject(box)
+      self.interface.writeOut(guest.getName().ljust(30) + "starting...")
       guest.start()
 
 
@@ -69,6 +69,7 @@ class Knack(AbstractKnack):
     self.interface.header("Stop")
     for box in boxes:
       guest = self.getGuestObject(box)
+      self.interface.writeOut(guest.getName().ljust(30) + "stopping...")
       guest.stop()
 
 
@@ -82,6 +83,7 @@ class Knack(AbstractKnack):
     self.interface.header("Restart")
     for box in boxes:
       guest = self.getGuestObject(box)
+      self.interface.writeOut(guest.getName().ljust(30) + "restarting...")
       guest.restart()
 
 
@@ -96,6 +98,7 @@ class Knack(AbstractKnack):
     self.interface.header("Ssh")
     for box in boxes:
       guest = self.getGuestObject(box)
+      self.interface.writeOut(guest.getName().ljust(30) + "establish ssh connection...")
       guest.ssh()
 
 
@@ -110,6 +113,7 @@ class Knack(AbstractKnack):
     self.interface.header("Provision")
     for box in boxes:
       guest = self.getGuestObject(box)
+      self.interface.writeOut(guest.getName().ljust(30) + "provision...")
       guest.provision()
 
 
@@ -124,6 +128,8 @@ class Knack(AbstractKnack):
     self.interface.header("Destroy")
     for box in boxes:
       guest = self.getGuestObject(box)
+      # ask user first maybe
+      self.interface.writeOut(guest.getName().ljust(30) + "destroying...")
       guest.destroy()
 
 

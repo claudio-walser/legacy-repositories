@@ -4,7 +4,6 @@ import os
 import errno
 
 from lib.Guest.GuestConfig import GuestConfig
-from lib.Interface.AbstractInterface import AbstractInterface
 from lib.Hypervisor.AbstractHypervisor import AbstractHypervisor
 
 """
@@ -12,10 +11,10 @@ Abstract base Guest
 """
 class AbstractGuest(GuestConfig):
 
-  interface = False
   hypervisor = False
   username = "root"
   publicKey = "~/.ssh/id_rsa.pub"
+  ipaddress = "0.0.0.0"
 
   def setUsername(self, username: str):
     self.username = username
@@ -25,10 +24,6 @@ class AbstractGuest(GuestConfig):
     self.publicKey = publicKey
     return True
 
-  def setInterface(self, interface: AbstractInterface):
-    self.interface = interface
-    return True
-
   def setHypervisor(self, hypervisor: AbstractHypervisor):
     self.hypervisor = hypervisor
     return True
@@ -36,43 +31,66 @@ class AbstractGuest(GuestConfig):
   def createVmBasePath(self):
     try:
       os.makedirs(self.getVmPath())
-    except OSError as exc: # Python >2.5
+    except OSError as exc:
       if exc.errno == errno.EEXIST and os.path.isdir(self.getVmPath()):
         pass
       else: 
         raise
 
-  """
-  Show box status
 
-    @void
+
+
+  """
+  status: Prints status of this box
+
+    @return string Current Box status
   """ 
   def status(self):
-    raise Exception("Not implemented")
- 
+    status = "Not created"
+    if self.hypervisor.isCreated(self):
+      status = "Stopped"
+    if self.hypervisor.isRunning(self):
+      status = "Running but no VMWareTools installed"
+    if self.hypervisor.isInstalled(self):
+      status = "Running and vmware-tools installed"
+
+    return status
+
+
   """
   Start box
 
-    @void
+    @return bool
   """ 
   def start(self):
-    raise Exception("Not implemented") 
+    self.createVmBasePath()
+    self.hypervisor.start(self) 
+
+    return True
+
 
   """
   Stop box
 
-    @void
+    @return bool
   """ 
   def stop(self):
-    raise Exception("Not implemented")
+    self.hypervisor.stop(self)
+
+    return True
+
+
 
   """
   Restart box
 
-    @void
+    @return bool
   """ 
   def restart(self):
-    raise Exception("Not implemented")
+    self.hypervisor.restart(self)
+
+    return True
+
 
   """
   Ssh into box
@@ -80,7 +98,9 @@ class AbstractGuest(GuestConfig):
     @void
   """ 
   def ssh(self):
-    raise Exception("Not implemented")
+    self.ipaddress = self.hypervisor.getGuestIPAddress(self)
+    
+    print("ssh box " + self.getHostname())
 
   """
   Provision box
@@ -88,13 +108,16 @@ class AbstractGuest(GuestConfig):
     @void
   """ 
   def provision(self):
-    raise Exception("Not implemented")
+    print("provision box " + self.getHostname())
+
 
   """
   Destroy box
 
-    @void
+    @return bool
   """ 
   def destroy(self):
-    raise Exception("Not implemented")
+    self.hypervisor.destroy(self)
+
+    return True
 

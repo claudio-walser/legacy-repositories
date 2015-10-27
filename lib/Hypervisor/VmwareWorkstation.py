@@ -100,14 +100,13 @@ class VmwareWorkstation(AbstractHypervisor):
       if self.isRunning(guest):
         self.stop(guest)
 
-        command = [
-          "vmrun",
-          "deleteVM",
-          self.vmx.getPath(guest),
-          "nogui"
-        ]
-
-        print(subprocess.check_output(command))
+      command = [
+        "vmrun",
+        "deleteVM",
+        self.vmx.getPath(guest),
+        "nogui"
+      ]
+      print(subprocess.check_output(command))
     else:
       print('vm not created, so nothing to destroy')
 

@@ -29,7 +29,7 @@ class InitializeKnack(object):
   """
   Constructor: Instantiate Knackfile and load yaml config
 
-    @arg interface:str        The Interface type you currently work with, default "cli"
+    @raise KnackfileAlreadyFoundException Raises an exception if a .Knackfile is already found in cwd
     @void
   """ 
   def __init__(self):

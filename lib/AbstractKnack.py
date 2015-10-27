@@ -3,6 +3,7 @@
 import pprint
 
 from lib.Knackfile import Knackfile
+from lib.Interface.AbstractInterface import AbstractInterface
 from lib.Interface.Cli import Cli
 from lib.HypervisorFactory import HypervisorFactory
 from lib.GuestFactory import GuestFactory
@@ -21,28 +22,23 @@ class AbstractKnack(object):
   knackfile = Knackfile()
 
   """
-  interfaces: list Possible interfaces for this program, right now its just command line
+  interface: lib.Interface.AbstractInterface.AbstractInterface 
   """ 
-  interfaces = ["cli"]
+  interface = False
 
   """
-  interface: lib.Interface.AbstractInterface.AbstractInterface Default Interface - default Cli
-  """ 
-  interface = Cli()
-
-  """
-  hypervisor: lib.Hypervisor.AbstractHypervisor.AbstractHypervisor Hypervisor object to work with
+  hypervisor: lib.Hypervisor.AbstractHypervisor.AbstractHypervisor
   """
   hypervisor = False
+  
   """
   Constructor: Instantiate Knackfile and load yaml config
 
-    @arg interface:str        The Interface type you currently work with, default "cli"
+    @arg interface:lib.Interface.AbstractInterface        The Interface you currently work with"
     @void
   """ 
-  def __init__(self, interface: str = "cli"):
-    if not self.__setInterface(interface):
-      self.interface.error("Interface Type not found, possible interfaces are: " + "|".join(self.interfaces))
+  def __init__(self, interface: AbstractInterface):
+    self.interface = interface
 
     self.loadConfig()
     try:
@@ -124,20 +120,5 @@ class AbstractKnack(object):
     guest.setUsername(self.knackfile.getConfigByNamespace("user"))
     guest.setPublicKey(self.knackfile.getConfigByNamespace("public_key"))
     guest.setHypervisor(self.hypervisor)
-    guest.setInterface(self.interface)
     
     return guest
-
-  """
-  __setInterface: Sets a given interface if it exists
-
-    @private 
-    @arg interface:str        Interface you want to work with
-    @return bool              True if given interface can be used, False otherwise
-  """
-  def __setInterface(self, interface: str):
-    if not interface in self.interfaces:
-      return False
-
-    self.interface = Cli()
-    return True

@@ -6,7 +6,7 @@ import argcomplete
 import argparse
 
 from lib.Knack import Knack
-
+from lib.Interface.Cli import Cli
 
 """
 This is the main cli script for Knack.
@@ -19,13 +19,14 @@ Its basicly a dispatcher using argparse.
 """
 Knack instance
 """
-knack = Knack()
+interface = Cli()
+knack = Knack(interface)
 
 
 """
 Argparser and Argcompletion.
 """
-# hack to make last argument optional
+# hack to make "box" argument optional
 if len(sys.argv) == 2:
   sys.argv.append('*')
 
@@ -53,12 +54,12 @@ dispatch: Calls desired action with box in Knack
 def main(action: str, box: str):
   # abort if not initialize and still no config
   if knack.knackfile.loaded == False and action != "init":
-    knack.interface.error("No .Knackfile exists. Aborting!")
+    interface.error("No .Knackfile exists. Aborting!")
     sys.exit(1)
 
   # on the other hand if you like to create one and it already exists
   if knack.knackfile.loaded == True and action == "init":
-    knack.interface.error(".Knackfile already exists. Aborting!")
+    interface.error(".Knackfile already exists. Aborting!")
     sys.exit(1)
       
   methodToCall = getattr(knack, action)
