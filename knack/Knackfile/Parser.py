@@ -38,9 +38,7 @@ class Parser:
     # open and load .Knackfile
     with open(filename, 'r') as stream:
       self.yaml = yaml.safe_load(stream)
-      print("true")
       return True
-    print("false")
     return False
 
 
