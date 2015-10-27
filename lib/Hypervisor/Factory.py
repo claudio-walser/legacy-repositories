@@ -5,7 +5,7 @@ from lib.Hypervisor.VmwareWorkstation import VmwareWorkstation
 """
 Hypervisor Factory, creates the right hypervisor object.
 """
-class HypervisorFactory(object):
+class Factory(object):
 
 
   """

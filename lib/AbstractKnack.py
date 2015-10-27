@@ -5,8 +5,9 @@ import pprint
 from lib.Knackfile import Knackfile
 from lib.Interface.AbstractInterface import AbstractInterface
 from lib.Interface.Cli import Cli
-from lib.HypervisorFactory import HypervisorFactory
-from lib.GuestFactory import GuestFactory
+from lib.Hypervisor.Factory import Factory as HypervisorFactory
+from lib.Guest.Factory import Factory as GuestFactory
+
 
 """
 This is the AbstractKnack class, trying to load .Knackfile

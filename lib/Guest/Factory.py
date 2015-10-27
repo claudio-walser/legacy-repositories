@@ -6,7 +6,7 @@ from lib.Guest.Debian import Debian
 Guest Factory, creates the right guest object from
 given configs.
 """
-class GuestFactory(object):
+class Factory(object):
 
 
   """
