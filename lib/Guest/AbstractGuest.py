@@ -12,17 +12,7 @@ Abstract base Guest
 class AbstractGuest(GuestConfig):
 
   hypervisor = False
-  username = "root"
-  publicKey = "~/.ssh/id_rsa.pub"
   ipaddress = "0.0.0.0"
-
-  def setUsername(self, username: str):
-    self.username = username
-    return True
-
-  def setPublicKey(self, publicKey: str):
-    self.publicKey = publicKey
-    return True
 
   def setHypervisor(self, hypervisor: AbstractHypervisor):
     self.hypervisor = hypervisor

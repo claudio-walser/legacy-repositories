@@ -127,9 +127,9 @@ class VmwareWorkstation(AbstractHypervisor):
       command = [
         "vmrun",
         "-gu",
-        "root",
+        "root", # stupid
         "-gp",
-        "1234",
+        "1234", # stupid as well
         "createDirectoryInGuest",
         self.vmx.getPath(guest),
         directory
@@ -145,9 +145,9 @@ class VmwareWorkstation(AbstractHypervisor):
       command = [
         "vmrun",
         "-gu",
-        "root",
+        "root", # again, stupid
         "-gp",
-        "1234",
+        "1234", # and one more time
         "CopyFileFromHostToGuest",
         self.vmx.getPath(guest),
         source,
@@ -157,6 +157,3 @@ class VmwareWorkstation(AbstractHypervisor):
       return subprocess.check_output(command).decode("utf-8").strip()
     else:
       return False
-
-    #CopyFileFromHostToGuest  Path to vmx file     Copy a file from host OS to guest OS
-    #  4616-Path on host             Path in guest
