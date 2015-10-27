@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Some (hopefully) meaningful exception names
+Some (hopefully but probably not so) meaningful exception names
 """
 class KnackException(Exception):
   pass

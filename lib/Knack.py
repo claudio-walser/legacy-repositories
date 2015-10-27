@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.AbstractKnack import AbstractKnack
-from lib.InitializeKnack import InitializeKnack
+from lib.Knackfile.Initialize import Initialize
 
 
 """
@@ -22,7 +22,7 @@ class Knack(AbstractKnack):
   def init(self, boxes):
     self.interface.header("Initialize")
     self.interface.writeOut("")
-    initialize = InitializeKnack()
+    initialize = Initialize()
     initialize.askDefaults(self.interface)
     if initialize.writeConfig():
       self.interface.ok('.Knackfile successfully written')

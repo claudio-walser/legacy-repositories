@@ -2,7 +2,7 @@
 
 import pprint
 
-from lib.Knackfile import Knackfile
+from lib.Knackfile.File import File as Knackfile
 from lib.Interface.AbstractInterface import AbstractInterface
 from lib.Interface.Cli import Cli
 from lib.Hypervisor.Factory import Factory as HypervisorFactory
@@ -58,10 +58,10 @@ class AbstractKnack(object):
     if not self.knackfile.loaded:
       raise Exception("No config loaded yet.")
 
-    if not self.knackfile.getConfigByNamespace("hypervisor"):
+    if not self.knackfile.parser.getConfigByNamespace("hypervisor"):
       raise Exception("No hypervisor found in config")
 
-    self.hypervisor =  HypervisorFactory.create(self.knackfile.getConfigByNamespace("hypervisor"))
+    self.hypervisor =  HypervisorFactory.create(self.knackfile.parser.getConfigByNamespace("hypervisor"))
     return True
 
   """
@@ -118,8 +118,8 @@ class AbstractKnack(object):
     
     guest = GuestFactory.create(boxConfig)
     guest.setName(box)
-    guest.setUsername(self.knackfile.getConfigByNamespace("user"))
-    guest.setPublicKey(self.knackfile.getConfigByNamespace("public_key"))
+    guest.setUsername(self.knackfile.parser.getConfigByNamespace("user"))
+    guest.setPublicKey(self.knackfile.parser.getConfigByNamespace("public_key"))
     guest.setHypervisor(self.hypervisor)
     
     return guest
