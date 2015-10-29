@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
 """
-Some (hopefully but probably not so) meaningful exception names
+Exceptions for Knack
 """
 class KnackException(Exception):
   pass
 
+
+"""
+Exceptions for Knackfile
+"""
 class KnackfileAlreadyFoundException(Exception):
   pass
 
@@ -16,4 +20,18 @@ class KnackfileBoxNotFoundException(Exception):
   pass
 
 class KnackfileReusableConfigException(Exception):
+  pass
+
+
+"""
+Guest Exceptions
+"""
+class GuestNoVmwareToolsException(Exception):
+  pass
+
+
+"""
+SSH Provisioner Exceptions
+"""
+class SshNoPublicKeyException(Exception):
   pass
