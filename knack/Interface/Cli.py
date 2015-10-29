@@ -112,7 +112,7 @@ class Cli(AbstractInterface):
     # if no options set, use an empty completer as default
     if options == False:
       readline.set_completer(completer.completeNothing)
-    if default != False:
+    if default:
       self.writeOut(self.BOLD + "Default: " + self.ENDC + default)
 
     value = input("")
