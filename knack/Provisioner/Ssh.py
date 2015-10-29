@@ -1,52 +1,79 @@
-Ssh.py
+#!/usr/bin/env python3
+
+import os
+import subprocess
 
 
-  def ssh(self, guest):
-    self.ipaddress = self.hypervisor.getGuestIPAddress(self)
-    if not self.hasPublicKey():
-      self.copyPublicKey()
-
-    if self.__ssh("hostname") != self.getHostname():
-      self.__ssh("hostname %s" % self.getHostname())
-
-    print(self.__ssh("hostname"))
+class Ssh(object):
 
 
-  def __ssh(self, command):
-    host = self.username + "@" + self.ipaddress
-    ssh = subprocess.Popen(["ssh", "%s" % host, command],
-                       shell=False,
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE)
-    result = ssh.stdout.readlines()
-    if result == []:
-      print("Error")
-      return False
-    else:
-      return result[0].decode("utf-8").strip()
 
-  # should do that maybe in a seperate ssh class
-  def copyPublicKey(self):
-    source = os.path.expanduser(self.publicKey)
+  def command(self, guest, command):
+    host = guest.username + "@" + guest.ipaddress
+    command = [
+      "ssh",
+      host,
+      command
+    ]     
 
-    if self.username == "root":
-      targetDirectory = "/root/.ssh/"
-    else:
-      targetDirectory = "/home/%s/.ssh/" % self.username
+    try:
+      processOutput = subprocess.check_output(command)
+      if type(processOutput) is bytes:
+        processOutputString = processOutput.decode("utf-8")
+        return processOutputString.strip()
+    except:
+      pass
+
+
+
+    return False
+
+  """
+  Exit Codes:
+    255 - WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! - ssh-keygen -f "~/.ssh/known_hosts" -R guest.ipaddress
+  """
+  def hasPublicKey(self, guest, alreadyRecursive = False):
+    host = guest.username + "@" + guest.ipaddress
+    ssh = subprocess.Popen(["ssh", "-o PasswordAuthentication=no ", host, "whoami"],
+                             shell=False,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
     
-    target = targetDirectory + "authorized_keys"
-    
-    self.hypervisor.ensureDirectory(self, targetDirectory)
-    self.hypervisor.copyFile(self, source, target)
+    stdout, stderr = ssh.communicate()
+    exitCode = ssh.wait()
 
-  def hasPublicKey(self):
-    host = self.username + "@" + self.ipaddress
-    ssh = subprocess.Popen(["ssh", "-o PasswordAuthentication=no ", "%s" % host, "whoami"],
-                       shell=False,
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE)
-    result = ssh.stdout.readlines()
-    if result == []:
-      return False
-    else:
+    if exitCode == 0:
+      # stdout should also match the current guest.username, should maybe check that as well
+      # on the other hand, if its zero its okay anyways
       return True
+
+    # just try it once more in case of error
+    if alreadyRecursive == True:
+      return False
+
+    if exitCode == 255:
+      #todo maybe i should set this into a config option - think about it
+      if self.removeGuestFromKnownHosts(guest) == True:
+        return self.hasPublicKey(guest, True)
+
+    return False
+
+
+
+  def removeGuestFromKnownHosts(self, guest):
+    command = [
+      "ssh-keygen",
+      "-f",
+      os.path.expanduser("~/.ssh/known_hosts"),
+      "-R",
+      guest.ipaddress
+    ]
+    process = subprocess.Popen(command,
+                     shell=False,
+                     stdout=subprocess.PIPE,
+                     stderr=subprocess.PIPE)
+
+    stdout, stderr = process.communicate()
+    exitCode = process.wait()
+
+    return exitCode == 0

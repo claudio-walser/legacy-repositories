@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import pprint
-
 from knack.Knackfile.File import File as Knackfile
 from knack.Interface.AbstractInterface import AbstractInterface
 from knack.Interface.Cli import Cli
@@ -83,7 +81,7 @@ class AbstractKnack(object):
     @return list          List of all implemented actions
   """
   def getActions(self):
-    return ["init", "status", "start", "stop", "restart", "ssh", "provision", "destroy"]
+    return ["init", "configure", "status", "start", "stop", "restart", "ssh", "provision", "destroy"]
 
 
   """

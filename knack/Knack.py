@@ -3,6 +3,8 @@
 from knack.AbstractKnack import AbstractKnack
 from knack.Knackfile.Initialize import Initialize
 
+from knack.Exceptions import GuestNoVmwareToolsException
+from knack.Exceptions import SshNoPublicKeyException
 
 """
 Concrete Knack implementation.
@@ -28,7 +30,24 @@ class Knack(AbstractKnack):
       self.interface.ok('.Knackfile successfully written')
     else:
       self.interface.error('Could not write .Knackfile. Check folder permissions in ' + os.getcwd())
+   
+
+  def configure(self, boxes):
+    self.interface.header("Configure")
+
+    boxes = self.getBoxList(boxes)
     
+    for box in boxes:
+      guest = self.getGuestObject(box)
+      try:
+        guest.configure()
+      except GuestNoVmwareToolsException:
+        self.interface.error("%s %s \nBox not ready yet, get it up and running, then ensure vmware-tools are running as well" % (guest.getName().ljust(30), guest.status().code))
+      except SshNoPublicKeyException:
+        self.interface.error("%s %s \nBox ready but i do have problems to copy your public key" % (guest.getName().ljust(30), guest.status().code))
+
+      #guest.
+      #guest.setHostname()   
 
   """
   Show box status
@@ -42,7 +61,7 @@ class Knack(AbstractKnack):
     
     for box in boxes:
       guest = self.getGuestObject(box)
-      self.interface.writeOut(guest.getName().ljust(30) + guest.status())
+      self.interface.writeOut(guest.getName().ljust(30) + guest.status().message)
 
 
   """
