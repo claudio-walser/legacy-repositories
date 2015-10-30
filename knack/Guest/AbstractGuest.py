@@ -150,6 +150,8 @@ class AbstractGuest(GuestConfig):
     print("set hostname: %s" % self.setVmHostname())
     print("set Network: %s" % self.setVmNetwork())
 
+    shellScripts = self.getShellScripts()
+    print(shellScripts)
 
 
   """

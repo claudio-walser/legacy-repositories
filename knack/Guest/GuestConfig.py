@@ -121,3 +121,12 @@ class GuestConfig(object):
       raise Exception('ParameterException', 'You requesting an interface which is not defined in your config: ' + eth)
 
     return self.config['network'][eth]
+
+  def getShellScripts(self):
+    if not "provisioners" in self.config:
+      return []
+
+    if not "shell" in self.config["provisioners"]:
+      return []
+      
+    return self.config['provisioners']['shell']
