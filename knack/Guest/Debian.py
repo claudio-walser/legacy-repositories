@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys
+import os
 from collections import OrderedDict
 
 from knack.Guest.AbstractGuest import AbstractGuest
@@ -14,18 +14,12 @@ class Debian(AbstractGuest):
     return self.sshProvisioner.command(self, "hostname %s" % options)
 
   def setVmHostname(self):
-    if self.getVmHostname("-d") == "%s.%s" % (self.getHostname(), self.getDomain()):
-      return True
-    #try:
-    self.sshProvisioner.command(self, "hostname %s" % self.getHostname())
-    self.sshProvisioner.command(self, "echo %s > /etc/hostname" % self.getHostname())
-    self.sshProvisioner.command(self, "sed -i.bak 's/127.0.0.1[ \t]*localhost/127.0.0.1       %s    %s/g' /etc/hosts" % (self.getFQDN(), self.getHostname()))
-    
-    return "goddammit"
-    #  return True
-    #except:
-    #  raise
-    #  return False
+    if not self.getVmHostname("-d") == self.getFQDN():
+      self.sshProvisioner.command(self, "hostname %s" % self.getHostname())
+      self.sshProvisioner.command(self, "echo %s > /etc/hostname" % self.getHostname())
+      self.sshProvisioner.command(self, "sed -i.bak 's/127.0.0.1[ \t]*localhost/127.0.0.1       %s    %s/g' /etc/hosts" % (self.getFQDN(), self.getHostname()))
+
+    return self.getHostname()
 
   def getVmNetwork(self):
     return self.sshProvisioner.command(self, "cat /etc/network/interfaces")
@@ -36,8 +30,8 @@ class Debian(AbstractGuest):
     desiredNetworkConfig = self.__buildNetworkConfig()
 
     if not currentNetworkConfig.strip() == desiredNetworkConfig:
-      return self.sshProvisioner.command(self, "echo \"%s\" > /etc/network/interfaces && service networking restart && exit" % desiredNetworkConfig)
-    return False
+      return self.sshProvisioner.command(self, "echo \"%s\" > /etc/network/interfaces; invoke-rc.d networking stop; invoke-rc.d networking start" % desiredNetworkConfig, nohup = True)
+    return desiredNetworkConfig
 
 
   def copyPublicKey(self):
@@ -51,9 +45,9 @@ class Debian(AbstractGuest):
     
     target = targetDirectory + "authorized_keys"
     
-    self.hypervisor.ensureDirectory(self, targetDirectory)
-    self.hypervisor.copyFile(self, source, target)
+    result = self.hypervisor.ensureDirectory(self, targetDirectory)
 
+    result = self.hypervisor.copyFile(self, source, target)
 
   """
   Private methods
@@ -76,8 +70,6 @@ iface %s inet dhcp
 
 """ % (interface, interface)
 
-      print(type(interfaces[interface]))
-      #{'ip': '10.20.0.2', 'gateway': '10.20.0.1', 'netmask': '255.255.255.0'}
       if type(interfaces[interface]) == dict and \
          "ip" in interfaces[interface] and \
          "netmask" in interfaces[interface] and \
@@ -91,9 +83,5 @@ iface %s inet static
   gateway %s
 
 """ % (interface, interface, interfaces[interface]["ip"], interfaces[interface]["netmask"], interfaces[interface]["gateway"])
-
-
-      #print(interface)
-      #print(interfaces[interface])
 
     return networkConfig.strip()

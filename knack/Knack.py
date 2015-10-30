@@ -34,9 +34,7 @@ class Knack(AbstractKnack):
 
   def configure(self, boxes):
     self.interface.header("Configure")
-
     boxes = self.getBoxList(boxes)
-    
     for box in boxes:
       guest = self.getGuestObject(box)
       try:
@@ -45,6 +43,8 @@ class Knack(AbstractKnack):
         self.interface.error("%s %s \nBox not ready yet, get it up and running, then ensure vmware-tools are running as well" % (guest.getName().ljust(30), guest.status().code))
       except SshNoPublicKeyException:
         self.interface.error("%s %s \nBox ready but i do have problems to copy your public key" % (guest.getName().ljust(30), guest.status().code))
+      except:
+        raise
 
       #guest.
       #guest.setHostname()   
@@ -112,13 +112,16 @@ class Knack(AbstractKnack):
 
     @void
   """ 
-  def ssh(self, boxes):
+  def ssh(self, boxes, command):
+    if command == "":
+      command = False
+
     boxes = self.getBoxList(boxes)
     self.interface.header("Ssh")
     for box in boxes:
       guest = self.getGuestObject(box)
       self.interface.writeOut(guest.getName().ljust(30) + "establish ssh connection...")
-      guest.ssh()
+      guest.ssh(command)
 
 
 

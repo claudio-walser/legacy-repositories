@@ -6,27 +6,44 @@ import subprocess
 
 class Ssh(object):
 
-
-
-  def command(self, guest, command):
+  def login(self, guest):
     host = guest.username + "@" + guest.ipaddress
     command = [
       "ssh",
-      host,
-      command
+      host
     ]     
 
-    try:
-      processOutput = subprocess.check_output(command)
-      if type(processOutput) is bytes:
-        processOutputString = processOutput.decode("utf-8")
-        return processOutputString.strip()
-    except:
-      pass
+    ssh = subprocess.Popen(command)
+    ssh.communicate()
 
+  def command(self, guest, command, nohup = False):
+    host = guest.username + "@" + guest.ipaddress
+    if nohup:
 
+      command = [
+      "nohup",
+        "ssh",
+        host,
+        command
+      ]
 
-    return False
+    else:
+      command = [
+        "ssh",
+        host,
+        command
+      ]
+    ssh = subprocess.Popen(command,
+                           shell=False,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+    stdout, stderr = ssh.communicate()
+    code = ssh.wait()
+
+    if code == 0 and type(stdout) is bytes:
+      return stdout.decode("utf-8").strip()
+    else:
+      return stderr.decode("utf-8").strip()
 
   """
   Exit Codes:
@@ -47,7 +64,7 @@ class Ssh(object):
       # on the other hand, if its zero its okay anyways
       return True
 
-    # just try it once more in case of error
+    # just try it once in case of error
     if alreadyRecursive == True:
       return False
 

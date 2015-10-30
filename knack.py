@@ -42,6 +42,7 @@ def getBoxes(prefix, parsed_args, **kwargs):
 parser = argparse.ArgumentParser()
 parser.add_argument("action", help="Action to execute.", type=str, choices=knack.getActions())
 parser.add_argument("box", default="*", help="Box to execute action on", type=str).completer = getBoxes
+parser.add_argument("command", nargs='?', default="", help="SSH Command to execute on box. Optional and only meaningful with knack ssh <box>", type=str)
 argcomplete.autocomplete(parser)
 
 """
@@ -51,7 +52,7 @@ dispatch: Calls desired action with box in Knack
   @arg box: Box to perform action with
   @void
 """
-def main(action: str, box: str):
+def main(action: str, box: str, command: str):
   # abort if not initialize and still no config
   if not knack.knackfile.loaded and not action == "init":
     interface.error("No .Knackfile exists. Aborting!")
@@ -68,8 +69,10 @@ def main(action: str, box: str):
   except:
     interface.error("Action %s does not exists, see knack --help for more information." % action)
     sys.exit(1)
-
-  result = methodToCall(box)
+  if action == "ssh":
+    result = methodToCall(box, command)
+  else:
+    result = methodToCall(box)
   sys.exit(0)
 
 
@@ -78,4 +81,4 @@ Handle main loop
 """
 if __name__ == '__main__':
   arguments = parser.parse_args()
-  main(arguments.action, arguments.box)
+  main(arguments.action, arguments.box, arguments.command)

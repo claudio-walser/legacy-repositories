@@ -107,10 +107,14 @@ class AbstractGuest(GuestConfig):
 
     @void
   """ 
-  def ssh(self):
+  def ssh(self, command = False):
     self.ipaddress = self.hypervisor.getGuestIPAddress(self)
-    
-    print("ssh box " + self.getHostname())
+    if not command:
+      result = self.sshProvisioner.login(self)
+    else:
+      result = self.sshProvisioner.command(self, command)
+
+    print(result)
 
   """
   Provision box
@@ -141,7 +145,7 @@ class AbstractGuest(GuestConfig):
       try:
         self.copyPublicKey()
       except:
-        raise SshNoPublicKeyException("Could not copy your public key to the desired guest")
+        raise
 
     print("set hostname: %s" % self.setVmHostname())
     print("set Network: %s" % self.setVmNetwork())
