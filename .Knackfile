@@ -7,12 +7,16 @@ globals:
 vm-defaults:
   user: root
   pass: 1234
-  guest_os: debian7-64
+  public_key: ~/.ssh/id_rsa.pub
+  guest_os: debian8-64
   hostname: debian-01
   environment: development
   domain: claudio.dev
   base_path: ~/Development/VMWare/VirtualMachines
-  install_medium: ~/Development/VMWare/Isos/binary.hybrid.iso
+  install_medium: ~/Development/VMWare/Isos/wheezy-vmware-tools.iso
+  provisioners:
+    shell:
+      - ./provisioning/puppet-agent.sh
   shared_folders:
     - ./provisioning
   hardware:
@@ -26,6 +30,9 @@ vm-defaults:
 boxes:
   puppet:
     hostname: <% globals.puppet_master_hostname %>
+    provisioners:
+      shell:
+        - ./provisioning/puppet-master.sh
     shared_folders:
       - ./puppet
     hardware:
