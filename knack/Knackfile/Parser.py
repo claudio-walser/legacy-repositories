@@ -105,8 +105,11 @@ class Parser:
   """
   def applyVariablesToString(self, string: str):
     # regex for finding placeholders
-    matches = re.match(".*(<% ([A-Za-z\.\-_]+) %>).*", string)
+    print(type(string))
+    matches = re.match(".*(<% ([A-Za-z\.\-_]+) %>).*", string, re.DOTALL)
+    print(matches)
     while matches:
+      print("found:")
       # get match groups
       toReplace = matches.group(1)
       toSplit = matches.group(2)
@@ -118,7 +121,7 @@ class Parser:
           raise KnackfileReusableConfigException('ConfigException', 'You are trying to reuse a list in config, which is not supported')
         string = string.replace(toReplace, config)
       # do it as long as it matches something
-      matches = re.match(".*(<% ([A-Za-z\.\-_]+) %>).*", string)
+      matches = re.match(".*(<% ([A-Za-z\.\-_]+) %>).*", string, re.DOTALL)
 
     return string
 
