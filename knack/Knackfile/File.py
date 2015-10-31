@@ -120,7 +120,6 @@ class File:
     boxConfig = self.parser.deepMerge(defaultConfig, self.parser.getConfigByNamespace("boxes.%s" % box))
     boxConfig = self.parser.applyVariables(boxConfig)
 
-    print(boxConfig)
 
     return boxConfig
 
