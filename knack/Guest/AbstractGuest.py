@@ -163,9 +163,11 @@ class AbstractGuest(GuestConfig):
         with open(shellScript, 'r') as fileStream:
           shellScriptContent = fileStream.read()
           shellScriptContent = self.knack.knackfile.parser.applyVariablesToString(shellScriptContent)
-        
-        print("After replacement")
-        print (shellScriptContent)
+
+          result = self.sshProvisioner.command(self, shellScriptContent)
+          print(result)
+
+
 
 
   """

@@ -105,11 +105,8 @@ class Parser:
   """
   def applyVariablesToString(self, string: str):
     # regex for finding placeholders
-    print(type(string))
     matches = re.match(".*(<% ([A-Za-z\.\-_]+) %>).*", string, re.DOTALL)
-    print(matches)
     while matches:
-      print("found:")
       # get match groups
       toReplace = matches.group(1)
       toSplit = matches.group(2)
