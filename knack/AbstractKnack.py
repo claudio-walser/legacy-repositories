@@ -116,6 +116,7 @@ class AbstractKnack(object):
     
     guest = GuestFactory.create(boxConfig)
     guest.setName(box)
+    guest.setKnack(self)
     guest.setHypervisor(self.hypervisor)
     
     return guest

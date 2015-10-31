@@ -22,10 +22,15 @@ Abstract base Guest
 """
 class AbstractGuest(GuestConfig):
 
+  knack = False
   hypervisor = False
   ipaddress = "0.0.0.0"
 
   sshProvisioner = Ssh()
+
+  def setKnack(self, knack):
+    self.knack = knack
+    return True
 
   def setHypervisor(self, hypervisor: AbstractHypervisor):
     self.hypervisor = hypervisor
@@ -151,7 +156,16 @@ class AbstractGuest(GuestConfig):
     print("set Network: %s" % self.setVmNetwork())
 
     shellScripts = self.getShellScripts()
-    print(shellScripts)
+    if type(shellScripts) == list:
+      for shellScript in shellScripts:
+        shellScriptContent = ""
+
+        with open(shellScript, 'r') as fileStream:
+          shellScriptContent = fileStream.read()
+          shellScriptContent = self.knack.knackfile.parser.applyVariablesToString(shellScriptContent)
+        
+        print("After replacement")
+        print (shellScriptContent)
 
 
   """
