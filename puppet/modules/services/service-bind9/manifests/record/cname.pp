@@ -1,7 +1,7 @@
 define service-bind9::record::cname (
 	$hostsfile = "/var/lib/bind/$::domain.hosts",
 	$host = $::hostname,
-	$cname = $::ipaddress_eth1
+	$cname = $::ipaddress_eth0
 ) {
 
 	

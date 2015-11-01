@@ -1,6 +1,6 @@
 define service-bind9::record::ns (
 	$hostsfile = "/var/lib/bind/$::domain.hosts",
-	$ip = $::ipaddress_eth1
+	$ip = $::ipaddress_eth0
 ) {
 	#NS		<%= nameserver %>.<%= @domain %>.
 	

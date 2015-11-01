@@ -15,7 +15,7 @@ class profile-minimal (
 
 	# export dns member
 	@@service-bind9::record::a{$::hostname:
-		ip => $::ipaddress_eth1
+		ip => $::ipaddress_eth0
 	}
 
 	# import resolv.conf from dns

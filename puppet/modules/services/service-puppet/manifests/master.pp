@@ -9,15 +9,16 @@ class service-puppet::master {
 		mode   => '0744'
 	}
 
+  class { 'puppetdb::globals':
+      version => '2.3.8-1puppetlabs1'
+  }
 
-	# Configure puppetdb and its underlying database
-	class { 'puppetdb': 
-		listen_address => '0.0.0.0',
-		disable_ssl => true
-	}
-	
-	# Configure the puppet master to use puppetdb
-	#class { 'puppetdb::master::config': }
-	class { 'puppetdb::master::config':	}
+  class { 'puppetdb':
+    listen_address     => '10.20.0.2',
+    ssl_listen_address => '10.20.0.2'
+  }
 
+  class { 'puppetdb::master::config':
+    puppetdb_server => 'puppet-master-01.development.claudio.dev'
+  }
 }

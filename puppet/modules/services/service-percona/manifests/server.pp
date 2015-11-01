@@ -45,7 +45,7 @@ define service-percona::server (
 
 	# export current ip for cluster management
 	@@service-percona::clusterip {$::hostname:
-		ip => $::ipaddress_eth1,
+		ip => $::ipaddress_eth0,
 		node_number => $node_number,
 		node_role => $node_role,
 		hostname => $::hostname

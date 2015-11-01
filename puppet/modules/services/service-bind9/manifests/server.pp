@@ -1,6 +1,6 @@
 class service-bind9::server (
 	$hostsfile = "/var/lib/bind/$::domain.hosts",
-	$ip = $::ipaddress_eth1,
+	$ip = $::ipaddress_eth0,
 	$domain = $::domain,
 	$hostname = $::hostname,
 	$mailAddress = 'root@localhost',
@@ -29,7 +29,7 @@ class service-bind9::server (
 		# export master ip for slave zones
 		# export dns member
 		@@service-bind9::slave{$::hostname:
-			master_ip => $::ipaddress_eth1
+			master_ip => $::ipaddress_eth0
 		}
 		
 		file { "/etc/bind/named.conf.d/$domain.conf":
@@ -77,7 +77,7 @@ class service-bind9::server (
 	## export resolv.conf resource
 	@@service-bind9::resolvconf{$::hostname: 
 		type => $type,
-		ip => $::ipaddress_eth1
+		ip => $::ipaddress_eth0
 	}
 
 	## zone config file

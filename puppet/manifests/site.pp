@@ -3,7 +3,6 @@ Exec {
 	path => "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 }
 
-
 ### default node handles everything by hostname
 node default {
 	# fetch node role and node number out of hostname. Match example:
