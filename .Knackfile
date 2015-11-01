@@ -66,10 +66,67 @@ boxes:
       memory: 1024
       disk: 10GB
 
+  web:
+    hostname: web-01
+    hardware:
+      cpu: 2
+      memory: 2024
+      disk: 20GB
+
+  wiki:
+    hostname: wiki-01
+    hardware:
+      cpu: 2
+      memory: 2024
+      disk: 20GB
+
   git:
     hostname: git-01
     hardware:
       cpu: 2
       memory: 2048
       disk: 20GB
+
+  gitlab:
+    hostname: gitlab-01
+    hardware:
+      cpu: 2
+      memory: 2048
+      disk: 20GB
+
+  gitlab-ci:
+    hostname: gitlab-ci-01
+    hardware:
+      cpu: 2
+      memory: 2048
+      disk: 20GB
+
+  mysql-1:
+    hostname: mysql-01
+    hardware:
+      cpu: 2
+      memory: 2048
+      disk: 20GB
+
+  mysql-2:
+    hostname: mysql-02
+    hardware:
+      cpu: 2
+      memory: 2048
+      disk: 20GB
+
+  mysql-3:
+    hostname: mysql-03
+    hardware:
+      cpu: 2
+      memory: 2048
+      disk: 20GB
+
+  umbrella:
+    hostname: umbrella-01
+    hardware:
+      cpu: 2
+      memory: 1024
+      disk: 20GB
+
 
