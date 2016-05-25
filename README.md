@@ -2,9 +2,6 @@
 Its my own vmware managing script, since i dont want to buy 
 the vagrant provider for vmware, i just made my own tool.
 
-
-
-
 # status #
 Its a early shot, if you like to test it out, give it a try. 
 Since i use ubuntu for desktop and debian on vmware workstation as my development environment, this is the only combination knack supports yet.
