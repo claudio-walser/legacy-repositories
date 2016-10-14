@@ -116,8 +116,8 @@ class Manager (object):
         print("IPAddress: %s" % self.container.getIpAddress())
 
     def create(self, containerName):
-        if not os.path.isdir(containerName):
-            self.cli.execute("cp -R elasticsearch-basic %s" % containerName)
+        if not os.path.isdir("indicies/%s" % containerName):
+            self.cli.execute("cp -R indicies/elasticsearch-basic indicies/%s" % containerName)
         try:
             self.container = Container(containerName)
         except Exception as e:
@@ -125,9 +125,9 @@ class Manager (object):
                 --cidfile=cids/%s.cid \
                 --name=%s \
                 --hostname=%s \
-                -v ~/Development/docker/%s:/var/lib/elasticsearch/ \
+                -v %s/indicies/%s:/var/lib/elasticsearch/ \
                 elasticsearch-kibana:latest \
-                /bin/bash;" % (containerName, containerName, containerName, containerName))
+                /bin/bash;" % (containerName, containerName, containerName, os.path.dirname(os.path.realpath(__file__)), containerName))
             # add hosts entry
         pass
 
