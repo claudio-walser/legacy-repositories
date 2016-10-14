@@ -9,10 +9,10 @@ import argparse
 import subprocess
 from pprint import pprint
 
-
 class Cli(object):
 
-    def execute(self, command: str):
+    def execute(self, command):
+        print(command)
         process = subprocess.Popen(
             command,
             shell=True,
@@ -25,6 +25,21 @@ class Cli(object):
             return False
 
         return output.decode("utf-8").strip()
+
+
+class HostsFile(object):
+
+    cli = Cli()
+
+    def add(self, ip, hostname):
+        with open("/etc/hosts", 'r') as f:
+            hostsfile = f.read()
+            pprint(hostsfile.find(hostname))
+            if hostsfile.find(hostname) is not -1:
+                self.cli.execute("sed -i 's/.*    %s/%s    %s/g' /etc/hosts" % (hostname, ip, hostname))
+            else:
+                self.cli.execute("echo '%s    %s' >> /etc/hosts" % (ip, hostname))
+
 
 class Container(object):
 
@@ -43,8 +58,8 @@ class Container(object):
             self.containerId = f.read()
 
         if not self.exists():
+            self.cli.execute("rm cids/%s.cid" % self.containerName)
             raise Exception("Container does not exists, create it first by using manage.py create %s" % containerName)
-        
 
     def cidfileExists(self):
         return os.path.isfile("cids/%s.cid" % self.containerName)
@@ -56,6 +71,9 @@ class Container(object):
         self.settings = json.loads(output)[0]
         #pprint(self.settings)
         return True
+
+    def loadConfig(self):
+        self.exists()
 
     def isRunning(self):
         return self.settings["State"]["Running"]
@@ -73,6 +91,7 @@ class Manager (object):
 
     container = False
     cli = Cli()
+    hostsFile = HostsFile()
 
     def getAvailableCommands(self):
         return [
@@ -105,8 +124,6 @@ class Manager (object):
             self.container = Container(containerName)
             result = methodToCall()
 
-
-
     # actions
     def status(self):
         print("Container Info")
@@ -120,7 +137,8 @@ class Manager (object):
             self.cli.execute("cp -R indicies/elasticsearch-basic indicies/%s" % containerName)
         try:
             self.container = Container(containerName)
-        except Exception as e:
+        except:
+            print("Creating container")
             self.cli.execute("docker run -d -it \
                 --cidfile=cids/%s.cid \
                 --name=%s \
@@ -128,9 +146,42 @@ class Manager (object):
                 -v %s/indicies/%s:/var/lib/elasticsearch/ \
                 elasticsearch-kibana:latest \
                 /bin/bash;" % (containerName, containerName, containerName, os.path.dirname(os.path.realpath(__file__)), containerName))
-            # add hosts entry
-        pass
+            
+            self.container = Container(containerName)
+            self.start(True)
 
+    def start(self, writeHostsFile = False):
+        if not self.container.isRunning():
+            self.cli.execute("docker start %s" % self.container.getId())
+            # add hosts entry
+            writeHostsFile = True
+            
+        if writeHostsFile is True:
+            self.container.loadConfig()
+            self.hostsFile.add(self.container.getIpAddress(), self.container.getName())
+
+        self.cli.execute("docker exec %s chown -R elasticsearch:elasticsearch /var/lib/elasticsearch" % self.container.getId())
+        self.cli.execute("docker exec %s service elasticsearch start" % self.container.getId())
+        self.cli.execute("docker exec %s service kibana start" % self.container.getId())
+
+        self.status()
+
+    def stop(self):
+        if self.container.isRunning():
+            self.cli.execute("docker stop %s" % self.container.getId())
+            self.container.loadConfig()
+
+    def restart(self):
+        self.stop()
+        self.start()
+
+    def destroy(self):
+        if self.container.cidfileExists():
+            self.cli.execute("rm cids/%s.cid" % self.container.getName())
+        if os.path.isdir("indicies/%s" % self.container.getName()):
+            self.cli.execute("rm -rf indicies/%s" % self.container.getName())
+        if self.container:
+            self.cli.execute("docker rm -f %s" % self.container.getId())
 
 
 manager = Manager()
