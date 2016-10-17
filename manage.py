@@ -8,11 +8,10 @@ import json
 import argparse
 import subprocess
 from pprint import pprint
-
+import re
 class Cli(object):
 
     def execute(self, command):
-        print(command)
         process = subprocess.Popen(
             command,
             shell=True,
@@ -27,18 +26,56 @@ class Cli(object):
         return output.decode("utf-8").strip()
 
 
-class HostsFile(object):
-
+class Nginx(object):
     cli = Cli()
+    template = "    location /%s { \n\
+      rewrite ^/%s(.*) /$1 break; \n\
+      proxy_pass http://%s:9200; \n\
+    } \n\
+ \n\
+    location /%s/kibana { \n\
+      rewrite ^/%s/kibana/(.*) /$1 break; \n\
+      proxy_pass http://%s:5601; \n\
+    }"
 
+
+    def writeConfig(self, containerName):
+        configString = self.template % (containerName, containerName, containerName, containerName, containerName, containerName)
+        with open("/etc/nginx/elasticsearch.d/%s.conf" % containerName, "w") as configFile:
+            configFile.write(configString)
+        self.cli.execute("service nginx reload")
+
+    def removeConfig(self, containerName):
+        self.cli.execute("rm /etc/nginx/elasticsearch.d/%s.conf" % containerName)
+        self.cli.execute("service nginx reload")
+
+
+class HostsFile(object):
+    cli = Cli()
     def add(self, ip, hostname):
-        with open("/etc/hosts", 'r') as f:
+        with open("/etc/hosts", 'r+') as f:
             hostsfile = f.read()
             pprint(hostsfile.find(hostname))
             if hostsfile.find(hostname) is not -1:
-                self.cli.execute("sed -i 's/.*    %s/%s    %s/g' /etc/hosts" % (hostname, ip, hostname))
+                hostsfile = re.sub(r"\n(.*)    %s\n" % hostname, "\n%s    %s\n" % (ip, hostname), hostsfile)
+                #self.cli.execute("sed -i 's/.*    %s/%s    %s/g' /etc/hosts" % (hostname, ip, hostname))
             else:
-                self.cli.execute("echo '%s    %s' >> /etc/hosts" % (ip, hostname))
+                hostsfile += "%s    %s\n" % (ip, hostname)
+                #self.cli.execute("echo '%s    %s' >> /etc/hosts" % (ip, hostname))
+            f.seek(0)
+            f.write(hostsfile)
+            f.truncate()
+
+    def remove(self, hostname):
+        with open("/etc/hosts", 'r+') as f:
+            hostsfile = f.read()
+            pprint(hostsfile.find(hostname))
+            if hostsfile.find(hostname) is not -1:
+                hostsfile = re.sub(r"\n(.*)    %s\n" % hostname, "\n", hostsfile)
+                #self.cli.execute("sed -i 's/.*    %s/%s    %s/g' /etc/hosts" % (hostname, ip, hostname))
+            f.seek(0)
+            f.write(hostsfile)
+            f.truncate()
 
 
 class Container(object):
@@ -91,11 +128,13 @@ class Manager (object):
 
     container = False
     cli = Cli()
+    nginx = Nginx()
     hostsFile = HostsFile()
 
     def getAvailableCommands(self):
         return [
             "buildImage",
+            "list",
             "status",
             "create",
             "start",
@@ -111,20 +150,33 @@ class Manager (object):
         return cidFiles  
 
     def dispatch(self, command, containerName):
+        result = False
         try:
             methodToCall = getattr(self, command)  
         except:
             # todo: call exception
             raise Exception("Command <%s> not found!" % command)
             sys.exit(1)
-        if command == 'create':
+        if command == 'create' or command == 'list':
             result = methodToCall(containerName)            
         else:
             print("command %s" % command)
             self.container = Container(containerName)
             result = methodToCall()
 
+        return result
+
     # actions
+
+    def list(self, dummy):
+        containers = self.getAvailableContainers()
+        # remove wildcard
+        containers.pop()
+        for container in containers:
+            print(container)
+
+        return True
+
     def status(self):
         print("Container Info")
         print("Name: %s" % self.container.getName())
@@ -148,7 +200,9 @@ class Manager (object):
                 /bin/bash;" % (containerName, containerName, containerName, os.path.dirname(os.path.realpath(__file__)), containerName))
             
             self.container = Container(containerName)
+            self.cli.execute("docker exec %s bash -c \"echo 'server.basePath: \"/%s/kibana\"' >> /opt/kibana/config/kibana.yml\"" % (self.container.getId(), containerName))
             self.start(True)
+            self.nginx.writeConfig(containerName)
 
     def start(self, writeHostsFile = False):
         if not self.container.isRunning():
@@ -183,6 +237,9 @@ class Manager (object):
         if self.container:
             self.cli.execute("docker rm -f %s" % self.container.getId())
 
+        self.nginx.removeConfig(self.container.getName())
+        self.hostsFile.remove(self.container.getName())
+        # handle removing hosts entry
 
 manager = Manager()
 #pprint(manager.getAvailableCommands())
