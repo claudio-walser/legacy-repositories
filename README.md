@@ -47,3 +47,6 @@ http://stackoverflow.com/questions/36266776/kibana-server-basepath-results-in-40
     }
 
 with server.basePath: "/elasticsearch-claudio/kibana" in kibana.yml
+
+## issue a certificate for nginx ##
+https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-14-04
