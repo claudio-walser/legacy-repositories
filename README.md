@@ -28,3 +28,8 @@ sudo docker attach $(cat elasticsearch-claudio.cid)
 
 ## Run commands on running container ##
 sudo docker exec $(cat elasticsearch-claudio.cid) '/usr/sbin/service elasticsearch start && /usr/sbin/service kibana start'
+
+## kibana proxying ## 
+https://www.google.ch/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8&client=ubuntu#q=kibana+nginx+proxy+server.basePath
+https://discuss.elastic.co/t/4-3-0-how-to-configure-your-nginx-balancer-and-apache-reverse-proxy/37351/4
+http://stackoverflow.com/questions/36266776/kibana-server-basepath-results-in-404
