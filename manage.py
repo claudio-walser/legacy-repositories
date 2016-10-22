@@ -29,18 +29,22 @@ class Cli(object):
 class Nginx(object):
     cli = Cli()
     template = "    location /%s { \n\
+      auth_basic \"Protected Elasticsearch\"; \n\
+      auth_basic_user_file /etc/nginx/elasticsearch.d/%s; \n\
       rewrite ^/%s(.*) /$1 break; \n\
       proxy_pass http://%s:9200; \n\
     } \n\
  \n\
     location /%s/kibana { \n\
+      auth_basic \"Protected Elasticsearch\"; \n\
+      auth_basic_user_file /etc/nginx/elasticsearch.d/%s; \n\
       rewrite ^/%s/kibana/(.*) /$1 break; \n\
       proxy_pass http://%s:5601; \n\
     }"
 
 
     def writeConfig(self, containerName):
-        configString = self.template % (containerName, containerName, containerName, containerName, containerName, containerName)
+        configString = self.template % (containerName, containerName, containerName, containerName, containerName, containerName, containerName, containerName)
         with open("/etc/nginx/elasticsearch.d/%s.conf" % containerName, "w") as configFile:
             configFile.write(configString)
         self.cli.execute("service nginx reload")
@@ -49,6 +53,17 @@ class Nginx(object):
         self.cli.execute("rm /etc/nginx/elasticsearch.d/%s.conf" % containerName)
         self.cli.execute("service nginx reload")
 
+class BasicAuth(object):
+
+    cli = Cli()
+
+    def write(self, containerName):
+        pw = self.cli.execute("pwgen --capitalize --numerals --symbols -1 32 1")
+        self.cli.execute("printf \"%s:$(openssl passwd -crypt '%s')\" > /etc/nginx/elasticsearch.d/%s" % (containerName, pw, containerName))
+        print("%s:%s" % (containerName, pw))
+
+    def remove(self, containerName):
+        self.cli.execute("rm  /etc/nginx/elasticsearch.d/%s" % (containerName))
 
 class HostsFile(object):
     cli = Cli()
@@ -130,6 +145,7 @@ class Manager (object):
     cli = Cli()
     nginx = Nginx()
     hostsFile = HostsFile()
+    basicAuth = BasicAuth()
 
     def getAvailableCommands(self):
         return [
@@ -203,6 +219,7 @@ class Manager (object):
             self.cli.execute("docker exec %s bash -c \"echo 'server.basePath: \"/%s/kibana\"' >> /opt/kibana/config/kibana.yml\"" % (self.container.getId(), containerName))
             self.start(True)
             self.nginx.writeConfig(containerName)
+            self.basicAuth.write(containerName)
 
     def start(self, writeHostsFile = False):
         if not self.container.isRunning():
@@ -239,6 +256,7 @@ class Manager (object):
 
         self.nginx.removeConfig(self.container.getName())
         self.hostsFile.remove(self.container.getName())
+        self.basicAuth.remove(self.container.getName())
         # handle removing hosts entry
 
 manager = Manager()
