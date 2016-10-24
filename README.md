@@ -50,3 +50,9 @@ with server.basePath: "/elasticsearch-claudio/kibana" in kibana.yml
 
 ## issue a certificate for nginx ##
 https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-14-04
+
+
+## some resources on ssh reverse tunneling ##
+http://www.thegeekstuff.com/2013/11/reverse-ssh-tunnel/
+http://arlimus.github.io/articles/ssh.reverse.tunnel.security/
+http://www.thegeekstuff.com/2013/11/reverse-ssh-tunnel/#comment-4213156
