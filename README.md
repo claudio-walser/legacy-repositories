@@ -56,3 +56,7 @@ https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-
 http://www.thegeekstuff.com/2013/11/reverse-ssh-tunnel/
 http://arlimus.github.io/articles/ssh.reverse.tunnel.security/
 http://www.thegeekstuff.com/2013/11/reverse-ssh-tunnel/#comment-4213156
+
+
+## scanning traffic with clamav ## 
+http://samiux.blogspot.ch/2015/10/howto-clamav-for-suricata.html
