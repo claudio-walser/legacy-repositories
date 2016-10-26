@@ -161,10 +161,13 @@ class Manager (object):
         ]
 
     def getAvailableContainers(self):
-        cidFiles = os.listdir("cids/*.cid")
-        cidFiles = [cidFile.replace('.cid', '') for cidFile in cidFiles]
-        cidFiles.append('*')
-        return cidFiles  
+        cidFiles = os.listdir("cids")
+        files = []
+        for cidFile in cidFiles:
+            if cidFile.endswith(".cid"):
+                files.append(cidFile.replace('.cid', ''))
+        files.append('*')
+        return files
 
     def dispatch(self, command, containerName):
         result = False
