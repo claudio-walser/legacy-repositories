@@ -161,7 +161,7 @@ class Manager (object):
         ]
 
     def getAvailableContainers(self):
-        cidFiles = os.listdir("cids/")
+        cidFiles = os.listdir("cids/*.cid")
         cidFiles = [cidFile.replace('.cid', '') for cidFile in cidFiles]
         cidFiles.append('*')
         return cidFiles  
