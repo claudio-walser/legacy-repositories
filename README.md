@@ -60,3 +60,7 @@ http://www.thegeekstuff.com/2013/11/reverse-ssh-tunnel/#comment-4213156
 
 ## scanning traffic with clamav ## 
 http://samiux.blogspot.ch/2015/10/howto-clamav-for-suricata.html
+
+
+## setting up secure apt-repo ##
+https://www.digitalocean.com/community/tutorials/how-to-use-reprepro-for-a-secure-package-repository-on-ubuntu-14-04
