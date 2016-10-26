@@ -1,3 +1,6 @@
 indicies/*
+indicies-backup/*
 !indicies/elasticsearch-basic
 cids/*
+
+!*.gitkeep
