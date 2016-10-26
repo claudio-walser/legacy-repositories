@@ -151,6 +151,7 @@ class Manager (object):
         return [
             "buildImage",
             "list",
+            "backup",
             "status",
             "create",
             "start",
@@ -192,6 +193,15 @@ class Manager (object):
             print(container)
 
         return True
+
+    def backup(self, containerName):    
+        if os.path.isdir("indicies-backup/%s" % containerName):
+            self.cli.execute("mv indicies-backup/%s indicies-backup/%s-old" % (containerName, containerName))
+        
+        self.cli.execute("cp -R indicies/%s indicies-backup/%s" % (containerName, containerName))
+
+        if os.path.isdir("indicies-backup/%s-old" % containerName):
+            self.cli.execute("rm -rf indicies-backup/%s-old" % containerName)
 
     def status(self):
         print("Container Info")
