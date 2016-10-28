@@ -197,14 +197,14 @@ class Manager (object):
 
         return True
 
-    def backup(self, containerName):    
-        if os.path.isdir("indicies-backup/%s" % containerName):
-            self.cli.execute("mv indicies-backup/%s indicies-backup/%s-old" % (containerName, containerName))
+    def backup(self):
+        if os.path.isdir("indicies-backup/%s" % self.container.getName()):
+            self.cli.execute("mv indicies-backup/%s indicies-backup/%s-old" % (self.container.getName(), self.container.getName()))
         
-        self.cli.execute("cp -R indicies/%s indicies-backup/%s" % (containerName, containerName))
+        self.cli.execute("cp -R indicies/%s indicies-backup/%s" % (self.container.getName(), self.container.getName()))
 
-        if os.path.isdir("indicies-backup/%s-old" % containerName):
-            self.cli.execute("rm -rf indicies-backup/%s-old" % containerName)
+        if os.path.isdir("indicies-backup/%s-old" % self.container.getName()):
+            self.cli.execute("rm -rf indicies-backup/%s-old" % self.container.getName())
 
     def status(self):
         print("Container Info")
