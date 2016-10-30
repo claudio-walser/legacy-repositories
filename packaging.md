@@ -20,3 +20,6 @@ deb https://apt.uwd.ch/ jessie main
 ## what to package ##
 -Authorized Keys and ES fullchain.pem
 -Suricata Rules
+
+-Suricata 3.0.2
+-jffi
