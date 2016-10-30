@@ -26,6 +26,7 @@ class Cli(object):
 class Service(object):
 
     cli = Cli()
+    containers = []
 
     def getContainer(self):
         containerList = self.cli.execute("./manage.py list")
@@ -33,23 +34,14 @@ class Service(object):
         return containers
 
     def dispatch(self, command):
-        containers = self.getContainer()
-        result = False
-        try:
-            methodToCall = getattr(self, command)  
-        except:
-            # todo: call exception
-            raise Exception("Command <%s> not found!" % command)
-            sys.exit(1)
-        if command == 'create' or command == 'list':
-            result = methodToCall(containerName)            
-        else:
-            print("command %s" % command)
-            self.container = Container(containerName)
-            result = methodToCall()
+        self.containers = self.getContainer()
 
-        return result
-
+        for container in self.containers:
+            print("Call %s for container %s" % (command, container))
+            print("")
+            print(self.cli.execute("./manage.py %s %s" % (command, container)))
+            print("")
+            print("")
 
 parser = argparse.ArgumentParser()
 
@@ -60,6 +52,7 @@ parser.add_argument(
     choices=[
         "start",
         "stop",
+        "restart",
         "status",
         "backup"
     ]
@@ -72,6 +65,6 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
     command = arguments.command
     service = Service()
-    service.getContainer()
+    service.dispatch(command)
 
     sys.exit(0)
