@@ -152,6 +152,7 @@ class Manager (object):
             "buildImage",
             "list",
             "backup",
+            "restore",
             "status",
             "create",
             "start",
@@ -205,6 +206,14 @@ class Manager (object):
 
         if os.path.isdir("indicies-backup/%s-old" % self.container.getName()):
             self.cli.execute("rm -rf indicies-backup/%s-old" % self.container.getName())
+
+    def restore(self):
+        if os.path.isdir("indicies-backup/%s" % self.container.getName()):
+            if os.path.isdir("indicies/%s" % self.container.getName()):
+                self.cli.execute("rm -rf indicies/%s" % self.container.getName())
+            self.cli.execute("cp -R indicies-backup/%s indicies/%s" % (self.container.getName(), self.container.getName()))
+        else:
+            print("No backup found for %s" % self.container.getName())
 
     def status(self):
         print("Container Info")
