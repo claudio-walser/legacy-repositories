@@ -33,7 +33,7 @@ class Service(object):
     containers = []
 
     def getContainer(self):
-        containerList = self.cli.execute("%s/manage.py list" % (basepath))
+        containerList = self.cli.execute("/usr/bin/pyhton3 %s/manage.py list" % (basepath))
         containers = containerList.split("\n")
         return containers
 
@@ -43,7 +43,7 @@ class Service(object):
         for container in self.containers:
             print("Call %s for container %s" % (command, container))
             print("")
-            print(self.cli.execute("%s/manage.py %s %s" % (basepath, command, container)))
+            print(self.cli.execute("/usr/bin/pyhton3 %s/manage.py %s %s" % (basepath, command, container)))
             print("")
             print("")
 
