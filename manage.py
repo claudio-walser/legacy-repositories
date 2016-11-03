@@ -9,8 +9,6 @@ import argparse
 import subprocess
 from pprint import pprint
 import re
-
-basepath = os.path.dirname(os.path.realpath(__file__))
 class Cli(object):
 
     def execute(self, command):
@@ -108,15 +106,15 @@ class Container(object):
         if not self.cidfileExists():
             raise Exception("Container CID File does not exists, create it first by using manage.py create %s" % containerName)
 
-        with open("%s/cids/%s.cid" % (basepath, self.containerName), 'r') as f:
+        with open("cids/%s.cid" % self.containerName, 'r') as f:
             self.containerId = f.read()
 
         if not self.exists():
-            self.cli.execute("rm %s/cids/%s.cid" % (basepath, self.containerName))
+            self.cli.execute("rm cids/%s.cid" % self.containerName)
             raise Exception("Container does not exists, create it first by using manage.py create %s" % containerName)
 
     def cidfileExists(self):
-        return os.path.isfile("%s/cids/%s.cid" % (basepath, self.containerName))
+        return os.path.isfile("cids/%s.cid" % self.containerName)
 
     def exists(self):
         output = self.cli.execute("docker inspect %s" % self.containerId)
@@ -164,7 +162,7 @@ class Manager (object):
         ]
 
     def getAvailableContainers(self):
-        cidFiles = os.listdir("%s/cids" % basepath)
+        cidFiles = os.listdir("cids")
         files = []
         for cidFile in cidFiles:
             if cidFile.endswith(".cid"):
@@ -201,19 +199,19 @@ class Manager (object):
         return True
 
     def backup(self):
-        if os.path.isdir("%s/indicies-backup/%s" % (basepath, self.container.getName())):
-            self.cli.execute("mv %s/indicies-backup/%s %s/indicies-backup/%s-old" % (basepath, self.container.getName(), basepath, self.container.getName()))
+        if os.path.isdir("indicies-backup/%s" % self.container.getName()):
+            self.cli.execute("mv indicies-backup/%s indicies-backup/%s-old" % (self.container.getName(), self.container.getName()))
         
-        self.cli.execute("cp -R %s/indicies/%s %s/indicies-backup/%s" % (basepath, self.container.getName(), basepath, self.container.getName()))
+        self.cli.execute("cp -R indicies/%s indicies-backup/%s" % (self.container.getName(), self.container.getName()))
 
-        if os.path.isdir("%s/indicies-backup/%s-old" % (basepath, self.container.getName())):
-            self.cli.execute("rm -rf %s/indicies-backup/%s-old" % (basepath, self.container.getName()))
+        if os.path.isdir("indicies-backup/%s-old" % self.container.getName()):
+            self.cli.execute("rm -rf indicies-backup/%s-old" % self.container.getName())
 
     def restore(self):
-        if os.path.isdir("%s/indicies-backup/%s" % (basepath, self.container.getName())):
-            if os.path.isdir("%s/indicies/%s" % (basepath, self.container.getName())):
-                self.cli.execute("rm -rf %s/indicies/%s" % (basepath, self.container.getName()))
-            self.cli.execute("cp -R %s/indicies-backup/%s %s/indicies/%s" % (basepath, self.container.getName(), basepath, self.container.getName()))
+        if os.path.isdir("indicies-backup/%s" % self.container.getName()):
+            if os.path.isdir("indicies/%s" % self.container.getName()):
+                self.cli.execute("rm -rf indicies/%s" % self.container.getName())
+            self.cli.execute("cp -R indicies-backup/%s indicies/%s" % (self.container.getName(), self.container.getName()))
         else:
             print("No backup found for %s" % self.container.getName())
 
@@ -225,19 +223,19 @@ class Manager (object):
         print("IPAddress: %s" % self.container.getIpAddress())
 
     def create(self, containerName):
-        if not os.path.isdir("%s/indicies/%s" % (basepath, containerName)):
-            self.cli.execute("cp -R %s/indicies/elasticsearch-basic %s/indicies/%s" % (basepath, basepath, containerName))
+        if not os.path.isdir("indicies/%s" % containerName):
+            self.cli.execute("cp -R indicies/elasticsearch-basic indicies/%s" % containerName)
         try:
             self.container = Container(containerName)
         except:
             print("Creating container")
             self.cli.execute("docker run -d -it \
-                --cidfile=%s/cids/%s.cid \
+                --cidfile=cids/%s.cid \
                 --name=%s \
                 --hostname=%s \
                 -v %s/indicies/%s:/var/lib/elasticsearch/ \
                 elasticsearch-kibana:latest \
-                /bin/bash;" % (basepath, containerName, containerName, containerName, basepath, containerName))
+                /bin/bash;" % (containerName, containerName, containerName, os.path.dirname(os.path.realpath(__file__)), containerName))
             
             self.container = Container(containerName)
             self.cli.execute("docker exec %s bash -c \"echo 'server.basePath: \"/%s/kibana\"' >> /opt/kibana/config/kibana.yml\"" % (self.container.getId(), containerName))
@@ -272,9 +270,9 @@ class Manager (object):
 
     def destroy(self):
         if self.container.cidfileExists():
-            self.cli.execute("rm %s/cids/%s.cid" % (basepath, self.container.getName()))
-        if os.path.isdir("%s/indicies/%s" % (basepath, self.container.getName())):
-            self.cli.execute("rm -rf %s/indicies/%s" % (basepath, self.container.getName()))
+            self.cli.execute("rm cids/%s.cid" % self.container.getName())
+        if os.path.isdir("indicies/%s" % self.container.getName()):
+            self.cli.execute("rm -rf indicies/%s" % self.container.getName())
         if self.container:
             self.cli.execute("docker rm -f %s" % self.container.getId())
 
