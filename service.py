@@ -7,9 +7,6 @@ import subprocess
 import sys
 from pprint import pprint
 
-
-basepath = os.path.dirname(os.path.realpath(__file__))
-
 class Cli(object):
 
     def execute(self, command):
@@ -32,7 +29,7 @@ class Service(object):
     containers = []
 
     def getContainer(self):
-        containerList = self.cli.execute("%s/manage.py list" % (basepath))
+        containerList = self.cli.execute("./manage.py list")
         containers = containerList.split("\n")
         return containers
 
@@ -42,7 +39,7 @@ class Service(object):
         for container in self.containers:
             print("Call %s for container %s" % (command, container))
             print("")
-            print(self.cli.execute("%s/manage.py %s %s" % (basepath, command, container)))
+            print(self.cli.execute("./manage.py %s %s" % (command, container)))
             print("")
             print("")
 
