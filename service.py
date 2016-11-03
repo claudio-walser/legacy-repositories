@@ -5,7 +5,6 @@ import argparse
 import argcomplete
 import subprocess
 import sys
-import os
 from pprint import pprint
 
 
