@@ -1,3 +1,6 @@
+# abandoned
+since i am using docker for a while
+
 # knack - vmware-api-client #
 Its my own vmware managing script, since i dont want to buy 
 the vagrant provider for vmware, i just made my own tool.
