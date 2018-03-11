@@ -1,0 +1,6 @@
+:backends:
+  - yaml
+:hierarchy:
+  - 'global'
+:yaml:
+  :datadir: /etc/puppet/hieradata/

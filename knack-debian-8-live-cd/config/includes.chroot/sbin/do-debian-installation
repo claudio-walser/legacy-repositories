@@ -1,0 +1,384 @@
+#!/bin/bash
+
+#DEBUG#set -x
+
+. /sbin/bashlib
+
+lvm_volume_group_name_system="SRFlvmSystem"
+lvm_volume_group_name_data="LvmData"
+root_volume_filesystem="ext4"
+root_volume_mount_options="defaults,nobarrier"
+swap_size="4G"
+timezone="Europe/Zurich"
+locale="de_CH.UTF-8"
+installer_noreboot=0
+
+if [ "$1" == "--noreboot" ]; then
+  installer_noreboot=1
+fi
+
+DEBIAN_APT_MIRROR="http://cdn.debian.net/debian"
+DEBIAN_DISTRIBUTION="jessie"
+DEBIAN_COMPONENTS="main contrib non-free"
+DEBIAN_EXTRA_PACKAGES="grub-pc lvm2 mdadm e2tools pwgen openssh-server vim less kbd ntp tzdata locales"
+
+
+### The Debian live-cd needs a restart of udev to have LVM working properly
+/etc/init.d/udev restart
+
+
+### Update our package list
+apt-get update
+
+### Install (and start) lvm2
+ymc_install_package lvm2
+
+### We will need some additional packages for the installer, but do not
+### want them to execute their init-scripts during install...
+### Add a policy-flag for that!
+echo '#!/bin/sh'> /usr/sbin/policy-rc.d
+echo 'exit 101' >> /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
+
+### Install some additional packages needed by this installer
+ymc_install_package mdadm parted debootstrap syslinux
+
+### Now we can safely remove the policy-flag, again...
+rm -f /usr/sbin/policy-rc.d
+
+### Stop lvm
+/etc/init.d/lvm2 stop
+vgchange -a n
+
+### Stop all software raids
+/etc/init.d/mdadm-raid stop
+
+### Drop LVM physical volumes
+ymc_purge_old_lvm_physical_volumes
+
+### Stop all sw-raids
+ymc_stop_all_software_raids
+
+### Process all disks...
+drives=$(ymc_get_harddrives)
+currently_processing_drive=0
+boot_partitions=""
+boot_drives=""
+
+for drive in $drives
+do
+  currently_processing_drive=$(expr $currently_processing_drive + 1)
+
+  ### Drop out existing partitions
+  parted --script --align=opt /dev/$drive "mklabel GPT"
+  ymc_minimal_clean_block_device /dev/$drive
+
+  ### CReate a GPT partition table on now empty device
+  parted --script --align=opt /dev/$drive "mklabel GPT"
+
+  echo "Reserving 3 MB on $drive for the bios grub partition..."
+  parted --script --align=opt /dev/$drive "mkpart grub 1MiB 4MiB"
+  parted --script --align=opt /dev/$drive "set 1 bios_grub on"
+  ymc_wait_for_partition_to_appear /dev/$drive'1'
+  ymc_minimal_clean_block_device /dev/$drive'1'
+
+  echo "Reserving ~256 MB on $drive for the boot partition..."
+  parted --script --align=opt /dev/$drive "mkpart boot 4MiB 256MiB"
+  parted --script --align=opt /dev/$drive "set 2 raid on"
+  ymc_wait_for_partition_to_appear /dev/$drive'2'
+  ymc_minimal_clean_block_device /dev/$drive'2'
+
+  echo "Leaving the rest of available space on $drive to LVM..."
+  parted --script --align=opt /dev/$drive "mkpart lvm 256MiB -1MiB"
+  parted --script --align=opt /dev/$drive "set 3 lvm on"
+  ymc_wait_for_partition_to_appear /dev/$drive'3'
+  ymc_minimal_clean_block_device /dev/$drive'3'
+
+  ### Make sure the kernel is aware of the new partitions
+  ymc_wait_for_partition_to_appear /dev/$drive
+
+  boot_partition='/dev/'$(ymc_get_partition_for_drive_by_num $drive 2)
+  boot_partitions="$boot_partitions $boot_partition"
+  boot_drives="$boot_drives /dev/$drive"
+  lvm_partition='/dev/'$(ymc_get_partition_for_drive_by_num $drive 3)
+
+  ### Kill a possibly existing LVM physical volume on our freshly setup device (just in case...)
+  pvremove -ff -y $lvm_partition 1>/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    echo "Killed an old LVM-PV on '$lvm_partition'"
+  fi
+
+  ### Create the LVM physical volume
+  pvcreate -ff $lvm_partition
+
+  if [ $currently_processing_drive -eq 1 ]; then
+    ### The first drive always is used for the system
+    vgcreate $lvm_volume_group_name_system $lvm_partition
+  elif [ $currently_processing_drive -eq 2 ]; then
+    ### The second drive always is used for data
+    vgcreate $lvm_volume_group_name_data $lvm_partition
+  else
+    ### Any other drive is used for data, as well...
+    vgextend $lvm_volume_group_name_data $lvm_partition
+  fi
+done
+
+### Create the boot-sw-raid1
+force_one_device=''
+count_all_boot_partitions=$(echo $boot_partitions | wc -w)
+if [ $count_all_boot_partitions -eq 1 ]; then
+  force_one_device='--force'
+fi
+
+mdadm --create --run /dev/md0 \
+      --level=1 \
+      $force_one_device \
+      --raid-devices=$count_all_boot_partitions \
+      --metadata=1.2 \
+      $boot_partitions
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to create the boot-raid" 1>&2
+  exit 1
+fi
+
+### Create an ext2 filesystem for the boot device
+mkfs.ext2 /dev/md0
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to create an ext2 filesystem on the boot-partition" 1>&2
+  exit 1
+fi
+
+### Create a logical volume for use as swap
+lvcreate -n Swap --size $swap_size $lvm_volume_group_name_system
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to create a logical volume for use as swap device"
+  exit 1
+fi
+swap_volume_path="/dev/$lvm_volume_group_name_system/Swap"
+
+### Format the swap device
+echo "INFO: Generating SWAP on '$swap_volume_path'"
+mkswap -f $swap_volume_path
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to generate SWAP on volume '$swap_volume_path'"
+  exit 1
+fi
+
+### Create a logical volume for the root volume using all remaining
+### space in the system volume group
+lvcreate -n Root --extents 100%FREE $lvm_volume_group_name_system
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to create a logical volume for the root volume"
+  exit 1
+fi
+root_volume_path="/dev/$lvm_volume_group_name_system/Root"
+
+### Generate the filesystem for the root volume
+echo "INFO: Generating a filesystem of type '$root_volume_filesystem' on '$root_volume_path'"
+mkfs.$root_volume_filesystem $root_volume_path
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to create a filesystem of type '$root_volume_filesystem' on volume '$volume_config_name'"
+  exit 1
+fi
+
+### Start lvm
+/etc/init.d/lvm2 start
+
+### Mount the root voulme
+target_dir="/mnt/install/root"
+arch=$(dpkg --print-architecture)
+if [ -b "$root_volume_path" ]; then
+  mkdir -p $target_dir
+  mount -o $root_volume_mount_options $root_volume_path $target_dir
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to mount the root-partition"
+    exit 1
+  fi
+else
+  echo "ERROR: Failed to create the root-partition"
+  exit 1
+fi
+
+### Install the base system...
+echo "INFO: Installing the base system..."
+echo "INFO: Calling debootstrap - this might take a while..."
+debootstrap --verbose --include=$(echo $DEBIAN_EXTRA_PACKAGES | sed -r 's/[[:space:]]+/,/g') --components=$(echo $DEBIAN_COMPONENTS | sed -r 's/[[:space:]]+/,/g') $DEBIAN_DISTRIBUTION $target_dir $DEBIAN_APT_MIRROR
+if [ $? -ne 0 ] || [ ! -d "$target_dir/boot" ]; then
+  echo "ERROR: Failed to setup the base system - removing it!" 1>&2
+  rm -rf $target_dir/*
+  exit 1
+fi
+
+### Write an initial fstab
+echo "# /etc/fstab: static file system information." >> $target_dir/etc/fstab
+echo "#" >> $target_dir/etc/fstab
+echo "# <file system>                                  <mount point>             <type>     <options>            <dump>  <pass>" >> $target_dir/etc/fstab
+echo "proc                                             /proc                     proc       defaults             0       0" >> $target_dir/etc/fstab
+echo "/dev/md0                                         /boot                     ext2       defaults             0       2" >> $target_dir/etc/fstab
+echo "$swap_volume_path  none  swap  sw,pri=1  0  0" >> $target_dir/etc/fstab
+echo "$root_volume_path  /  $root_volume_filesystem  $root_volume_mount_options  0  1" >> $target_dir/etc/fstab
+
+### Prepare the chroot
+ymc_prepare_chroot
+
+### Update apt package lists now we have all repos in place
+chroot_exec apt-get update || exit 1
+
+### Upgrade the system (just in case)
+chroot_exec apt-get --yes upgrade
+chroot_exec apt-get --yes dist-upgrade
+
+### Generate an initial kernel-img.conf on the new system
+echo "# Kernel Image management overrides" > $target_dir/etc/kernel-img.conf
+echo "# See kernel-img.conf(5) for details" >> $target_dir/etc/kernel-img.conf
+echo "do_symlinks = yes" >> $target_dir/etc/kernel-img.conf
+echo "relative_links = yes" >> $target_dir/etc/kernel-img.conf
+echo "do_bootloader = no" >> $target_dir/etc/kernel-img.conf
+echo "do_bootfloppy = no" >> $target_dir/etc/kernel-img.conf
+echo "do_initrd = yes" >> $target_dir/etc/kernel-img.conf
+echo "link_in_boot = yes" >> $target_dir/etc/kernel-img.conf
+echo "postinst_hook = update-grub" >> $target_dir/etc/kernel-img.conf
+echo "postrm_hook   = update-grub" >> $target_dir/etc/kernel-img.conf
+
+chroot_exec ifdown eth0
+chroot_exec ifdown eth1
+
+### Configure essential networking on the new system
+echo "auto lo" > $target_dir/etc/network/interfaces
+echo "iface lo inet loopback" >> $target_dir/etc/network/interfaces
+
+echo "" >> $target_dir/etc/network/interfaces
+echo "auto eth0" >> $target_dir/etc/network/interfaces
+echo "iface eth0 inet dhcp" >> $target_dir/etc/network/interfaces
+
+# default static one for reach the puppet master on 10.20.1.2
+echo "" >> $target_dir/etc/network/interfaces
+echo "auto eth1" >> $target_dir/etc/network/interfaces
+echo "iface eth1 inet dhcp" >> $target_dir/etc/network/interfaces
+
+chroot_exec ifup eth0
+chroot_exec ifup eth1
+
+    
+### Set the timezone
+if [ "$timezone" != '' ]; then
+  echo "$timezone" > $target_dir/etc/timezone
+  chroot_exec dpkg-reconfigure tzdata
+  if [ $? -ne 0 ]; then
+    if [ -f "$target_dir/usr/share/zoneinfo/$timezone" ]; then
+      cp -f $target_dir/usr/share/zoneinfo/$timezone $target_dir/etc/localtime
+    else
+      echo "ERROR: Failed to setup timezone..."
+      exit 1
+    fi
+  fi
+else
+  echo "WARNING: No timezone configured..."
+fi
+
+### Set default locale
+if [ "$locale" != '' ]; then
+  echo "LANG=$locale" > $target_dir/etc/default/locale
+  sed -ri "s/^#[[:space:]]+($locale.*)/\1/" $target_dir/etc/locale.gen
+  chroot_exec locale-gen
+  chroot_exec /usr/sbin/update-locale --no-checks LANG
+  chroot_exec /usr/sbin/update-locale "LANG=$locale"
+else
+  echo "WARNING: No default locale configured..."
+fi
+
+### Mount the boot volume in the chroot
+echo "INFO: Mounting /boot in chroot..."
+chroot_exec mount /boot
+if [ $? -ne 0 ]; then
+  echo "ERROR: Could not mount /boot in chroot!" 1>&2
+  exit 1
+fi
+
+### Install grub on all devices
+sorted_boot_drives=$(echo $(echo $boot_drives | sed -r 's/ /\n/g' | sort))
+for boot_drive in $sorted_boot_drives
+do
+  echo "INFO: Installing grub on device $boot_drive"
+  chroot_exec grub-install --no-floppy $boot_drive
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to install grub on device $boot_drive" 1>&2
+    exit 1
+  fi
+done
+
+### Install additional packages
+echo "INFO: Installing kernel..."
+chroot_exec apt-get --yes install linux-image-amd64
+
+### We do not want a quiet boot...
+sed -ri '/^GRUB_CMDLINE_LINUX_DEFAULT=.*/s/quiet//g' $target_dir/etc/default/grub
+
+### We do not want graphical output in grub, but simply the text-console
+sed -ri 's/^#?GRUB_TERMINAL=.*/GRUB_TERMINAL=console/g' $target_dir/etc/default/grub
+
+### Update grub, to recognize changes
+echo "INFO: Updating grub..."
+chroot_exec update-grub
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to update grub" 1>&2
+  exit 1
+fi
+
+### Add a script to set a temporary root password during first boot
+mv $target_dir/etc/rc.local $target_dir/etc/rc.local.INSTALLER_ORIG
+cat <<-EOF > $target_dir/etc/rc.local
+#!/bin/bash
+
+root_pw=1234
+
+  echo "root:\$root_pw" | chpasswd
+  if [ \$? -ne 0 ]; then
+    echo "ERROR: Failed to set temporary random root-password" 1>&2
+  fi
+
+
+### Self destruct...
+mv /etc/rc.local.INSTALLER_ORIG /etc/rc.local || \
+ rm -f /etc/rc.local || \
+ echo "" > etc/rc.local || \
+ echo "WARNING: Self destruct of the temporary password-setter, used on initial boot, just failed..." 1>&2
+EOF
+chmod 755 $target_dir/etc/rc.local
+
+### install vmware-tools and delete installation folder afterwards
+chroot_exec apt-get --yes install linux-headers-.*-all-amd64
+chroot_exec apt-get --yes install open-vm-tools
+
+cp -r /vmware-tools $target_dir/vmware-tools
+#chroot_exec apt-get --yes install gcc cpp make automake autoconf binutils psmisc;
+# use regex to install the right linux headers, uname hack doesent work for me in jessie
+#chroot_exec /vmware-tools/vmware-install.pl -d;
+#chroot_exec rm -rf /vmware-tools
+
+### Release the chroot
+ymc_unprepare_chroot
+
+### Stop lvm
+echo "INFO: Stopping lvm-volumes..."
+vgchange -a n
+
+### If we have more than one disk in the system, make
+### sure the boot-raid gets synced
+if [ "$force_one_device" = '' ]; then
+  ymc_wait_for_boot_device_to_be_synced
+fi
+
+### System should be installed by now
+echo "INFO: Base system installed!"
+
+if [ $installer_noreboot -ne 1 ]; then
+  ### Reboot if necessary...
+  echo "INFO: Rebooting system..."
+  reboot
+else
+  echo "INFO: Not rebooting system, as option '--noreboot' has been given"
+fi
+
+
+exit 0
