@@ -1,0 +1,5 @@
+class gitlab::worker {
+
+	#todo
+	
+}
