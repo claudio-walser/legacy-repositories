@@ -1,0 +1,3 @@
+#!/bin/sh
+
+insserv /etc/init.d/livecd-system
