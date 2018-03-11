@@ -1,0 +1,232 @@
+# global configuration
+profile-minimal::users:
+  claudio:
+    ensure: 'present'
+    groups: 'sudo'
+    # limitation: just one ssh key per user yet
+    ssh_key: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDr7a2SJhk6m+dVl37qGjyAv6NeZY3Qk/WKdKRABhK9PM3tixbXvsuc+yxi0+vJ057QdfjQAcgaszNOiedvqtT5TOMlKnd0LaLxMWnQ0jVqsqbPyv8BdUtYa91VAvwxghcTa6RgoyQN8QO6b5GBtUewDjbaIa4aVyKjaUF8Ffq2SoamK/WqJPQXgnn0i96JlaXCoS5TS8MOQbiffmC9PhrqPzXAHgPcvfsNjk85UyL4w2r8Jwn37qrpRZDLk3ggey64haDKmPESNNia6OyqarkWcNsrLxzkUfdjVXzDPYmYkjN4bbCH88rkZZH6KnEBdcvdCQsQWrdm6xjuhs7uUZ7n claudio@dev.local'
+    no_passwd: true
+    shell: '/bin/bash'
+
+
+
+## role configurations
+
+# mysql servers
+role::mysql::root_password: '1234'
+role::mysql::databases:
+  # ensure test is absent
+  test:
+    ensure: 'absent'
+    user: 'test'
+    password: 'test'
+
+  webshell:
+    ensure: 'present'
+    user: 'webshell'
+    password: 'webshell'
+    grant: 'ALL PRIVILEGES'
+    charset: 'utf8'
+    collate: 'utf8_general_ci'
+    host: '%'
+
+  scrum:
+    ensure: 'present'
+    user: 'scrum'
+    password: 'scrum'
+    grant: 'ALL PRIVILEGES'
+    charset: 'utf8'
+    collate: 'utf8_general_ci'
+    host: '%'
+
+  my-traces:
+    ensure: 'present'
+    user: 'my-traces'
+    password: 'MyTraC3s@DEv3lOpMENt'
+    grant: 'ALL PRIVILEGES'
+    charset: 'utf8'
+    collate: 'utf8_general_ci'
+    host: '%'
+
+
+# web servers
+role::web::vhosts:
+  quaxi.%{fqdn}:
+    server_name: "quaxi.%{fqdn}"
+    server_aliases: 
+      - quaxi.%{hostname}
+
+    proxy_name: "quaxi.%{domain}"
+    proxy_aliases: 
+      - quaxi
+
+    php: true
+    php_root: '/var/www/srf-dev/quaxi'
+    root: '/var/www/srf-dev/quaxi'
+    entry_on_default_host: true
+
+
+  webshell.%{fqdn}:
+    server_name: "webshell.%{fqdn}"
+    server_aliases: 
+      - webshell.%{hostname}
+
+    proxy_name: "webshell.%{domain}"
+    proxy_aliases: 
+      - webshell
+
+    php: true
+    php_root: '/var/www/webshell'
+    root: '/var/www/webshell'
+    entry_on_default_host: true
+
+  scrum.%{fqdn}:
+    server_name: "scrum.%{fqdn}"
+    server_aliases: 
+      - scrum.%{hostname}
+
+    proxy_name: "scrum.%{domain}"
+    proxy_aliases: 
+      - scrum
+
+    php: true
+    php_root: '/var/www/scrum'
+    root: '/var/www/scrum'
+    entry_on_default_host: true
+
+  example.spaf.%{fqdn}:
+    server_name: "example.spaf.%{fqdn}"
+    server_aliases: 
+      - example.spaf.%{hostname}
+
+    proxy_name: "example.spaf.%{domain}"
+    proxy_aliases: 
+      - example.spaf
+
+    php: true
+    php_root: '/var/www/SpafExample'
+    root: '/var/www/SpafExample'
+    entry_on_default_host: true
+
+
+  test.%{fqdn}:
+    server_name: "test.%{fqdn}"
+    server_aliases: 
+      - test.%{hostname}
+
+    proxy_name: "test.%{domain}"
+    proxy_aliases: 
+      - test
+
+    php: true
+    php_root: '/var/www/test'
+    root: '/var/www/test'
+    entry_on_default_host: true
+
+
+  phpdocumentor.%{fqdn}:
+    server_name: "phpdocumentor.%{fqdn}"
+    server_aliases: 
+      - phpdocumentor.%{hostname}
+
+    proxy_name: "phpdocumentor.%{domain}"
+    proxy_aliases: 
+      - phpdocumentor
+
+    php: true
+    php_root: '/var/www/phpdocumentor'
+    root: '/var/www/phpdocumentor'
+    entry_on_default_host: true
+
+  orm.%{fqdn}:
+    server_name: "orm.%{fqdn}"
+    server_aliases: 
+      - orm.%{hostname}
+
+    proxy_name: "orm.%{domain}"
+    proxy_aliases: 
+      - orm
+
+    php: true
+    php_root: '/var/www/orm'
+    root: '/var/www/orm'
+    entry_on_default_host: true
+
+
+  cdn.%{fqdn}:
+    server_name: "cdn.%{fqdn}"
+    server_aliases: 
+      - cdn.%{hostname}
+
+    proxy_name: "cdn.%{domain}"
+    proxy_aliases: 
+      - cdn
+
+    php: false
+    root: '/var/www/cdn'
+    entry_on_default_host: true
+
+  www.my-traces.%{fqdn}:
+    server_name: "my-traces.%{fqdn}"
+    server_aliases: 
+      - my-traces.%{hostname}
+      - www.my-traces.%{hostname}
+
+    proxy_name: "my-traces.%{domain}"
+    proxy_aliases: 
+      - my-traces
+      - www.my-traces
+      - www.my-traces.%{domain}
+
+    php: true
+    root: '/var/www/www.my-traces.com'
+    entry_on_default_host: true
+  api.my-traces.%{fqdn}:
+    server_name: "api.my-traces.%{fqdn}"
+    server_aliases: 
+      - api.my-traces.%{hostname}
+
+    proxy_name: "api.my-traces.%{domain}"
+    proxy_aliases: 
+      - api.my-traces
+
+    php: true
+    root: '/var/www/api.my-traces.com'
+    entry_on_default_host: true
+
+
+# repositories to checkout
+role::web::gitRepositories:
+  Cwa:
+    target_directory: '/var/www/Cwa'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/cwa.git'
+  Spaf:
+    target_directory: '/var/www/Spaf'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/spaf.git'
+  SpafExample:
+    target_directory: '/var/www/SpafExample'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/spafexample.git'
+  Test:
+    target_directory: '/var/www/test'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/test.git'
+  PhpDocumentor:
+    target_directory: '/var/www/phpdocumentor'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/cwadocumentorinterface.git'
+  PhpDocumentor:
+    target_directory: '/var/www/orm'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/cwaorminterface.git'
+  WebShell:
+    target_directory: '/var/www/webshell'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/webshell.git'
+  Scrum:
+    target_directory: '/var/www/scrum'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/scrum.git'
+  Extjs:
+    target_directory: '/var/www/cdn/extjs'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/extjs.git'
+  MyTraces:
+    target_directory: '/var/www/www.my-traces.com'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/www-my-traces-com.git'
+  ApiMyTraces:
+    target_directory: '/var/www/api.my-traces.com'
+    repo_url: 'http://git-01.development.claudio.dev/claudio.walser/api-my-traces-com.git'

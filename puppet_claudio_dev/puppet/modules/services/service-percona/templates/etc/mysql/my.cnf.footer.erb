@@ -1,0 +1,22 @@
+
+
+# In order for Galera to work correctly binlog format should be ROW
+binlog_format=ROW
+
+# MyISAM storage engine has only experimental support
+default_storage_engine=InnoDB
+
+# This changes how InnoDB autoincrement locks are managed and is a requirement for Galera
+innodb_autoinc_lock_mode=2
+
+# Node #1 address
+wsrep_node_address=<%= @ipaddress_eth0 -%>
+
+# SST method
+wsrep_sst_method=xtrabackup
+
+# Cluster name
+wsrep_cluster_name=<%= @cluster_name -%>
+
+# Authentication for SST method
+wsrep_sst_auth="<%= @sst_user -%>:<%= @sst_pass -%>"
