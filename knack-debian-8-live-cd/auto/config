@@ -1,0 +1,22 @@
+#!/bin/sh
+
+set -e
+
+lb config noauto \
+  --mode debian \
+  --architectures amd64 \
+  --binary-images iso-hybrid \
+  --bootstrap debootstrap \
+  --debian-installer false \
+  --distribution jessie \
+  --memtest memtest86+ \
+  --system live \
+  --security true \
+  --source false \
+  --updates true \
+  --backports false \
+  --bootappend-live "boot=live config noeject" \
+  --archive-areas "main contrib non-free" \
+  --iso-application "Claudios Test" \
+  --iso-publisher "claudio@claudio.dev" \
+  "${@}"
